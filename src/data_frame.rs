@@ -71,14 +71,62 @@ pub trait DataFrames<'a, T: ?Sized> {
     unsafe fn offset(&self, fragment: &'_ T) -> usize;
 }
 
+/// Returns the union of the two &str slices.
+///
+/// Safety:
+/// There are assertions that the offsets for the result are within the
+/// bounds of buf.
+///
+/// But it can't be assured that first and second are derived from buf,
+/// so UB cannot be ruled out.
+///
+/// So the prerequisite is that both first and second are derived from buf.
+pub unsafe fn str_union(buf: &str, first: &str, second: &str) -> &str {
+    let union = slice_union(buf.as_bytes(), first.as_bytes(), second.as_bytes());
+    // both parts where &str, so offset_1, offset_2 and second.len()
+    // must obey the utf8 boundaries.
+    from_utf8_unchecked(union)
+}
+
+/// Returns the union of the two slices.
+///
+/// Safety:
+/// There are assertions that the offsets for the result are within the
+/// bounds of buf.
+///
+/// But it can't be assured that first and second are derived from buf,
+/// so UB cannot be ruled out.
+///
+/// So the prerequisite is that both first and second are derived from buf.
+pub unsafe fn slice_union(buf: &[u8], first: &[u8], second: &[u8]) -> &[u8] {
+    unsafe {
+        // fragment_offset checks for a negative offset.
+        let offset_1 = finder::fragment_offset(buf, first);
+        assert!(offset_1 <= buf.len);
+
+        // fragment_offset checks for a negative offset.
+        let offset_2 = finder::fragment_offset(buf, second);
+        assert!(offset_2 <= buf.len);
+
+        // correct ordering
+        assert!(offset1 <= offset_2);
+
+        &buf[offset_1..offset_2 + second.len()]
+    }
+}
+
 mod byte_frames {
     use crate::data_frame::finder;
     use crate::data_frame::DataFrames;
 
-    /// Implements DataFrames for a &str buffer.
+    /// Implements DataFrames for a &[u8] buffer.
     ///
-    /// This uses '\n' as frame separator, as in 'give me lines of text'.
+    /// The default DELIMiter is \n for lines of text, but can be overridden with
+    /// any other byte-value.
     ///
+    /// Safety:
+    /// utf8_column and naive_utf8_column can be used regardless of the DELIMiter,
+    /// but the results might not meet your expectations.
     #[derive(Debug, Clone)]
     pub struct ByteFrames<'s, const DELIM: u8 = b'\n'> {
         buf: &'s [u8],
@@ -90,18 +138,34 @@ mod byte_frames {
             Self { buf }
         }
 
-        /// 0-based column index, assuming ascii text.
+        /// 0-based column index of the fragment with respect to the previous fragment boundary.
+        /// This is assuming all is ascii text.
+        ///
+        /// Safety:
+        /// The fragment really has to be a fragment of buf.
         pub unsafe fn ascii_column(&self, fragment: &[u8]) -> usize {
             finder::ascii_column(self.buf, fragment, DELIM)
         }
 
-        /// 0-based column index for utf8 text.
+        /// 0-based column index of the fragment with respect to the previous fragment boundary.
+        /// This is counting UTF-8 encoded Unicode codepoints.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        //
+        /// If the delimiter is one of the utf8 special bytes this doesn't break,
+        /// but the result might not meet your expectation.
         pub unsafe fn utf8_column(&self, fragment: &[u8]) -> usize {
             finder::utf8_column(self.buf, fragment, DELIM)
         }
 
-        /// 0-based column index for utf8 text.
+        /// 0-based column index of the fragment with respect to the previous fragment boundary.
+        /// This is counting UTF-8 encoded Unicode codepoints.
         /// Naive implementation, might do better in some situations.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        //
+        /// If the delimiter is one of the utf8 special bytes this doesn't break,
+        /// but the result might not meet your expectation.
         pub unsafe fn naive_utf8_column(&self, fragment: &[u8]) -> usize {
             finder::naive_utf8_column(self.buf, fragment, DELIM)
         }
@@ -114,12 +178,16 @@ mod byte_frames {
         type RevIter = RByteSliceIter<'s, DELIM>;
 
         /// First full line for the fragment.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn start(&self, fragment: &'_ [u8]) -> Self::Frame {
             let buf = finder::current_frame(self.buf, fragment, DELIM);
             finder::current_frame(buf, &buf[0..0], DELIM)
         }
 
         /// Last full line for the fragment.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn end(&self, fragment: &'_ [u8]) -> Self::Frame {
             let buf = finder::current_frame(self.buf, fragment, DELIM);
             let len = buf.len();
@@ -127,6 +195,8 @@ mod byte_frames {
         }
 
         /// Expand the fragment to cover full lines and return an Iterator for the lines.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn current(&self, fragment: &[u8]) -> Self::Iter {
             ByteSliceIter {
                 buf: finder::current_frame(self.buf, fragment, DELIM),
@@ -143,6 +213,8 @@ mod byte_frames {
         }
 
         /// Iterator over the lines following the last line of the fragment.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn forward_from(&self, fragment: &[u8]) -> Self::FwdIter {
             let current = self.end(fragment);
             FByteSliceIter {
@@ -153,6 +225,8 @@ mod byte_frames {
 
         /// Iterator over the lines preceeding the first line of the fragment.
         /// In descending order.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn backward_from(&self, fragment: &[u8]) -> Self::RevIter {
             let current = self.start(fragment);
             RByteSliceIter {
@@ -162,6 +236,8 @@ mod byte_frames {
         }
 
         /// Offset in the buffer.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn offset(&self, fragment: &[u8]) -> usize {
             finder::fragment_offset(self.buf, fragment)
         }
@@ -177,6 +253,8 @@ mod byte_frames {
         type Item = &'s [u8];
 
         fn next(&mut self) -> Option<Self::Item> {
+            // if the constraints where upheld at creation we can be sure
+            // nothing bad additionally happens.
             unsafe {
                 if let Some(fragment) = self.fragment {
                     let (fragment, result) = finder::next_frame(self.buf, fragment, DELIM);
@@ -201,6 +279,8 @@ mod byte_frames {
         type Item = &'s [u8];
 
         fn next(&mut self) -> Option<Self::Item> {
+            // if the constraints where upheld at creation we can be sure
+            // nothing bad additionally happens.
             unsafe {
                 let (fragment, result) = finder::next_frame(self.buf, self.fragment, DELIM);
                 self.fragment = fragment;
@@ -219,6 +299,8 @@ mod byte_frames {
         type Item = &'s [u8];
 
         fn next(&mut self) -> Option<Self::Item> {
+            // if the constraints where upheld at creation we can be sure
+            // nothing bad additionally happens.
             unsafe {
                 let (fragment, result) = finder::prev_frame(self.buf, self.fragment, DELIM);
 
@@ -252,19 +334,30 @@ mod str_lines {
             Self { buf }
         }
 
-        /// 0-based column index, assuming ascii text.
+        /// 0-based column index of the fragment with respect to the previous fragment boundary.
+        /// This is assuming all is ascii text.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
         pub unsafe fn ascii_column(&self, fragment: &str) -> usize {
             finder::ascii_column(self.buf.as_bytes(), fragment.as_bytes(), DELIM)
         }
 
-        /// 0-based column index for utf8 text.
+        /// 0-based column index of the fragment with respect to the previous fragment boundary.
+        /// This is counting UTF-8 encoded Unicode codepoints.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
         pub unsafe fn utf8_column(&self, fragment: &str) -> usize {
+            // \n is none of the utf8 specials so at least we can be sure of the count.
             finder::utf8_column(self.buf.as_bytes(), fragment.as_bytes(), DELIM)
         }
 
-        /// 0-based column index for utf8 text.
+        /// 0-based column index of the fragment with respect to the previous fragment boundary.
+        /// This is counting UTF-8 encoded Unicode codepoints.
         /// Naive implementation, might do better in some situations.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
         pub unsafe fn naive_utf8_column(&self, fragment: &str) -> usize {
+            // \n is none of the utf8 specials so at least we can be sure of the count.
             finder::naive_utf8_column(self.buf.as_bytes(), fragment.as_bytes(), DELIM)
         }
     }
@@ -280,6 +373,8 @@ mod str_lines {
         /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn start(&self, fragment: &'_ str) -> Self::Frame {
             let buf = finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM);
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
             from_utf8_unchecked(finder::current_frame(buf, &buf[0..0], DELIM))
         }
 
@@ -289,6 +384,8 @@ mod str_lines {
         unsafe fn end(&self, fragment: &'_ str) -> Self::Frame {
             let buf = finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM);
             let len = buf.len();
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
             from_utf8_unchecked(finder::current_frame(buf, &buf[len..len], DELIM))
         }
 
@@ -297,6 +394,8 @@ mod str_lines {
         /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn current(&self, fragment: &str) -> Self::Iter {
             StrIter {
+                // \n is none of the utf8 specials, so as all inputs are str
+                // the result must be too.
                 buf: from_utf8_unchecked(finder::current_frame(
                     self.buf.as_bytes(),
                     fragment.as_bytes(),
@@ -355,6 +454,8 @@ mod str_lines {
         type Item = &'s str;
 
         fn next(&mut self) -> Option<Self::Item> {
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
             unsafe {
                 if let Some(fragment) = self.fragment {
                     let (fragment, result) =
@@ -386,6 +487,8 @@ mod str_lines {
         type Item = &'s str;
 
         fn next(&mut self) -> Option<Self::Item> {
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
             unsafe {
                 let (fragment, result) =
                     finder::next_frame(self.buf.as_bytes(), self.fragment.as_bytes(), DELIM);
@@ -406,6 +509,8 @@ mod str_lines {
         type Item = &'s str;
 
         fn next(&mut self) -> Option<Self::Item> {
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
             unsafe {
                 let (fragment, result) =
                     finder::prev_frame(self.buf.as_bytes(), self.fragment.as_bytes(), DELIM);
@@ -419,13 +524,23 @@ mod str_lines {
 
 mod strings {
     use crate::data_frame::finder::undo_take_slice;
-    use std::str::from_utf8_unchecked;
+    use std::str::{from_utf8, from_utf8_unchecked, Utf8Error};
 
     /// Undo taking a slice and correct for the given offset into the original &str.
     ///
     /// Safety
     /// offset must be within the original bounds.
-    pub unsafe fn undo_take_str_slice(s: &str, offset: usize) -> &str {
+    pub unsafe fn undo_take_str_slice(s: &str, offset: usize) -> Result<&str, Utf8Error> {
+        let bytes = undo_take_slice(s.as_bytes(), offset);
+        from_utf8(bytes)
+    }
+
+    /// Undo taking a slice and correct for the given offset into the original &str.
+    ///
+    /// Safety
+    /// offset must be within the original bounds.
+    /// offset must not hit between an utf8 boundary.
+    pub unsafe fn undo_take_str_slice_unchecked(s: &str, offset: usize) -> &str {
         let bytes = undo_take_slice(s.as_bytes(), offset);
         from_utf8_unchecked(bytes)
     }
@@ -448,7 +563,11 @@ mod finder {
     /// 0-based column index of the fragment with respect to the previous fragment boundary.
     /// This is counting UTF-8 encoded Unicode codepoints.
     ///
-    /// Safety: The fragment really has to be a fragment of buf.
+    /// Safety:
+    /// The fragment really has to be a fragment of buf.
+    ///
+    /// The fragment must not be inside a utf8 sequence and the separator must not
+    /// be a utf8 special, otherwise the result will be off. But not UB.
     pub unsafe fn utf8_column<'s>(buf: &'s [u8], fragment: &'_ [u8], sep: u8) -> usize {
         let prefix = current_prefix(buf, fragment, sep);
         num_chars(prefix)
@@ -458,7 +577,11 @@ mod finder {
     /// This is counting UTF-8 encoded Unicode codepoints.
     /// Naive implementation, might do better in some situations.
     ///
-    /// Safety: The fragment really has to be a fragment of buf.
+    /// Safety:
+    /// The fragment really has to be a fragment of buf.
+    ///
+    /// The fragment must not be inside a utf8 sequence and the separator must not
+    /// be a utf8 special, otherwise the result will be off. But not UB.
     pub unsafe fn naive_utf8_column<'s>(buf: &'s [u8], fragment: &'_ [u8], sep: u8) -> usize {
         let prefix = current_prefix(buf, fragment, sep);
         naive_num_chars(prefix)
@@ -466,7 +589,8 @@ mod finder {
 
     /// Finds the part from the last frame start up to the given fragment.
     ///
-    /// Safety: The fragment really has to be a fragment of buf.
+    /// Safety:
+    /// The fragment really has to be a fragment of buf.
     pub unsafe fn current_prefix<'s>(buf: &'s [u8], fragment: &'_ [u8], sep: u8) -> &'s [u8] {
         let offset = fragment_offset(buf, fragment);
 
@@ -569,7 +693,8 @@ mod finder {
 
     /// Gets the offset of the fragment.
     ///
-    /// Safety: The fragment really has to be a fragment of buf.
+    /// Safety:
+    /// The fragment really has to be a fragment of buf.
     pub unsafe fn fragment_offset<'s>(buf: &'s [u8], fragment: &'_ [u8]) -> usize {
         let o = buf.as_ptr();
         let f = fragment.as_ptr();
