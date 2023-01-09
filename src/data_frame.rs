@@ -7,9 +7,9 @@
 //!
 
 pub use byte_frames::*;
-use core::slice;
-use core::str::from_utf8_unchecked;
 pub use str_lines::*;
+
+use core::str::from_utf8_unchecked;
 
 ///
 /// Splits a big blob of data into frames.
@@ -81,7 +81,7 @@ pub trait DataFrames<'a, T: ?Sized> {
 /// so UB cannot be ruled out.
 ///
 /// So the prerequisite is that both first and second are derived from buf.
-pub unsafe fn str_union(buf: &str, first: &str, second: &str) -> &str {
+pub unsafe fn str_union<'a>(buf: &'a str, first: &'_ str, second: &'_ str) -> &'a str {
     let union = slice_union(buf.as_bytes(), first.as_bytes(), second.as_bytes());
     // both parts where &str, so offset_1, offset_2 and second.len()
     // must obey the utf8 boundaries.
@@ -98,18 +98,18 @@ pub unsafe fn str_union(buf: &str, first: &str, second: &str) -> &str {
 /// so UB cannot be ruled out.
 ///
 /// So the prerequisite is that both first and second are derived from buf.
-pub unsafe fn slice_union(buf: &[u8], first: &[u8], second: &[u8]) -> &[u8] {
+pub unsafe fn slice_union<'a>(buf: &'a [u8], first: &'_ [u8], second: &'_ [u8]) -> &'a [u8] {
     unsafe {
         // fragment_offset checks for a negative offset.
         let offset_1 = finder::fragment_offset(buf, first);
-        assert!(offset_1 <= buf.len);
+        assert!(offset_1 <= buf.len());
 
         // fragment_offset checks for a negative offset.
         let offset_2 = finder::fragment_offset(buf, second);
-        assert!(offset_2 <= buf.len);
+        assert!(offset_2 <= buf.len());
 
         // correct ordering
-        assert!(offset1 <= offset_2);
+        assert!(offset_1 <= offset_2);
 
         &buf[offset_1..offset_2 + second.len()]
     }
@@ -314,7 +314,6 @@ mod byte_frames {
 mod str_lines {
     use crate::data_frame::finder;
     use crate::data_frame::DataFrames;
-    use nom::AsBytes;
     use std::str::from_utf8_unchecked;
 
     const DELIM: u8 = b'\n';
@@ -530,6 +529,7 @@ mod strings {
     ///
     /// Safety
     /// offset must be within the original bounds.
+    #[allow(dead_code)]
     pub unsafe fn undo_take_str_slice(s: &str, offset: usize) -> Result<&str, Utf8Error> {
         let bytes = undo_take_slice(s.as_bytes(), offset);
         from_utf8(bytes)
@@ -540,6 +540,7 @@ mod strings {
     /// Safety
     /// offset must be within the original bounds.
     /// offset must not hit between an utf8 boundary.
+    #[allow(dead_code)]
     pub unsafe fn undo_take_str_slice_unchecked(s: &str, offset: usize) -> &str {
         let bytes = undo_take_slice(s.as_bytes(), offset);
         from_utf8_unchecked(bytes)
