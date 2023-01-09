@@ -1,0 +1,21 @@
+[package]
+name = "nom_locate_remaster"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+memchr = "2.5"
+bytecount = "^0.6"
+chrono = "0.4"
+
+[dependencies.nom]
+version = "7.1"
+features = [ "alloc" ]
+
+[dependencies.nom_locate]
+version = "4.0"
+
+[dev-dependencies.iparse]
+path="../iparse"
