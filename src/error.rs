@@ -1,7 +1,12 @@
+use crate::debug::error::{
+    debug_parse_of_error_long, debug_parse_of_error_medium, debug_parse_of_error_short,
+};
+use crate::debug::{restrict, DebugWidth};
 use crate::{Code, Span};
 use nom;
 use nom::error::ErrorKind;
 use std::error::Error;
+use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::num::NonZeroUsize;
 
@@ -87,15 +92,48 @@ impl<'s, C: Code, X: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
     }
 }
 
-impl<'s, C: Code, X: Copy> Debug for ParserError<'s, C, X> {
+impl<'s, C: Code, X: Copy> Display for ParserError<'s, C, X> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{} expects ", self.code)?;
+
+        for (i, exp) in self.iter_expected().enumerate() {
+            if i > 0 {
+                write!(f, " ")?;
+            }
+            write!(
+                f,
+                "{}:\"{}\"",
+                exp.code,
+                restrict(DebugWidth::Short, exp.span)
+            )?;
+        }
+        // no suggest
+        write!(
+            f,
+            " for span {} \"{}\"",
+            self.span.location_offset(),
+            restrict(DebugWidth::Short, self.span)
+        )?;
+        Ok(())
     }
 }
 
-impl<'s, C: Code, X: Copy> Display for ParserError<'s, C, X> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+impl<'s, C: Code, X: Copy> Debug for ParserError<'s, C, X> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match f.width() {
+            None | Some(0) => debug_parse_of_error_short(f, self),
+            Some(1) => debug_parse_of_error_medium(f, self),
+            Some(2) => debug_parse_of_error_long(f, self),
+            _ => Ok(()),
+        }
+    }
+}
+
+impl<'s, C: Code> Debug for Expect<'s, C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let w = f.width().into();
+        write!(f, "{}:\"{}\"", self.code, restrict(w, self.span))?;
+        Ok(())
     }
 }
 
@@ -198,7 +236,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
         })
     }
 
-    // todo: move to standalone fn
+    // maybe: move to standalone fn
     /// Get Expect grouped by offset into the string, starting with max first.
     pub fn expect_grouped_by_offset(&self) -> Vec<(usize, Vec<&Expect<'s, C>>)> {
         let mut sorted: Vec<&Expect<'s, C>> = self.iter_expected().collect();
@@ -226,7 +264,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
         grp
     }
 
-    // todo: move to standalone fn
+    // maybe: move to standalone fn
     /// Get Expect grouped by line number, starting with max first.
     pub fn expect_grouped_by_line(&self) -> Vec<(u32, Vec<&Expect<'s, C>>)> {
         let mut sorted: Vec<&Expect<'s, C>> = self.iter_expected().collect();

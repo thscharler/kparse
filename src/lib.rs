@@ -8,6 +8,7 @@ use std::fmt::{Debug, Display};
 
 mod conversion;
 mod data_frame;
+mod debug;
 mod error;
 mod tracker;
 mod tracking_context;

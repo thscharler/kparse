@@ -13,6 +13,24 @@ struct TrackingData<'s, C: Code, const TRACK: bool = false> {
     track: Vec<Track<'s, C>>,
 }
 
+impl<'s, C: Code, const TRACK: bool> Default for TrackingData<'s, C, TRACK> {
+    fn default() -> Self {
+        Self {
+            func: Default::default(),
+            track: Default::default(),
+        }
+    }
+}
+
+impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
+    pub fn new(span: Span<'s, C>) -> Self {
+        Self {
+            span,
+            data: Default::default(),
+        }
+    }
+}
+
 impl<'s, C: Code, const TRACK: bool> ParseContext<'s, C> for TrackingContext<'s, C, TRACK> {
     fn span(&self) -> &Span<'s, C> {
         &self.span
@@ -43,6 +61,13 @@ impl<'s, C: Code, const TRACK: bool> ParseContext<'s, C> for TrackingContext<'s,
     fn exit_err(&self, span: &Span<'s, C>, code: C, err: &dyn Error) {
         self.track_exit_err(span, code, err);
         self.pop_func()
+    }
+}
+
+impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
+    /// Dissolve to the tracking results.
+    pub fn into_result(self) -> Vec<Track<'s, C>> {
+        self.data.replace(TrackingData::default()).track
     }
 }
 
