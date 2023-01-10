@@ -80,8 +80,7 @@ impl<'s, C: Code, X: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
     }
 
     fn or(self, _other: Self) -> Self {
-        // TODO: what is self and what is other
-        todo!()
+        todo!() // what is self and what is other
     }
 }
 
@@ -98,7 +97,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
 
     /// Convert to a new error code.
     /// If the old one differs, it is added to the expect list.
-    pub fn into_code(mut self, code: C) -> Self {
+    pub fn with_code(mut self, code: C) -> Self {
         if self.code != code {
             self.hints.push(Hints::Expect(Expect {
                 code: self.code,

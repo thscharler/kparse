@@ -7,6 +7,7 @@ use std;
 // std::num::ParseIntError
 //
 
+// from the std::wilds
 impl<'s, C: Code, X: Copy> WithSpan<'s, C, ParserError<'s, C, X>> for std::num::ParseIntError {
     fn with_span(self, code: C, span: Span<'s, C>) -> ParserError<'s, C, X> {
         ParserError::new(code, span)
@@ -17,6 +18,7 @@ impl<'s, C: Code, X: Copy> WithSpan<'s, C, ParserError<'s, C, X>> for std::num::
 // std::num::ParseFloatError
 //
 
+// from the std::wilds
 impl<'s, C: Code, X: Copy> WithSpan<'s, C, ParserError<'s, C, X>> for std::num::ParseFloatError {
     fn with_span(self, code: C, span: Span<'s, C>) -> ParserError<'s, C, X> {
         ParserError::new(code, span)
@@ -24,116 +26,95 @@ impl<'s, C: Code, X: Copy> WithSpan<'s, C, ParserError<'s, C, X>> for std::num::
 }
 
 //
-// nom::Needed
-//
-
-// impl<'s, C: Code, X: Copy> From<nom::Needed> for ParserError<'s, C, X> {
-//     fn from(v: nom::Needed) -> Self {
-//         let mut p = ParserError {
-//             code: C::NOM_INCOMPLETE,
-//             span: ErrorSpan::Unknown,
-//             hints: Vec::new(),
-//         };
-//         match v {
-//             nom::Needed::Unknown => {}
-//             nom::Needed::Size(s) => p.hints.push(Hints::Needed(s)),
-//         };
-//         p
-//     }
-// }
-
-//
 // nom::error::Error
 //
 
+// a fresh simple nom::error::Error
+//
+// we know how to handle these
 impl<'s, C: Code, X: Copy> From<nom::error::Error<Span<'s, C>>> for ParserError<'s, C, X> {
     fn from(e: nom::error::Error<Span<'s, C>>) -> Self {
         ParserError::from_error_kind(e.input, e.code)
     }
 }
 
-//
-// Result
-//
-
-impl<'s, C: Code, X: Copy, O, E> WithSpan<'s, C, ParserResult<'s, C, X, O>>
-    for Result<(Span<'s, C>, O), E>
-where
-    E: WithSpan<'s, C, ParserError<'s, C, X>>,
-{
-    fn with_span(self, code: C, span: Span<'s, C>) -> ParserResult<'s, C, X, O> {
-        match self {
-            Ok(v) => Ok(v),
-            Err(e) => {
-                let p_err: ParserError<'s, C, X> = e.with_span(code, span);
-                // todo: what is the right one, Error or Failure
-                Err(nom::Err::Failure(p_err))
-            }
-        }
-    }
-}
-
-impl<'s, C: Code, X: Copy, O, E> WithCode<'s, C, ParserResult<'s, C, X, O>>
-    for Result<(Span<'s, C>, O), E>
-where
-    E: WithCode<'s, C, ParserError<'s, C, X>>,
-{
-    fn with_code(self, code: C) -> ParserResult<'s, C, X, O> {
-        match self {
-            Ok(v) => Ok(v),
-            Err(e) => {
-                let p_err: ParserError<'s, C, X> = e.with_code(code);
-                // todo: what is the right one, Error or Failure
-                Err(nom::Err::Error(p_err))
-            }
-        }
-    }
-}
+// ***********************************************************************
+// LAYER 2 - wrapped in a nom::Err
+// ***********************************************************************
 
 //
 // nom::Err::<E>
 //
 
-// impl<'s, C: Code, X: Copy, E> From<nom::Err<E>> for ParserError<'s, C, X>
-// where
-//     E: Into<ParserError<'s, C, X>>,
-// {
-//     fn from(e: nom::Err<E>) -> Self {
-//         match e {
-//             // todo: can we do this?
-//             nom::Err::Incomplete(e) => e.into(),
-//             nom::Err::Error(e) => e.into(),
-//             nom::Err::Failure(e) => {
-//                 let mut p = e.into();
-//                 if p.code == C::NOM_ERROR {
-//                     p.code = C::NOM_FAILURE;
-//                 }
-//                 p
-//             }
-//         }
-//     }
-// }
+// for ease of use in case of a nom::Err wrapped something.
+//
+// 1. just to call with_code on an existing ParserError.
+// 2. to convert whatever to a ParserError and give it a code.
+impl<'s, C: Code, X: Copy, E> WithCode<'s, C, nom::Err<ParserError<'s, C, X>>> for nom::Err<E>
+where
+    E: Into<ParserError<'s, C, X>>,
+{
+    fn with_code(self, code: C) -> nom::Err<ParserError<'s, C, X>> {
+        match self {
+            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
+            nom::Err::Error(e) => {
+                let p_err: ParserError<'s, C, X> = e.into();
+                let p_err = p_err.with_code(code);
+                nom::Err::Error(p_err)
+            }
+            nom::Err::Failure(e) => {
+                let p_err: ParserError<'s, C, X> = e.into();
+                let p_err = p_err.with_code(code);
+                nom::Err::Failure(p_err)
+            }
+        }
+    }
+}
 
-// impl<'s, C: Code, X: Copy, E> WithCode<'s, C, ParserError<'s, C, X>> for nom::Err<E>
-// where
-//     E: Into<ParserError<'s, C, X>>,
-// {
-//     fn with_code(self, code: C) -> ParserError<'s, C, X> {
-//         match self {
-//             nom::Err::Incomplete(e) => e.into(),
-//             nom::Err::Error(e) => e.into(),
-//             nom::Err::Failure(e) => e.into(),
-//         };
-//         pe.into_code(code)
-//     }
-// }
+// ***********************************************************************
+// LAYER 3 - wrapped in a Result
+// ***********************************************************************
 
 //
-// ParserError
+// Result
 //
 
-impl<'s, C: Code, X: Copy> WithCode<'s, C, ParserError<'s, C, X>> for ParserError<'s, C, X> {
-    fn with_code(self, code: C) -> ParserError<'s, C, X> {
-        self.into_code(code)
+// coming from elsewhere entering our domain ...
+//
+// 1. be well behaved and let us give you a span and a code
+// 2. and wrap you up in a warm ParserError
+impl<'s, C: Code, X: Copy, O, E> WithSpan<'s, C, ParserResult<'s, C, X, O>>
+    for Result<(Span<'s, C>, O), E>
+where
+    E: WithSpan<'s, C, nom::Err<ParserError<'s, C, X>>>,
+{
+    fn with_span(self, code: C, span: Span<'s, C>) -> ParserResult<'s, C, X, O> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let p_err: nom::Err<ParserError<'s, C, X>> = e.with_span(code, span);
+                Err(p_err)
+            }
+        }
+    }
+}
+
+// everything needs a new code sometimes ... continued ...
+//
+// 1. this is a ParserResult with a nom::Err with a ParserError.
+// 2. this is a Result with a whatever which has a WithCode<ParserError>
+impl<'s, C: Code, X: Copy, O, E> WithCode<'s, C, ParserResult<'s, C, X, O>>
+    for Result<(Span<'s, C>, O), E>
+where
+    E: WithCode<'s, C, nom::Err<ParserError<'s, C, X>>>,
+{
+    fn with_code(self, code: C) -> ParserResult<'s, C, X, O> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let p_err: nom::Err<ParserError<'s, C, X>> = e.with_code(code);
+                Err(p_err)
+            }
+        }
     }
 }

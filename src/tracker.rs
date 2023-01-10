@@ -30,13 +30,13 @@ where
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
                 let p_err: ParserError<'s, C, X> = e.into();
-                let p_err = p_err.into_code(code);
+                let p_err = p_err.with_code(code);
                 p_err.span.extra.exit_err(p_err.span, p_err.code);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
                 let p_err: ParserError<'s, C, X> = e.into();
-                let p_err = p_err.into_code(code);
+                let p_err = p_err.with_code(code);
                 p_err.span.extra.exit_err(p_err.span, p_err.code);
                 Err(nom::Err::Error(p_err))
             }
