@@ -3,12 +3,14 @@ use kparse::prelude::*;
 use nom::bytes::complete::{tag, take_till, take_till1, take_while1};
 use nom::character::complete::{char as nchar, digit1};
 use nom::combinator::recognize;
+use nom::error::ParseError;
 use nom::sequence::terminated;
 use nom::InputTake;
 use nom::{AsChar, InputTakeAtPosition};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
 
+use kparse::Context;
 pub use CCode::*;
 
 pub type Span<'s> = kparse::Span<'s, CCode>;
@@ -283,6 +285,149 @@ pub struct Datei<'s> {
     pub span: Span<'s>,
 }
 
+// Generic parsers -------------------------------------------------------
+
+pub struct Parse1LayerCommand {
+    cmd: BCommand,
+    layers: Parse1Layers,
+}
+
+impl Parse1LayerCommand {
+    fn id(&self) -> CCode {
+        self.layers.code
+    }
+
+    fn lah(&self, span: Span<'_>) -> bool {
+        lah_command(self.layers.token, span)
+    }
+
+    fn parse<'s>(&self, rest: Span<'s>) -> CParserResult<'s, BCommand> {
+        Context.enter(&rest, self.id());
+
+        let (rest, sub) = self.layers.parse(rest).track()?;
+
+        let rest = nom_ws_span(rest);
+
+        if !rest.is_empty() {
+            return Context.err(ParserError::new(self.id(), rest));
+        }
+
+        Context.ok(rest, sub, self.cmd)
+    }
+}
+
+pub struct Parse1Layers {
+    pub token: &'static str,
+    pub code: CCode,
+}
+
+impl Parse1Layers {
+    fn id(&self) -> CCode {
+        self.code
+    }
+
+    fn parse<'s>(&self, rest: Span<'s>) -> CParserResult<'s, Span<'s>> {
+        Context.enter(&rest, self.id());
+
+        let (rest, token) = token_command(self.token, self.code, rest).track()?;
+
+        Context.ok(rest, token, token)
+    }
+}
+
+pub struct Parse2LayerCommand<O: Copy + Debug, const N: usize> {
+    map_cmd: fn(O) -> BCommand,
+    layers: Parse2Layers<O, N>,
+}
+
+impl<O: Copy + Debug, const N: usize> Parse2LayerCommand<O, N> {
+    fn lah(&self, span: Span<'_>) -> bool {
+        lah_command(self.layers.token, span)
+    }
+
+    fn parse<'s>(&self, rest: Span<'s>) -> CParserResult<'s, BCommand> {
+        Context.enter(&rest, self.layers.code);
+
+        let (rest, (span, sub)) = self.layers.parse(rest).track()?;
+
+        let rest = nom_ws_span(rest);
+
+        if !rest.is_empty() {
+            return Context.err(ParserError::new(self.layers.code, rest));
+        }
+
+        Context.ok(rest, span, (self.map_cmd)(sub))
+    }
+}
+
+pub struct Parse2Layers<O: Copy, const N: usize> {
+    pub token: &'static str,
+    pub code: CCode,
+    pub list: [SubCmd<O>; N],
+}
+
+pub struct SubCmd<O: Copy> {
+    pub token: &'static str,
+    pub code: CCode,
+    pub output: O,
+}
+
+impl<O: Copy> From<(&'static str, CCode, O)> for SubCmd<O> {
+    fn from(t: (&'static str, CCode, O)) -> Self {
+        SubCmd {
+            token: t.0,
+            code: t.1,
+            output: t.2,
+        }
+    }
+}
+
+impl<O: Copy, const N: usize> Parse2Layers<O, N> {
+    fn parse<'s>(&self, rest: Span<'s>) -> CParserResult<'s, (Span<'s>, O)> {
+        Context.enter(&rest, self.code);
+
+        let (rest, token) = token_command(self.token, self.code, rest).track()?;
+        Context.debug(&token, format!("found {}", token));
+
+        let (rest, _) = nom_ws1(rest).track()?;
+
+        let (rest, span_sub, sub) = 'for_else: {
+            let mut err: Option<CParserError<'_>> = None;
+            for sub in &self.list {
+                match token_command(sub.token, sub.code, rest) {
+                    Ok((rest, span)) => {
+                        // println!("found");
+                        break 'for_else (rest, span, sub);
+                    }
+                    Err(nom::Err::Error(e)) => {
+                        if e.code != CIgnore {
+                            err = if let Some(err) = err {
+                                Some(err.or(e))
+                            } else {
+                                Some(e)
+                            };
+                        }
+                    }
+                    Err(e) => return Context.err(e),
+                }
+            }
+            return match err {
+                Some(err) => Context.err(err),
+                None => {
+                    let mut err = ParserError::new(self.code, rest);
+                    for sub in &self.list {
+                        err.add_suggest(sub.code, rest);
+                    }
+                    Context.err(err)
+                }
+            };
+        };
+
+        let span = unsafe { Context.span_union(&token, &span_sub) };
+        Context.ok(rest, span, (span_sub, sub.output))
+    }
+}
+
 // Tokens ----------------------------------------------------------------
 // impl<'s, T> IntoParserResultAddSpan<'s, CCode, T> for Result<T, ParseIntError> {
 //     fn into_with_span(self, span: Span<'s>) -> ParserResult<'s, CCode, T> {
@@ -317,7 +462,7 @@ pub fn token_datum(rest: Span<'_>) -> CParserResult<'_, Datum<'_>> {
     let imonth: u32 = (*month).parse().with_span(CDateMonth, month)?;
     let iyear: i32 = (*year).parse().with_span(CDateYear, year)?;
 
-    let span = unsafe { rest.span_union(&day, &year) };
+    let span = unsafe { Context.span_union(&day, &year) };
     let datum = NaiveDate::from_ymd_opt(iyear, imonth, iday);
 
     if let Some(datum) = datum {

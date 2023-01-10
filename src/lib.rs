@@ -23,7 +23,7 @@ pub use tracking_context::*;
 pub mod prelude {
     pub use crate::ParserError;
     pub use crate::{Code, ParseContext, TrackParseErr, WithCode, WithSpan};
-    pub use crate::{ParserNomResult, ParserResult, Span};
+    pub use crate::{Context, ParserNomResult, ParserResult, Span};
 }
 
 /// Standard input type.
@@ -96,7 +96,7 @@ impl<'s, C: Code> Deref for HoldContext<'s, C> {
 }
 
 impl<'s, C: Code> Debug for HoldContext<'s, C> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
         Ok(())
     }
 }
@@ -121,7 +121,7 @@ impl Context {
 
     /// Creates a Err-ParserResult from the given ParserError.
     /// Tracks an exit_err with the ParseContext.
-    fn err<'s, C: Code, T, X: Copy, E: Into<nom::Err<ParserError<'s, C, X>>>>(
+    pub fn err<'s, C: Code, T, X: Copy, E: Into<nom::Err<ParserError<'s, C, X>>>>(
         &self,
         err: E,
     ) -> ParserResult<'s, T, C, X> {

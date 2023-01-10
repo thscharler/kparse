@@ -12,14 +12,10 @@
     <cargoProject FILE="$PROJECT_DIR$/../nom_locate_remaster/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m2 for throw_away_everything__again&#10;&#10;starting to make it run again.">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -235,7 +231,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673368694614</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context.">
+      <created>1673377336898</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1673377336898</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -263,7 +266,8 @@
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;TrackingContext" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;Display + Debug for ParserError" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;starting to make it run again." />
-    <option name="LAST_COMMIT_MESSAGE" value="m2 for throw_away_everything__again&#10;&#10;starting to make it run again." />
+    <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context." />
+    <option name="LAST_COMMIT_MESSAGE" value="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

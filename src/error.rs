@@ -90,8 +90,14 @@ impl<'s, C: Code, X: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
         }
     }
 
-    fn or(self, _other: Self) -> Self {
-        todo!() // what is self and what is other
+    // what is self and what is other
+    fn or(mut self, other: Self) -> Self {
+        // TODO: may need completion
+        for expect in other.iter_expected() {
+            self.add_expect(expect.code, expect.span);
+        }
+
+        self
     }
 }
 
@@ -305,7 +311,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
     }
 
     /// Add an suggested code.
-    pub fn add_sugges(&mut self, code: C, span: Span<'s, C>) {
+    pub fn add_suggest(&mut self, code: C, span: Span<'s, C>) {
         self.hints.push(Hints::Suggest(SpanAndCode {
             code,
             span: span.into(),
