@@ -1,6 +1,8 @@
 use crate::{Code, Span};
 use nom;
 use nom::error::ErrorKind;
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 use std::num::NonZeroUsize;
 
 /// Parser error.
@@ -15,7 +17,6 @@ pub struct ParserError<'s, C: Code, X: Copy = ()> {
 }
 
 /// Extra information added to a ParserError.
-#[derive(Clone, Copy)]
 pub enum Hints<'s, C: Code, X: Copy> {
     /// Contains any nom error that occurred.
     Nom(Nom<'s, C>),
@@ -23,6 +24,8 @@ pub enum Hints<'s, C: Code, X: Copy> {
     Needed(NonZeroUsize),
     /// Expected outcome of the parser.
     Expect(Expect<'s, C>),
+    /// External cause for the error.
+    Cause(Box<dyn Error>),
     /// Extra user context.
     UserData(X),
 }
@@ -81,6 +84,35 @@ impl<'s, C: Code, X: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
 
     fn or(self, _other: Self) -> Self {
         todo!() // what is self and what is other
+    }
+}
+
+impl<'s, C: Code, X: Copy> Debug for ParserError<'s, C, X> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl<'s, C: Code, X: Copy> Display for ParserError<'s, C, X> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl<'s, C: Code, X: Copy> Error for ParserError<'s, C, X> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.hints
+            .iter()
+            .filter(|v| matches!(v, Hints::Cause(_)))
+            .next()
+            .map(|v| {
+                if let Hints::Cause(e) = v {
+                    Some(e.as_ref())
+                } else {
+                    None
+                }
+            })
+            .flatten()
     }
 }
 

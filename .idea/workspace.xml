@@ -9,8 +9,10 @@
     <cargoProject FILE="$PROJECT_DIR$/../nom_locate_remaster/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m2 for throw_away_everything__again&#10;&#10;clean up the todo's">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m2 for throw_away_everything__again&#10;&#10;easier access to parsercontext">
+      <change afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
     </list>
@@ -198,7 +200,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673324082976</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="m2 for throw_away_everything__again&#10;&#10;easier access to parsercontext">
+      <created>1673326008750</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1673326008750</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -222,7 +231,8 @@
     <MESSAGE value="m0 for throw_away_everything__again" />
     <MESSAGE value="m1 for throw_away_everything__again&#10;&#10;now have a dyn ParseContext, which is fine.&#10;some things still marked as todo or &#10;commented out ..." />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;clean up the todo's" />
-    <option name="LAST_COMMIT_MESSAGE" value="m2 for throw_away_everything__again&#10;&#10;clean up the todo's" />
+    <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;easier access to parsercontext" />
+    <option name="LAST_COMMIT_MESSAGE" value="m2 for throw_away_everything__again&#10;&#10;easier access to parsercontext" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

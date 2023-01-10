@@ -3,17 +3,20 @@
 //!
 
 use nom_locate::LocatedSpan;
+use std::error::Error;
 use std::fmt::{Debug, Display};
 
 mod conversion;
 mod data_frame;
 mod error;
 mod tracker;
+mod tracking_context;
 
 pub use conversion::*;
 pub use data_frame::*;
 pub use error::*;
 pub use tracker::*;
+pub use tracking_context::*;
 
 /// Standard input type.
 pub type Span<'s, C> = LocatedSpan<&'s str, &'s dyn ParseContext<'s, C>>;
@@ -56,7 +59,7 @@ pub trait ParseContext<'s, C: Code> {
     fn exit_ok(&self, span: &Span<'s, C>, parsed: &Span<'s, C>);
 
     /// Tracks an Err result of a parser function.    
-    fn exit_err(&self, span: &Span<'s, C>, code: C);
+    fn exit_err(&self, span: &Span<'s, C>, code: C, err: &dyn Error);
 }
 
 ///
@@ -85,7 +88,7 @@ pub trait ParseContextForSpan<'s, C: Code> {
     fn ok<T, X: Copy>(&self, parsed: Span<'s, C>, value: T) -> ParserResult<'s, C, X, T>;
 
     /// Tracks an Err result of a parser function.    
-    fn exit_err(&self, code: C);
+    fn exit_err(&self, code: C, err: &dyn Error);
 
     /// Creates and tracks an Err result of a parser function.
     /// This creates a nom::Err::Error variant.
@@ -128,12 +131,12 @@ impl<'s, C: Code> ParseContextForSpan<'s, C> for Span<'s, C> {
         Ok((*self, value))
     }
 
-    fn exit_err(&self, code: C) {
-        self.extra.exit_err(self, code)
+    fn exit_err(&self, code: C, err: &dyn Error) {
+        self.extra.exit_err(self, code, err)
     }
 
     fn err<T, X: Copy>(&self, err: ParserError<'s, C, X>) -> ParserResult<'s, C, X, T> {
-        self.extra.exit_err(&self, err.code);
+        self.extra.exit_err(&self, err.code, &err);
         Err(nom::Err::Error(err))
     }
 
@@ -143,8 +146,8 @@ impl<'s, C: Code> ParseContextForSpan<'s, C> for Span<'s, C> {
     ) -> ParserResult<'s, C, X, T> {
         match &err {
             nom::Err::Incomplete(_) => {}
-            nom::Err::Error(e) => self.extra.exit_err(&self, e.code),
-            nom::Err::Failure(e) => self.extra.exit_err(&self, e.code),
+            nom::Err::Error(e) => self.extra.exit_err(&self, e.code, &e),
+            nom::Err::Failure(e) => self.extra.exit_err(&self, e.code, &e),
         }
         Err(err)
     }
