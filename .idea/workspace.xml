@@ -9,11 +9,9 @@
     <cargoProject FILE="$PROJECT_DIR$/../nom_locate_remaster/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="put up all the safety flags I could think of.">
-      <change afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="add errors">
+      <change afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data_frame.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_frame.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -150,7 +148,21 @@
       <option name="project" value="LOCAL" />
       <updated>1673247261654</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="add errors">
+      <created>1673263699578</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1673263699578</updated>
+    </task>
+    <task id="LOCAL-00005" summary="add errors">
+      <created>1673263713442</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1673263713442</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -168,7 +180,8 @@
     <MESSAGE value="some very last amendments to make it compile." />
     <MESSAGE value="repurposed data_frame from a previous experiment.&#10;&#10;streamlined and deduped." />
     <MESSAGE value="put up all the safety flags I could think of." />
-    <option name="LAST_COMMIT_MESSAGE" value="put up all the safety flags I could think of." />
+    <MESSAGE value="add errors" />
+    <option name="LAST_COMMIT_MESSAGE" value="add errors" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

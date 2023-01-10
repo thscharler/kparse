@@ -8,10 +8,12 @@ use std::fmt::{Debug, Display};
 mod conversion;
 mod data_frame;
 mod error;
+mod tracker;
 
 pub use conversion::*;
 pub use data_frame::*;
 pub use error::*;
+pub use tracker::*;
 
 /// Standard input type.
 pub type Span<'s> = LocatedSpan<&'s str>;
@@ -37,6 +39,34 @@ pub trait Code: Copy + Display + Debug + Eq {
     fn is_nom_special(&self) -> bool {
         *self == Self::NOM_ERROR || *self == Self::NOM_FAILURE || *self == Self::NOM_INCOMPLETE
     }
+}
+
+pub trait ParseContext<'s, C: Code> {
+    // Returns a span that encloses all of the current parser.
+    fn complete(&self) -> Span<'s>;
+
+    // Tracks entering a parser function.
+    fn enter(&mut self, func: C, span: Span<'s>);
+
+    // Tracks an ok result of a parser function.
+    fn ok<X: Copy, O>(
+        &mut self,
+        rest: Span<'s>,
+        span: Span<'s>,
+        value: O,
+    ) -> ParserResult<'s, C, X, (Span<'s>, O)>;
+
+    fn err<X: Copy, O>(&mut self, err: ParserError<'s, C, X>) -> ParserResult<'s, C, X, O>;
+}
+
+/// Tracks the error path with the context.
+///
+pub trait TrackParseErr<'s, 't, C: Code, X: Copy> {
+    type Result;
+
+    fn track(self, ctx: &'t mut impl ParseContext<'s, C>) -> Self::Result;
+
+    fn track_as(self, ctx: &'t mut impl ParseContext<'s, C>, code: C) -> Self::Result;
 }
 
 /// Convert an external error into a ParserError.
