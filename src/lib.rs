@@ -33,18 +33,121 @@ pub trait Code: Copy + Display + Debug + Eq {
     const NOM_ERROR: Self;
 }
 
+///
+/// Context and tracking for a parser.
+///
 pub trait ParseContext<'s, C: Code> {
     /// Returns a span that encloses all of the current parser.
-    fn span(&self) -> Span<'s, C>;
+    fn span(&self) -> &Span<'s, C>;
 
     /// Tracks entering a parser function.
-    fn enter(&self, span: Span<'s, C>, func: C);
+    fn enter(&self, span: &Span<'s, C>, func: C);
+
+    /// Debugging
+    fn debug(&self, span: &Span<'s, C>, debug: String);
+
+    /// Track something.
+    fn info(&self, span: &Span<'s, C>, info: &'static str);
+
+    /// Track something more important.
+    fn warn(&self, span: &Span<'s, C>, warn: &'static str);
 
     /// Tracks an Ok result of a parser function.
-    fn exit_ok(&self, parsed: Span<'s, C>, remain: Span<'s, C>);
+    fn exit_ok(&self, span: &Span<'s, C>, parsed: &Span<'s, C>);
 
     /// Tracks an Err result of a parser function.    
-    fn exit_err(&self, span: Span<'s, C>, code: C);
+    fn exit_err(&self, span: &Span<'s, C>, code: C);
+}
+
+///
+/// Make the ParseContext accessible for a Span.
+///
+pub trait ParseContextForSpan<'s, C: Code> {
+    /// Returns a span that encloses all of the current parser.
+    fn span(&self) -> &Span<'s, C>;
+
+    /// Tracks entering a parser function.
+    fn enter(&self, func: C);
+
+    /// Debugging
+    fn debug(&self, debug: String);
+
+    /// Track something.
+    fn info(&self, info: &'static str);
+
+    /// Track something more important.
+    fn warn(&self, warn: &'static str);
+
+    /// Tracks an Ok result of a parser function.
+    fn exit_ok(&self, parsed: &Span<'s, C>);
+
+    /// Creates and tracks an Ok result of a parser function.
+    fn ok<T, X: Copy>(&self, parsed: Span<'s, C>, value: T) -> ParserResult<'s, C, X, T>;
+
+    /// Tracks an Err result of a parser function.    
+    fn exit_err(&self, code: C);
+
+    /// Creates and tracks an Err result of a parser function.
+    /// This creates a nom::Err::Error variant.
+    fn err<T, X: Copy>(&self, err: ParserError<'s, C, X>) -> ParserResult<'s, C, X, T>;
+
+    /// Creates and tracks an Err result of a parser function.
+    fn err_nom<T, X: Copy>(
+        &self,
+        err: nom::Err<ParserError<'s, C, X>>,
+    ) -> ParserResult<'s, C, X, T>;
+}
+
+impl<'s, C: Code> ParseContextForSpan<'s, C> for Span<'s, C> {
+    fn span(&self) -> &Span<'s, C> {
+        self.extra.span()
+    }
+
+    fn enter(&self, func: C) {
+        self.extra.enter(self, func);
+    }
+
+    fn debug(&self, debug: String) {
+        self.extra.debug(self, debug);
+    }
+
+    fn info(&self, info: &'static str) {
+        self.extra.info(self, info);
+    }
+
+    fn warn(&self, warn: &'static str) {
+        self.extra.warn(self, warn);
+    }
+
+    fn exit_ok(&self, parsed: &Span<'s, C>) {
+        self.extra.exit_ok(self, parsed);
+    }
+
+    fn ok<T, X: Copy>(&self, parsed: Span<'s, C>, value: T) -> ParserResult<'s, C, X, T> {
+        self.extra.exit_ok(&self, &parsed);
+        Ok((*self, value))
+    }
+
+    fn exit_err(&self, code: C) {
+        self.extra.exit_err(self, code)
+    }
+
+    fn err<T, X: Copy>(&self, err: ParserError<'s, C, X>) -> ParserResult<'s, C, X, T> {
+        self.extra.exit_err(&self, err.code);
+        Err(nom::Err::Error(err))
+    }
+
+    fn err_nom<T, X: Copy>(
+        &self,
+        err: nom::Err<ParserError<'s, C, X>>,
+    ) -> ParserResult<'s, C, X, T> {
+        match &err {
+            nom::Err::Incomplete(_) => {}
+            nom::Err::Error(e) => self.extra.exit_err(&self, e.code),
+            nom::Err::Failure(e) => self.extra.exit_err(&self, e.code),
+        }
+        Err(err)
+    }
 }
 
 /// Tracks the error path with the context.

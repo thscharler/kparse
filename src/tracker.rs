@@ -13,12 +13,12 @@ where
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
                 let p_err: ParserError<'s, C, X> = e.into();
-                p_err.span.extra.exit_err(p_err.span, p_err.code);
+                p_err.span.extra.exit_err(&p_err.span, p_err.code);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
                 let p_err: ParserError<'s, C, X> = e.into();
-                p_err.span.extra.exit_err(p_err.span, p_err.code);
+                p_err.span.extra.exit_err(&p_err.span, p_err.code);
                 Err(nom::Err::Error(p_err))
             }
         }
@@ -31,13 +31,13 @@ where
             Err(nom::Err::Error(e)) => {
                 let p_err: ParserError<'s, C, X> = e.into();
                 let p_err = p_err.with_code(code);
-                p_err.span.extra.exit_err(p_err.span, p_err.code);
+                p_err.span.extra.exit_err(&p_err.span, p_err.code);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
                 let p_err: ParserError<'s, C, X> = e.into();
                 let p_err = p_err.with_code(code);
-                p_err.span.extra.exit_err(p_err.span, p_err.code);
+                p_err.span.extra.exit_err(&p_err.span, p_err.code);
                 Err(nom::Err::Error(p_err))
             }
         }
@@ -46,18 +46,18 @@ where
     fn track_ok(self, parsed: Span<'s, C>) -> Self::Result {
         match self {
             Ok((span, v)) => {
-                span.extra.exit_ok(parsed, span);
+                span.extra.exit_ok(&parsed, &span);
                 Ok((span, v))
             }
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
                 let p_err: ParserError<'s, C, X> = e.into();
-                p_err.span.extra.exit_err(p_err.span, p_err.code);
+                p_err.span.extra.exit_err(&p_err.span, p_err.code);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
                 let p_err: ParserError<'s, C, X> = e.into();
-                p_err.span.extra.exit_err(p_err.span, p_err.code);
+                p_err.span.extra.exit_err(&p_err.span, p_err.code);
                 Err(nom::Err::Error(p_err))
             }
         }
