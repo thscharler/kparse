@@ -20,11 +20,17 @@ pub use error::*;
 pub use tracker::*;
 pub use tracking_context::*;
 
+pub mod prelude {
+    pub use crate::ParserError;
+    pub use crate::{Code, ParseContext, TrackParseErr, WithCode, WithSpan};
+    pub use crate::{ParserNomResult, ParserResult, Span};
+}
+
 /// Standard input type.
 pub type Span<'s, C> = LocatedSpan<&'s str, HoldContext<'s, C>>;
 
 /// Result type.
-pub type ParserResult<'s, C, X, O> = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, X>>>;
+pub type ParserResult<'s, O, C, X> = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, X>>>;
 
 /// Type alias for a nom parser. Use this to create a ParserError directly in nom.
 pub type ParserNomResult<'s, C, X> =
@@ -43,7 +49,19 @@ pub trait Code: Copy + Display + Debug + Eq {
 ///
 pub trait ParseContext<'s, C: Code> {
     /// Returns a span that encloses all of the current parser.
-    fn span(&self) -> &Span<'s, C>;
+    fn original(&self, span: &Span<'s, C>) -> Span<'s, C>;
+
+    /// Create a span that goes from the start of the first to the
+    /// end of the second span.
+    ///
+    /// Safety
+    /// It's unsafe because you must only use spans derived from
+    /// the original span.
+    ///
+    /// Panics
+    /// If first is after second in the original span.
+    /// If any of the calculated offsets lies outsides the original span.
+    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C>;
 
     /// Tracks entering a parser function.
     fn enter(&self, span: &Span<'s, C>, func: C);
@@ -84,93 +102,70 @@ impl<'s, C: Code> Debug for HoldContext<'s, C> {
 }
 
 ///
-/// Make the ParseContext accessible for a Span.
+/// Makes the Context hidden in the Span more accessible.
 ///
-pub trait ParseContextForSpan<'s, C: Code> {
-    /// Returns a span that encloses all of the current parser.
-    fn span(&self) -> &Span<'s, C>;
+pub struct Context;
 
-    /// Tracks entering a parser function.
-    fn enter(&self, func: C);
-
-    /// Debugging
-    fn debug(&self, debug: String);
-
-    /// Track something.
-    fn info(&self, info: &'static str);
-
-    /// Track something more important.
-    fn warn(&self, warn: &'static str);
-
-    /// Tracks an Ok result of a parser function.
-    fn exit_ok(&self, parsed: &Span<'s, C>);
-
-    /// Creates and tracks an Ok result of a parser function.
-    fn ok<T, X: Copy>(&self, parsed: Span<'s, C>, value: T) -> ParserResult<'s, C, X, T>;
-
-    /// Tracks an Err result of a parser function.    
-    fn exit_err(&self, code: C, err: &dyn Error);
-
-    /// Creates and tracks an Err result of a parser function.
-    /// This creates a nom::Err::Error variant.
-    fn err<T, X: Copy>(&self, err: ParserError<'s, C, X>) -> ParserResult<'s, C, X, T>;
-
-    /// Creates and tracks an Err result of a parser function.
-    fn err_nom<T, X: Copy>(
+impl Context {
+    /// Creates an Ok-Result from the parameters.
+    /// Tracks an exit_ok with the ParseContext.
+    pub fn ok<'s, C: Code, T, X: Copy>(
         &self,
-        err: nom::Err<ParserError<'s, C, X>>,
-    ) -> ParserResult<'s, C, X, T>;
-}
-
-impl<'s, C: Code> ParseContextForSpan<'s, C> for Span<'s, C> {
-    fn span(&self) -> &Span<'s, C> {
-        self.extra.span()
+        remainder: Span<'s, C>,
+        parsed: Span<'s, C>,
+        value: T,
+    ) -> ParserResult<'s, T, C, X> {
+        remainder.extra.exit_ok(&remainder, &parsed);
+        Ok((remainder, value))
     }
 
-    fn enter(&self, func: C) {
-        self.extra.enter(self, func);
-    }
-
-    fn debug(&self, debug: String) {
-        self.extra.debug(self, debug);
-    }
-
-    fn info(&self, info: &'static str) {
-        self.extra.info(self, info);
-    }
-
-    fn warn(&self, warn: &'static str) {
-        self.extra.warn(self, warn);
-    }
-
-    fn exit_ok(&self, parsed: &Span<'s, C>) {
-        self.extra.exit_ok(self, parsed);
-    }
-
-    fn ok<T, X: Copy>(&self, parsed: Span<'s, C>, value: T) -> ParserResult<'s, C, X, T> {
-        self.extra.exit_ok(&self, &parsed);
-        Ok((*self, value))
-    }
-
-    fn exit_err(&self, code: C, err: &dyn Error) {
-        self.extra.exit_err(self, code, err)
-    }
-
-    fn err<T, X: Copy>(&self, err: ParserError<'s, C, X>) -> ParserResult<'s, C, X, T> {
-        self.extra.exit_err(&self, err.code, &err);
-        Err(nom::Err::Error(err))
-    }
-
-    fn err_nom<T, X: Copy>(
+    /// Creates a Err-ParserResult from the given ParserError.
+    /// Tracks an exit_err with the ParseContext.
+    fn err<'s, C: Code, T, X: Copy, E: Into<nom::Err<ParserError<'s, C, X>>>>(
         &self,
-        err: nom::Err<ParserError<'s, C, X>>,
-    ) -> ParserResult<'s, C, X, T> {
+        err: E,
+    ) -> ParserResult<'s, T, C, X> {
+        let err: nom::Err<ParserError<'s, C, X>> = err.into();
         match &err {
             nom::Err::Incomplete(_) => {}
-            nom::Err::Error(e) => self.extra.exit_err(&self, e.code, &e),
-            nom::Err::Failure(e) => self.extra.exit_err(&self, e.code, &e),
+            nom::Err::Error(e) => e.span.extra.exit_err(&e.span, e.code, &e),
+            nom::Err::Failure(e) => e.span.extra.exit_err(&e.span, e.code, &e),
         }
         Err(err)
+    }
+}
+
+impl<'s, C: Code> ParseContext<'s, C> for Context {
+    fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
+        span.extra.original(span)
+    }
+
+    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
+        first.extra.span_union(first, second)
+    }
+
+    fn enter(&self, span: &Span<'s, C>, func: C) {
+        span.extra.enter(span, func)
+    }
+
+    fn debug(&self, span: &Span<'s, C>, debug: String) {
+        span.extra.debug(span, debug)
+    }
+
+    fn info(&self, span: &Span<'s, C>, info: &'static str) {
+        span.extra.info(span, info)
+    }
+
+    fn warn(&self, span: &Span<'s, C>, warn: &'static str) {
+        span.extra.warn(span, warn)
+    }
+
+    fn exit_ok(&self, span: &Span<'s, C>, parsed: &Span<'s, C>) {
+        span.extra.exit_ok(span, parsed)
+    }
+
+    fn exit_err(&self, span: &Span<'s, C>, code: C, err: &dyn Error) {
+        span.extra.exit_err(span, code, err)
     }
 }
 

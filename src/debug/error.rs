@@ -1,5 +1,5 @@
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, Expect, ParserError};
+use crate::{Code, ParserError, SpanAndCode};
 use std::fmt;
 
 pub fn debug_parse_of_error_short<'s, C: Code, X: Copy>(
@@ -118,7 +118,7 @@ fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
 
 fn debug_expect2_long<C: Code>(
     f: &mut impl fmt::Write,
-    exp_vec: &Vec<&Expect<'_, C>>,
+    exp_vec: &Vec<&SpanAndCode<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
     for exp in exp_vec {
@@ -138,7 +138,7 @@ fn debug_expect2_long<C: Code>(
 
 fn debug_expect2_medium<C: Code>(
     f: &mut impl fmt::Write,
-    exp_vec: &Vec<&Expect<'_, C>>,
+    exp_vec: &Vec<&SpanAndCode<'_, C>>,
     ind: usize,
 ) -> fmt::Result {
     for exp in exp_vec {
@@ -153,7 +153,7 @@ fn debug_expect2_medium<C: Code>(
 
 fn debug_expect2_short<'s, C: Code>(
     f: &mut impl fmt::Write,
-    it: &Vec<&Expect<'s, C>>,
+    it: &Vec<&SpanAndCode<'s, C>>,
     _ind: usize,
 ) -> fmt::Result {
     for exp in it {

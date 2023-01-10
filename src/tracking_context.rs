@@ -1,4 +1,5 @@
-use crate::{Code, ParseContext, Span};
+use crate::{str_union, Code, ParseContext, Span};
+use nom_locate::LocatedSpan;
 use std::cell::RefCell;
 use std::error::Error;
 use std::marker::PhantomData;
@@ -32,8 +33,22 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
 }
 
 impl<'s, C: Code, const TRACK: bool> ParseContext<'s, C> for TrackingContext<'s, C, TRACK> {
-    fn span(&self) -> &Span<'s, C> {
-        &self.span
+    // we don't really need _span for this, but it's useful in Context.
+    fn original(&self, _span: &Span<'s, C>) -> Span<'s, C> {
+        self.span
+    }
+
+    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
+        let u_str = str_union(&*self.span, &*first, &*second);
+
+        // starting point is the first span, so we use it's extra.
+        // and it naturally gives all the other values too.
+        LocatedSpan::new_from_raw_offset(
+            first.location_offset(),
+            first.location_line(),
+            u_str,
+            first.extra.clone(),
+        )
     }
 
     fn enter(&self, span: &Span<'s, C>, func: C) {

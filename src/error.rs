@@ -29,7 +29,9 @@ pub enum Hints<'s, C: Code, X: Copy> {
     /// Contains the nom needed information.
     Needed(NonZeroUsize),
     /// Expected outcome of the parser.
-    Expect(Expect<'s, C>),
+    Expect(SpanAndCode<'s, C>),
+    /// Suggestions from the parser.
+    Suggest(SpanAndCode<'s, C>),
     /// External cause for the error.
     Cause(Box<dyn Error>),
     /// Extra user context.
@@ -47,7 +49,7 @@ pub struct Nom<'s, C: Code> {
 }
 
 #[derive(Clone, Copy)]
-pub struct Expect<'s, C: Code> {
+pub struct SpanAndCode<'s, C: Code> {
     /// Error code
     pub code: C,
     /// Span
@@ -130,7 +132,7 @@ impl<'s, C: Code, X: Copy> Debug for ParserError<'s, C, X> {
     }
 }
 
-impl<'s, C: Code> Debug for Expect<'s, C> {
+impl<'s, C: Code> Debug for SpanAndCode<'s, C> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
         write!(f, "{}:\"{}\"", self.code, restrict(w, self.span))?;
@@ -159,8 +161,17 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
     pub fn new(code: C, span: Span<'s, C>) -> Self {
         Self {
             code,
-            span: span,
+            span,
             hints: Vec::new(),
+        }
+    }
+
+    /// New error adds the code as Suggestion too.
+    pub fn new_suggest(code: C, span: Span<'s, C>) -> Self {
+        Self {
+            code,
+            span,
+            hints: vec![Hints::Suggest(SpanAndCode { code, span })],
         }
     }
 
@@ -170,7 +181,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
     /// If the old one differs, it is added to the expect list.
     pub fn with_code(mut self, code: C) -> Self {
         if self.code != code {
-            self.hints.push(Hints::Expect(Expect {
+            self.hints.push(Hints::Expect(SpanAndCode {
                 code: self.code,
                 span: self.span,
             }));
@@ -216,21 +227,21 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
 
     /// Add an expected code.
     pub fn add_expect(&mut self, code: C, span: Span<'s, C>) {
-        self.hints.push(Hints::Expect(Expect {
+        self.hints.push(Hints::Expect(SpanAndCode {
             code,
             span: span.into(),
         }))
     }
 
     /// Adds some expected codes.
-    pub fn append_expect(&mut self, exp: Vec<Expect<'s, C>>) {
+    pub fn append_expect(&mut self, exp: Vec<SpanAndCode<'s, C>>) {
         for exp in exp.into_iter() {
             self.hints.push(Hints::Expect(exp));
         }
     }
 
     /// Returns the expected codes.
-    pub fn iter_expected(&self) -> impl Iterator<Item = &Expect<'s, C>> {
+    pub fn iter_expected(&self) -> impl Iterator<Item = &SpanAndCode<'s, C>> {
         self.hints.iter().rev().filter_map(|v| match v {
             Hints::Expect(n) => Some(n),
             _ => None,
@@ -239,8 +250,8 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
 
     // maybe: move to standalone fn
     /// Get Expect grouped by offset into the string, starting with max first.
-    pub fn expect_grouped_by_offset(&self) -> Vec<(usize, Vec<&Expect<'s, C>>)> {
-        let mut sorted: Vec<&Expect<'s, C>> = self.iter_expected().collect();
+    pub fn expect_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, C>>)> {
+        let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_expected().collect();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
 
         // per offset
@@ -267,8 +278,87 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
 
     // maybe: move to standalone fn
     /// Get Expect grouped by line number, starting with max first.
-    pub fn expect_grouped_by_line(&self) -> Vec<(u32, Vec<&Expect<'s, C>>)> {
-        let mut sorted: Vec<&Expect<'s, C>> = self.iter_expected().collect();
+    pub fn expect_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, C>>)> {
+        let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_expected().collect();
+        sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));
+
+        // per offset
+        let mut grp_line = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_line() != grp_line {
+                if !subgrp.is_empty() {
+                    grp.push((grp_line, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_line = exp.span.location_line();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_line, subgrp));
+        }
+
+        grp
+    }
+
+    /// Add an suggested code.
+    pub fn add_sugges(&mut self, code: C, span: Span<'s, C>) {
+        self.hints.push(Hints::Suggest(SpanAndCode {
+            code,
+            span: span.into(),
+        }))
+    }
+
+    /// Adds some suggested codes.
+    pub fn append_suggest(&mut self, exp: Vec<SpanAndCode<'s, C>>) {
+        for exp in exp.into_iter() {
+            self.hints.push(Hints::Suggest(exp));
+        }
+    }
+
+    /// Returns the suggested codes.
+    pub fn iter_suggested(&self) -> impl Iterator<Item = &SpanAndCode<'s, C>> {
+        self.hints.iter().rev().filter_map(|v| match v {
+            Hints::Suggest(n) => Some(n),
+            _ => None,
+        })
+    }
+
+    // maybe: move to standalone fn
+    /// Get Suggest grouped by offset into the string, starting with max first.
+    pub fn suggest_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, C>>)> {
+        let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_suggested().collect();
+        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
+
+        // per offset
+        let mut grp_offset = 0;
+        let mut grp = Vec::new();
+        let mut subgrp = Vec::new();
+        for exp in &sorted {
+            if exp.span.location_offset() != grp_offset {
+                if !subgrp.is_empty() {
+                    grp.push((grp_offset, subgrp));
+                    subgrp = Vec::new();
+                }
+                grp_offset = exp.span.location_offset();
+            }
+
+            subgrp.push(*exp);
+        }
+        if !subgrp.is_empty() {
+            grp.push((grp_offset, subgrp));
+        }
+
+        grp
+    }
+
+    // maybe: move to standalone fn
+    /// Get Suggest grouped by line number, starting with max first.
+    pub fn suggest_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, C>>)> {
+        let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_suggested().collect();
         sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));
 
         // per offset

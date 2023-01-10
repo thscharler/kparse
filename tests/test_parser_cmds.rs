@@ -1,14 +1,20 @@
 use chrono::NaiveDate;
-use kparse::{Code, ParserError, ParserNomResult, ParserResult};
+use kparse::prelude::*;
 use nom::bytes::complete::{tag, take_till, take_till1, take_while1};
-use nom::character::complete::digit1;
+use nom::character::complete::{char as nchar, digit1};
 use nom::combinator::recognize;
 use nom::sequence::terminated;
+use nom::InputTake;
 use nom::{AsChar, InputTakeAtPosition};
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 
 pub use CCode::*;
+
+pub type Span<'s> = kparse::Span<'s, CCode>;
+pub type CParserError<'s> = ParserError<'s, CCode>;
+pub type CParserResult<'s, O> = ParserResult<'s, O, CCode, ()>;
+pub type CNomResult<'s> = ParserNomResult<'s, CCode, ()>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CCode {
@@ -144,11 +150,6 @@ impl Display for CCode {
     }
 }
 
-pub type Span<'s> = kparse::Span<'s, CCode>;
-pub type CParserError<'s> = ParserError<'s, CCode>;
-pub type CParserResult<'s, O> = ParserResult<'s, CCode, (), (Span<'s>, O)>;
-pub type CNomResult<'s> = ParserNomResult<'s, CCode, ()>;
-
 // AST -------------------------------------------------------------------
 
 #[derive(Debug, Clone, Copy)]
@@ -282,6 +283,50 @@ pub struct Datei<'s> {
     pub span: Span<'s>,
 }
 
+// Tokens ----------------------------------------------------------------
+// impl<'s, T> IntoParserResultAddSpan<'s, CCode, T> for Result<T, ParseIntError> {
+//     fn into_with_span(self, span: Span<'s>) -> ParserResult<'s, CCode, T> {
+//         match self {
+//             Ok(v) => Ok(v),
+//             Err(_) => Err(ParserError::new(CInteger, span)),
+//         }
+//     }
+// }
+
+pub fn token_nummer(rest: Span<'_>) -> CParserResult<'_, Nummer<'_>> {
+    match nom_number(rest) {
+        Ok((rest, tok)) => Ok((
+            rest,
+            Nummer {
+                nummer: tok.parse::<u32>().with_span(CNummer, rest)?,
+                span: tok,
+            },
+        )),
+        Err(e) => Err(e.with_code(CNummer)),
+    }
+}
+
+pub fn token_datum(rest: Span<'_>) -> CParserResult<'_, Datum<'_>> {
+    let (rest, day) = nom_number(rest).with_code(CDateDay)?;
+    let (rest, _) = nom_dot(rest).with_code(CDotDay)?;
+    let (rest, month) = nom_number(rest).with_code(CDateMonth)?;
+    let (rest, _) = nom_dot(rest).with_code(CDotMonth)?;
+    let (rest, year) = nom_number(rest).with_code(CDateYear)?;
+
+    let iday: u32 = (*day).parse().with_span(CDateDay, day)?;
+    let imonth: u32 = (*month).parse().with_span(CDateMonth, month)?;
+    let iyear: i32 = (*year).parse().with_span(CDateYear, year)?;
+
+    let span = unsafe { rest.span_union(&day, &year) };
+    let datum = NaiveDate::from_ymd_opt(iyear, imonth, iday);
+
+    if let Some(datum) = datum {
+        Ok((rest, Datum { datum, span }))
+    } else {
+        Err(nom::Err::Error(ParserError::new(CDatum, span)))
+    }
+}
+
 fn lah_command(tok: &'_ str, rest: Span<'_>) -> bool {
     match tag::<_, _, CParserError<'_>>(tok)(rest) {
         Ok(_) => true,
@@ -355,8 +400,7 @@ pub fn nom_ws(i: Span<'_>) -> CNomResult<'_> {
 
 /// Eat whitespace
 pub fn nom_ws1(i: Span<'_>) -> CParserResult<'_, Span<'_>> {
-    take_while1::<_, _, CParserError<'_>>(|c: char| c == ' ' || c == '\t')(i)
-        .into_with_code(CWhitespace)
+    take_while1::<_, _, CParserError<'_>>(|c: char| c == ' ' || c == '\t')(i).with_code(CWhitespace)
 }
 
 /// Eat whitespace
