@@ -1429,7 +1429,7 @@ pub fn nom_ws_span(i: Span<'_>) -> Span<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::cmds2::{token_command, BCommand, CCode, Datum, Nummer, ParseReport, Report};
+    use crate::{token_command, BCommand, CCode, Datum, Nummer, ParseReport, Report};
     use iparse::test::{test_parse, Trace};
     use iparse::{Parser, Span};
     use std::mem::size_of;

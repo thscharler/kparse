@@ -1,4 +1,4 @@
-use nom_locate_remaster::data_frame::{DataFrames, StrLines};
+use kparse::{DataFrames, StrLines};
 use std::arch::x86_64::_rdrand16_step;
 use std::hint::black_box;
 

@@ -201,7 +201,7 @@ pub enum Track<'s, C: Code> {
 }
 
 /// Track for entering a parser function.
-pub struct EnterTrack<'s, C> {
+pub struct EnterTrack<'s, C: Code> {
     /// Function
     pub func: C,
     /// Span
@@ -211,7 +211,7 @@ pub struct EnterTrack<'s, C> {
 }
 
 /// Track for debug information.
-pub struct DebugTrack<'s, C> {
+pub struct DebugTrack<'s, C: Code> {
     /// Function.
     pub func: C,
     /// Span
@@ -225,7 +225,7 @@ pub struct DebugTrack<'s, C> {
 }
 
 /// Track for plain information.
-pub struct InfoTrack<'s, C> {
+pub struct InfoTrack<'s, C: Code> {
     /// Function
     pub func: C,
     /// Step info.
@@ -237,7 +237,7 @@ pub struct InfoTrack<'s, C> {
 }
 
 /// Track for plain information.
-pub struct WarnTrack<'s, C> {
+pub struct WarnTrack<'s, C: Code> {
     /// Function
     pub func: C,
     /// Step info.
@@ -249,7 +249,7 @@ pub struct WarnTrack<'s, C> {
 }
 
 /// Track for ok results.
-pub struct OkTrack<'s, C> {
+pub struct OkTrack<'s, C: Code> {
     /// Function.
     pub func: C,
     /// Span.
@@ -261,7 +261,7 @@ pub struct OkTrack<'s, C> {
 }
 
 /// Track for err results.
-pub struct ErrTrack<'s, C> {
+pub struct ErrTrack<'s, C: Code> {
     /// Function.
     pub func: C,
     /// Code
@@ -275,7 +275,7 @@ pub struct ErrTrack<'s, C> {
 }
 
 /// Track for exiting a parser function.
-pub struct ExitTrack<'s, C> {
+pub struct ExitTrack<'s, C: Code> {
     /// Function
     pub func: C,
     /// Parser call stack.

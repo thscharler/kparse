@@ -4,7 +4,8 @@
 
 use nom_locate::LocatedSpan;
 use std::error::Error;
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug, Display, Formatter};
+use std::ops::Deref;
 
 mod conversion;
 mod data_frame;
@@ -20,7 +21,7 @@ pub use tracker::*;
 pub use tracking_context::*;
 
 /// Standard input type.
-pub type Span<'s, C> = LocatedSpan<&'s str, &'s dyn ParseContext<'s, C>>;
+pub type Span<'s, C> = LocatedSpan<&'s str, HoldContext<'s, C>>;
 
 /// Result type.
 pub type ParserResult<'s, C, X, O> = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, X>>>;
@@ -61,6 +62,25 @@ pub trait ParseContext<'s, C: Code> {
 
     /// Tracks an Err result of a parser function.    
     fn exit_err(&self, span: &Span<'s, C>, code: C, err: &dyn Error);
+}
+
+/// Hold the context.
+/// Needed to block the debug implementation for LocatedSpan.
+#[derive(Clone, Copy)]
+pub struct HoldContext<'s, C: Code>(&'s dyn ParseContext<'s, C>);
+
+impl<'s, C: Code> Deref for HoldContext<'s, C> {
+    type Target = &'s dyn ParseContext<'s, C>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'s, C: Code> Debug for HoldContext<'s, C> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Ok(())
+    }
 }
 
 ///

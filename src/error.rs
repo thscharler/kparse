@@ -12,6 +12,7 @@ use std::num::NonZeroUsize;
 
 /// Parser error.
 ///
+// todo: support for X
 pub struct ParserError<'s, C: Code, X: Copy = ()> {
     /// Error code
     pub code: C,
@@ -46,7 +47,7 @@ pub struct Nom<'s, C: Code> {
 }
 
 #[derive(Clone, Copy)]
-pub struct Expect<'s, C> {
+pub struct Expect<'s, C: Code> {
     /// Error code
     pub code: C,
     /// Span
