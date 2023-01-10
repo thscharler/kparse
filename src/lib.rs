@@ -16,63 +16,59 @@ pub use error::*;
 pub use tracker::*;
 
 /// Standard input type.
-pub type Span<'s> = LocatedSpan<&'s str>;
+pub type Span<'s, C> = LocatedSpan<&'s str, &'s dyn ParseContext<'s, C>>;
 
 /// Result type.
-pub type ParserResult<'s, C, X, O> = Result<O, ParserError<'s, C, X>>;
+pub type ParserResult<'s, C, X, O> = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, X>>>;
 
 /// Type alias for a nom parser. Use this to create a ParserError directly in nom.
-pub type ParserNomResult<'s, C, X> = Result<(Span<'s>, Span<'s>), nom::Err<ParserError<'s, C, X>>>;
+pub type ParserNomResult<'s, C, X> =
+    Result<(Span<'s, C>, Span<'s, C>), nom::Err<ParserError<'s, C, X>>>;
 
 /// Parser state codes.
 ///
 /// These are used for error handling and parser results and
 /// everything else.
-pub trait Code: Copy + Display + Debug + Eq {
-    /// Mapping for nom::Err::Error
-    const NOM_ERROR: Self;
-    /// Mapping for nom::Err::Failure
-    const NOM_FAILURE: Self;
-    /// Mapping for nom::Err::Incomplete
-    const NOM_INCOMPLETE: Self;
-
-    fn is_nom_special(&self) -> bool {
-        *self == Self::NOM_ERROR || *self == Self::NOM_FAILURE || *self == Self::NOM_INCOMPLETE
-    }
-}
+pub trait Code: Copy + Display + Debug + Eq {}
 
 pub trait ParseContext<'s, C: Code> {
-    // Returns a span that encloses all of the current parser.
-    fn complete(&self) -> Span<'s>;
+    /// Returns a span that encloses all of the current parser.
+    fn span(&self) -> Span<'s, C>;
 
-    // Tracks entering a parser function.
-    fn enter(&mut self, func: C, span: Span<'s>);
+    /// Tracks entering a parser function.
+    fn enter(span: Span<'s, C>, func: C);
 
-    // Tracks an ok result of a parser function.
-    fn ok<X: Copy, O>(
-        &mut self,
-        rest: Span<'s>,
-        span: Span<'s>,
-        value: O,
-    ) -> ParserResult<'s, C, X, (Span<'s>, O)>;
+    /// Tracks a result of a parser function.
+    fn exit<X: Copy, O>(result: ParserResult<'s, C, X, O>) -> ParserResult<'s, C, X, O>;
 
-    fn err<X: Copy, O>(&mut self, err: ParserError<'s, C, X>) -> ParserResult<'s, C, X, O>;
+    /// Tracks a result of a parser function.
+    /// Only jumps the hoop on the Ok branch.
+    fn exit_ok<X: Copy, O>(result: ParserResult<'s, C, X, O>) -> ParserResult<'s, C, X, O>;
+
+    /// Tracks a result of a parser function.
+    /// Only jumps the hoop on the Err branch.
+    fn exit_err<X: Copy, O>(result: ParserResult<'s, C, X, O>) -> ParserResult<'s, C, X, O>;
 }
 
 /// Tracks the error path with the context.
-///
 pub trait TrackParseErr<'s, 't, C: Code, X: Copy> {
     type Result;
 
-    fn track(self, ctx: &'t mut impl ParseContext<'s, C>) -> Self::Result;
+    /// Track if this is an error.
+    fn track(self) -> Self::Result;
 
-    fn track_as(self, ctx: &'t mut impl ParseContext<'s, C>, code: C) -> Self::Result;
+    /// Track if this is an error. Set a new code too.
+    fn track_as(self, code: C) -> Self::Result;
+
+    /// Track if this is an error. And if this is ok.
+    fn track_ok(self) -> Self::Result;
 }
 
 /// Convert an external error into a ParserError.
 pub trait WithSpan<'s, C: Code, R> {
     /// Convert an external error into a ParserError.
-    fn with_span(self, code: C, span: Span<'s>) -> R;
+    /// Usually uses nom::Err::Failure to indicate the finality of the error.
+    fn with_span(self, code: C, span: Span<'s, C>) -> R;
 }
 
 /// Translate the error code to a new one.
