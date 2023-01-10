@@ -56,7 +56,8 @@ impl<'s, C: Code, X: Copy> From<nom::error::Error<Span<'s, C>>> for ParserError<
 // Result
 //
 
-impl<'s, C: Code, X: Copy, O, E> WithSpan<'s, C, ParserResult<'s, C, X, O>> for Result<O, E>
+impl<'s, C: Code, X: Copy, O, E> WithSpan<'s, C, ParserResult<'s, C, X, O>>
+    for Result<(Span<'s, C>, O), E>
 where
     E: WithSpan<'s, C, ParserError<'s, C, X>>,
 {
@@ -72,7 +73,8 @@ where
     }
 }
 
-impl<'s, C: Code, X: Copy, O, E> WithCode<'s, C, ParserResult<'s, C, X, O>> for Result<O, E>
+impl<'s, C: Code, X: Copy, O, E> WithCode<'s, C, ParserResult<'s, C, X, O>>
+    for Result<(Span<'s, C>, O), E>
 where
     E: WithCode<'s, C, ParserError<'s, C, X>>,
 {

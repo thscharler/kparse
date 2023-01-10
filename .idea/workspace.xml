@@ -9,10 +9,9 @@
     <cargoProject FILE="$PROJECT_DIR$/../nom_locate_remaster/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="2nd test">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m0 for throw_away_everything__again">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
     </list>
@@ -178,7 +177,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673312622614</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="m0 for throw_away_everything__again">
+      <created>1673318974441</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1673318974441</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -199,7 +205,8 @@
     <MESSAGE value="add errors" />
     <MESSAGE value="add tracker" />
     <MESSAGE value="2nd test" />
-    <option name="LAST_COMMIT_MESSAGE" value="2nd test" />
+    <MESSAGE value="m0 for throw_away_everything__again" />
+    <option name="LAST_COMMIT_MESSAGE" value="m0 for throw_away_everything__again" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
