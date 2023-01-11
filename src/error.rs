@@ -55,6 +55,54 @@ pub struct SpanAndCode<'s, C: Code> {
     /// Span
     pub span: Span<'s, C>,
 }
+/// Combines two ParserErrors.
+pub trait CombineParserError<'s, C: Code, X: Copy = (), Rhs = Self> {
+    fn add(&mut self, err: Rhs) -> Result<(), nom::Err<ParserError<'s, C, X>>>;
+}
+
+impl<'s, C: Code, X: Copy> CombineParserError<'s, C, X, ParserError<'s, C, X>>
+    for ParserError<'s, C, X>
+{
+    fn add(&mut self, err: ParserError<'s, C, X>) -> Result<(), nom::Err<ParserError<'s, C, X>>> {
+        self.append(err);
+        Ok(())
+    }
+}
+
+impl<'s, C: Code, X: Copy> CombineParserError<'s, C, X, ParserError<'s, C, X>>
+    for Option<ParserError<'s, C, X>>
+{
+    fn add(&mut self, err: ParserError<'s, C, X>) -> Result<(), nom::Err<ParserError<'s, C, X>>> {
+        match self {
+            None => *self = Some(err),
+            Some(v) => v.append(err),
+        }
+        Ok(())
+    }
+}
+
+impl<'s, C: Code, X: Copy> CombineParserError<'s, C, X, nom::Err<ParserError<'s, C, X>>>
+    for Option<ParserError<'s, C, X>>
+{
+    fn add(
+        &mut self,
+        err: nom::Err<ParserError<'s, C, X>>,
+    ) -> Result<(), nom::Err<ParserError<'s, C, X>>> {
+        match self {
+            None => match err {
+                nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(e)),
+                nom::Err::Error(e) => *self = Some(e),
+                nom::Err::Failure(e) => *self = Some(e),
+            },
+            Some(v) => match err {
+                nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(e)),
+                nom::Err::Error(e) => v.append(e),
+                nom::Err::Failure(e) => v.append(e),
+            },
+        };
+        Ok(())
+    }
+}
 
 impl<'s, C: Code, X: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'s, C, X> {
     fn from_error_kind(input: Span<'s, C>, kind: ErrorKind) -> Self {
@@ -90,13 +138,9 @@ impl<'s, C: Code, X: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
         }
     }
 
-    // what is self and what is other
+    // todo: what is self and what is other
     fn or(mut self, other: Self) -> Self {
-        // TODO: may need completion
-        for expect in other.iter_expected() {
-            self.add_expect(expect.code, expect.span);
-        }
-
+        self.append(other);
         self
     }
 }
@@ -183,6 +227,19 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
 
     // todo: something missing?
 
+    /// Adds information from the other parser error to this on.
+    ///
+    /// Adds the others code and span as expect values.
+    /// Adds all the others expect values.
+    ///
+    /// TODO: may need completion
+    pub fn append(&mut self, other: ParserError<'s, C, X>) {
+        self.expect(other.code, other.span);
+        for expect in other.iter_expected() {
+            self.expect(expect.code, expect.span);
+        }
+    }
+
     /// Convert to a new error code.
     /// If the old one differs, it is added to the expect list.
     pub fn with_code(mut self, code: C) -> Self {
@@ -208,6 +265,17 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
         false
     }
 
+    /// Return any nom error codes.
+    pub fn nom(&self) -> Vec<&Nom<'s, C>> {
+        self.hints
+            .iter()
+            .filter_map(|v| match v {
+                Hints::Nom(n) => Some(n),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Was this one of the expected errors.
     pub fn is_expected(&self, code: C) -> bool {
         for exp in &self.hints {
@@ -220,19 +288,8 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
         false
     }
 
-    /// Return any nom error codes.
-    pub fn nom(&self) -> Vec<&Nom<'s, C>> {
-        self.hints
-            .iter()
-            .filter_map(|v| match v {
-                Hints::Nom(n) => Some(n),
-                _ => None,
-            })
-            .collect()
-    }
-
     /// Add an expected code.
-    pub fn add_expect(&mut self, code: C, span: Span<'s, C>) {
+    pub fn expect(&mut self, code: C, span: Span<'s, C>) {
         self.hints.push(Hints::Expect(SpanAndCode {
             code,
             span: span.into(),
@@ -240,7 +297,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
     }
 
     /// Adds some expected codes.
-    pub fn append_expect(&mut self, exp: Vec<SpanAndCode<'s, C>>) {
+    pub fn append_expected(&mut self, exp: Vec<SpanAndCode<'s, C>>) {
         for exp in exp.into_iter() {
             self.hints.push(Hints::Expect(exp));
         }
@@ -256,7 +313,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
 
     // maybe: move to standalone fn
     /// Get Expect grouped by offset into the string, starting with max first.
-    pub fn expect_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, C>>)> {
+    pub fn expected_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, C>>)> {
         let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_expected().collect();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
 
@@ -284,7 +341,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
 
     // maybe: move to standalone fn
     /// Get Expect grouped by line number, starting with max first.
-    pub fn expect_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, C>>)> {
+    pub fn expected_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, C>>)> {
         let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_expected().collect();
         sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));
 
@@ -311,7 +368,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
     }
 
     /// Add an suggested code.
-    pub fn add_suggest(&mut self, code: C, span: Span<'s, C>) {
+    pub fn suggest(&mut self, code: C, span: Span<'s, C>) {
         self.hints.push(Hints::Suggest(SpanAndCode {
             code,
             span: span.into(),
@@ -319,7 +376,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
     }
 
     /// Adds some suggested codes.
-    pub fn append_suggest(&mut self, exp: Vec<SpanAndCode<'s, C>>) {
+    pub fn append_suggested(&mut self, exp: Vec<SpanAndCode<'s, C>>) {
         for exp in exp.into_iter() {
             self.hints.push(Hints::Suggest(exp));
         }
@@ -335,7 +392,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
 
     // maybe: move to standalone fn
     /// Get Suggest grouped by offset into the string, starting with max first.
-    pub fn suggest_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, C>>)> {
+    pub fn suggested_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, C>>)> {
         let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_suggested().collect();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
 
@@ -363,7 +420,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
 
     // maybe: move to standalone fn
     /// Get Suggest grouped by line number, starting with max first.
-    pub fn suggest_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, C>>)> {
+    pub fn suggested_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, C>>)> {
         let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_suggested().collect();
         sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));
 

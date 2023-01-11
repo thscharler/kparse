@@ -12,10 +12,13 @@
     <cargoProject FILE="$PROJECT_DIR$/../nom_locate_remaster/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context.">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m2 for throw_away_everything__again&#10;&#10;adapted our first test case. partly.&#10;&#10;Context comes in nicely.&#10;The conversion traits now seem to be matching.">
+      <change afterPath="$PROJECT_DIR$/tests/test_sizes.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/debug/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -60,7 +63,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "TODO_SCOPE": "Module 'kparse'",
-    "last_opened_file_path": "C:/Users/stommy/Documents/StableProjects/biosys",
+    "last_opened_file_path": "C:/Users/stommy/Documents/IdeaProjects/kparse",
     "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.0",
@@ -75,9 +78,43 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test">
+  <component name="RunManager" selected="Cargo.Test test_1">
     <configuration name="Test data_frame::finder::tests::test_raw1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package nom_locate_remaster --lib data_frame::finder::tests::test_raw1 -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test test_1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_parser_cmds test_1 -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test test_sizes" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_sizes test_sizes -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -112,6 +149,8 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test test_1" />
+        <item itemvalue="Cargo.Test test_sizes" />
         <item itemvalue="Cargo.Test data_frame::finder::tests::test_raw1" />
       </list>
     </recent_temporary>
@@ -238,7 +277,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673377336898</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="m2 for throw_away_everything__again&#10;&#10;adapted our first test case. partly.&#10;&#10;Context comes in nicely.&#10;The conversion traits now seem to be matching.">
+      <created>1673380480178</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1673380480178</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -267,7 +313,8 @@
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;Display + Debug for ParserError" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;starting to make it run again." />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context." />
-    <option name="LAST_COMMIT_MESSAGE" value="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context." />
+    <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;adapted our first test case. partly.&#10;&#10;Context comes in nicely.&#10;The conversion traits now seem to be matching." />
+    <option name="LAST_COMMIT_MESSAGE" value="m2 for throw_away_everything__again&#10;&#10;adapted our first test case. partly.&#10;&#10;Context comes in nicely.&#10;The conversion traits now seem to be matching." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

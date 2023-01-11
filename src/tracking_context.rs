@@ -1,11 +1,11 @@
-use crate::{str_union, Code, ParseContext, Span};
+use crate::{str_union, Code, HoldContext, ParseContext, Span};
 use nom_locate::LocatedSpan;
 use std::cell::RefCell;
 use std::error::Error;
 use std::marker::PhantomData;
 
 pub struct TrackingContext<'s, C: Code, const TRACK: bool = false> {
-    span: Span<'s, C>,
+    span: &'s str,
     data: RefCell<TrackingData<'s, C, TRACK>>,
 }
 
@@ -24,18 +24,24 @@ impl<'s, C: Code, const TRACK: bool> Default for TrackingData<'s, C, TRACK> {
 }
 
 impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
-    pub fn new(span: Span<'s, C>) -> Self {
+    /// Creates a context for a given span.
+    pub fn new(span: &'s str) -> Self {
         Self {
             span,
             data: Default::default(),
         }
     }
+
+    /// Create a new Span from this context.
+    pub fn new_span(&'s self) -> Span<'s, C> {
+        Span::new_extra(self.span, HoldContext { 0: self })
+    }
 }
 
 impl<'s, C: Code, const TRACK: bool> ParseContext<'s, C> for TrackingContext<'s, C, TRACK> {
     // we don't really need _span for this, but it's useful in Context.
-    fn original(&self, _span: &Span<'s, C>) -> Span<'s, C> {
-        self.span
+    fn original(&'s self, _span: &Span<'s, C>) -> Span<'s, C> {
+        self.new_span()
     }
 
     unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
@@ -51,7 +57,7 @@ impl<'s, C: Code, const TRACK: bool> ParseContext<'s, C> for TrackingContext<'s,
         )
     }
 
-    fn enter(&self, span: &Span<'s, C>, func: C) {
+    fn enter(&self, func: C, span: &Span<'s, C>) {
         self.push_func(func);
         self.track_enter(span);
     }
@@ -116,8 +122,9 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
     fn track_enter(&self, span: &Span<'s, C>) {
         if TRACK {
             let parent = self.parent_vec();
+            let func = self.func();
             self.data.borrow_mut().track.push(Track::Enter(EnterTrack {
-                func: self.func(),
+                func,
                 span: *span,
                 parents: parent,
             }));
@@ -127,8 +134,9 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
     fn track_debug(&self, span: &Span<'s, C>, debug: String) {
         if TRACK {
             let parent = self.parent_vec();
+            let func = self.func();
             self.data.borrow_mut().track.push(Track::Debug(DebugTrack {
-                func: self.func(),
+                func,
                 span: *span,
                 debug,
                 parents: parent,
@@ -140,8 +148,9 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
     fn track_info(&self, span: &Span<'s, C>, info: &'static str) {
         if TRACK {
             let parent = self.parent_vec();
+            let func = self.func();
             self.data.borrow_mut().track.push(Track::Info(InfoTrack {
-                func: self.func(),
+                func,
                 info,
                 span: *span,
                 parents: parent,
@@ -152,8 +161,9 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
     fn track_warn(&self, span: &Span<'s, C>, warn: &'static str) {
         if TRACK {
             let parent = self.parent_vec();
+            let func = self.func();
             self.data.borrow_mut().track.push(Track::Warn(WarnTrack {
-                func: self.func(),
+                func,
                 warn,
                 span: *span,
                 parents: parent,
@@ -164,14 +174,15 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
     fn track_exit_ok(&self, span: &Span<'s, C>, parsed: &Span<'s, C>) {
         if TRACK {
             let parent = self.parent_vec();
+            let func = self.func();
             self.data.borrow_mut().track.push(Track::Ok(OkTrack {
-                func: self.func(),
+                func,
                 span: *span,
                 parsed: *parsed,
                 parents: parent.clone(),
             }));
             self.data.borrow_mut().track.push(Track::Exit(ExitTrack {
-                func: self.func(),
+                func,
                 parents: parent,
                 _phantom: Default::default(),
             }));
@@ -187,15 +198,16 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
             };
 
             let parent = self.parent_vec();
+            let func = self.func();
             self.data.borrow_mut().track.push(Track::Err(ErrTrack {
-                func: self.func(),
+                func,
                 code,
                 span: *span,
                 err: err_str,
                 parents: parent.clone(),
             }));
             self.data.borrow_mut().track.push(Track::Exit(ExitTrack {
-                func: self.func(),
+                func,
                 parents: parent,
                 _phantom: Default::default(),
             }));

@@ -21,8 +21,8 @@ pub use tracker::*;
 pub use tracking_context::*;
 
 pub mod prelude {
-    pub use crate::ParserError;
     pub use crate::{Code, ParseContext, TrackParseErr, WithCode, WithSpan};
+    pub use crate::{CombineParserError, ParserError};
     pub use crate::{Context, ParserNomResult, ParserResult, Span};
 }
 
@@ -49,7 +49,7 @@ pub trait Code: Copy + Display + Debug + Eq {
 ///
 pub trait ParseContext<'s, C: Code> {
     /// Returns a span that encloses all of the current parser.
-    fn original(&self, span: &Span<'s, C>) -> Span<'s, C>;
+    fn original(&'s self, span: &Span<'s, C>) -> Span<'s, C>;
 
     /// Create a span that goes from the start of the first to the
     /// end of the second span.
@@ -64,7 +64,7 @@ pub trait ParseContext<'s, C: Code> {
     unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C>;
 
     /// Tracks entering a parser function.
-    fn enter(&self, span: &Span<'s, C>, func: C);
+    fn enter(&self, func: C, span: &Span<'s, C>);
 
     /// Debugging
     fn debug(&self, span: &Span<'s, C>, debug: String);
@@ -144,8 +144,8 @@ impl<'s, C: Code> ParseContext<'s, C> for Context {
         first.extra.span_union(first, second)
     }
 
-    fn enter(&self, span: &Span<'s, C>, func: C) {
-        span.extra.enter(span, func)
+    fn enter(&self, func: C, span: &Span<'s, C>) {
+        span.extra.enter(func, span)
     }
 
     fn debug(&self, span: &Span<'s, C>, debug: String) {

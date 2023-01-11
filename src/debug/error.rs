@@ -60,7 +60,7 @@ pub fn debug_parse_of_error_medium<'s, C: Code, X: Copy>(
         }
     }
 
-    let expect = err.expect_grouped_by_offset();
+    let expect = err.expected_grouped_by_offset();
     if !expect.is_empty() {
         for (g_off, subgrp) in expect {
             let first = subgrp.first().unwrap();
