@@ -32,7 +32,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
         }
     }
 
-    /// Create a new Span from this context.
+    /// Create a new Span from this context using the original str.
     pub fn new_span(&'s self) -> Span<'s, C> {
         Span::new_extra(self.span, HoldContext { 0: self })
     }

@@ -2,7 +2,8 @@ pub mod error;
 
 use crate::{Code, Span};
 use nom::bytes::complete::take_while_m_n;
-use nom::InputIter;
+use nom::{InputIter, InputTake};
+use std::cmp::min;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DebugWidth {
@@ -22,6 +23,27 @@ impl From<Option<usize>> for DebugWidth {
             Some(2) => DebugWidth::Long,
             _ => DebugWidth::Short,
         }
+    }
+}
+
+pub fn restrict_str(w: DebugWidth, text: &str) -> String {
+    match w {
+        DebugWidth::Short => restrict_str_n(20, text),
+        DebugWidth::Medium => restrict_str_n(40, text),
+        DebugWidth::Long => restrict_str_n(60, text),
+    }
+}
+
+pub fn restrict_str_n(max_len: usize, text: &str) -> String {
+    let shortened = text.split_at(min(max_len, text.len())).0;
+
+    if text.len() > max_len {
+        shortened
+            .escape_default()
+            .chain("...".iter_elements())
+            .collect()
+    } else {
+        shortened.escape_default().collect()
     }
 }
 

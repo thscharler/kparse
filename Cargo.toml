@@ -9,6 +9,7 @@ edition = "2021"
 memchr = "2.5"
 bytecount = "^0.6"
 chrono = "0.4"
+humantime = "2.1"
 
 [dependencies.nom]
 version = "7.1"

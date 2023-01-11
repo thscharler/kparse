@@ -9,16 +9,23 @@ use std::ops::Deref;
 
 mod conversion;
 mod data_frame;
-mod debug;
+pub(crate) mod debug;
 mod error;
+pub mod test;
 mod tracker;
 mod tracking_context;
 
 pub use conversion::*;
-pub use data_frame::*;
-pub use error::*;
+pub use data_frame::{
+    slice_union, str_union, ByteFrames, ByteSliceIter, DataFrames, FByteSliceIter, FStrIter,
+    RByteSliceIter, RStrIter, StrIter, StrLines,
+};
+pub use error::{CombineParserError, Hints, Nom, ParserError, SpanAndCode};
 pub use tracker::*;
-pub use tracking_context::*;
+pub use tracking_context::{
+    DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, TrackingContext,
+    WarnTrack,
+};
 
 pub mod prelude {
     pub use crate::{Code, ParseContext, TrackParseErr, WithCode, WithSpan};

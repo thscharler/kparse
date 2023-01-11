@@ -1,0 +1,507 @@
+use crate::debug::{restrict, DebugWidth};
+use crate::{Code, ParseContext, ParserError, Span, TrackingContext};
+use std::cell::Cell;
+use std::fmt::Debug;
+use std::pin::Pin;
+use std::time::{Duration, Instant};
+
+mod debug_track;
+
+/// Value comparison.
+pub type CompareFn<O, V> = for<'a> fn(&'a O, V) -> bool;
+
+/// Test Results.
+pub struct Test<'s, P, C, O, E>
+where
+    P: ParseContext<'s, C>,
+    C: Code,
+{
+    pub text: &'s str,
+    pub context: P,
+    pub result: Result<(Span<'s, C>, O), nom::Err<E>>,
+    pub duration: Duration,
+    pub failed: Cell<bool>,
+}
+
+/// Result reporting.
+pub trait Report<T> {
+    fn report(&self, test: T);
+}
+
+/// Runs the parser and records the results.
+/// Use ok(), err(), ... to check specifics.
+///
+/// Finish the test with q().
+#[must_use]
+pub fn test_parse<'s, C: Code, O, E>(
+    text: &'s str,
+    fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
+) -> Test<'s, TrackingContext<'s, C, true>, C, O, E> {
+    let context: TrackingContext<'s, C, true> = TrackingContext::new(text);
+    let span = context.new_span();
+
+    let now = Instant::now();
+    let result = fn_test(span);
+    let elapsed = now.elapsed();
+
+    Test {
+        text,
+        context,
+        result,
+        duration: elapsed,
+        failed: Cell::new(false),
+    }
+}
+
+impl<'s, P, C, O, E> Test<'s, P, C, O, E>
+where
+    P: ParseContext<'s, C>,
+    C: Code,
+    O: Debug,
+    E: Debug,
+{
+    /// Sets the failed flag.
+    pub fn flag_fail(&self) {
+        self.failed.set(true);
+    }
+
+    /// Always fails.
+    ///
+    /// Finish the test with q().
+    pub fn fail(&self) -> &Self {
+        println!("FAIL: Unconditionally");
+        self.flag_fail();
+        self
+    }
+
+    /// Checks for ok.
+    /// Any result that is not Err is ok.
+    #[must_use]
+    pub fn okok(&self) -> &Self {
+        match &self.result {
+            Ok(_) => {}
+            Err(_) => {
+                println!("FAIL: Expected ok, but was an error.");
+                self.flag_fail();
+            }
+        }
+        self
+    }
+
+    /// Checks for any error.
+    ///
+    /// Finish the test with q()
+    #[must_use]
+    pub fn errerr(&self) -> &Self {
+        match &self.result {
+            Ok(_) => {
+                println!("FAIL: Expected error, but was ok!");
+                self.flag_fail();
+            }
+            Err(_) => {}
+        }
+        self
+    }
+
+    /// Runs the associated Report. Depending on the type of the Report this
+    /// can panic if any of the tests signaled a failure condition.
+    ///
+    /// Panic
+    ///
+    /// Panics if any test failed.
+    #[track_caller]
+    pub fn q(self, r: &dyn Report<Self>) {
+        r.report(self);
+    }
+}
+
+// works for any fn that uses a Span as input and returns a (Span, X) pair.
+impl<'s, P, C, O, E> Test<'s, P, C, O, E>
+where
+    P: ParseContext<'s, C>,
+    C: Code,
+    O: Debug,
+    E: Debug,
+{
+    /// Checks for ok.
+    /// Uses an extraction function to get the relevant result.
+    ///
+    /// Finish the test with q()
+    #[must_use]
+    pub fn ok<V>(&'s self, eq: CompareFn<O, V>, test: V) -> &Self
+    where
+        V: Debug + Copy,
+        O: Debug,
+    {
+        match &self.result {
+            Ok((_, token)) => {
+                if !eq(token, test) {
+                    println!("FAIL: Value mismatch: {:?} <> {:?}", token, test);
+                    self.flag_fail();
+                }
+            }
+            Err(_) => {
+                println!("FAIL: Expect ok, but was an error!");
+                self.flag_fail();
+            }
+        }
+        self
+    }
+
+    /// Tests the remaining string after parsing.
+    ///
+    /// Finish the test with q()
+    #[must_use]
+    pub fn rest(&self, test: &str) -> &Self {
+        match &self.result {
+            Ok((rest, _)) => {
+                if **rest != test {
+                    println!(
+                        "FAIL: Rest mismatch {} <> {}",
+                        restrict(DebugWidth::Medium, *rest),
+                        test
+                    );
+                    self.flag_fail();
+                }
+            }
+            Err(_) => {
+                println!("FAIL: Expect ok, but was an error!");
+                self.flag_fail();
+            }
+        }
+        self
+    }
+}
+
+// works for any NomFn.
+impl<'s, P, C, O> Test<'s, P, C, O, nom::error::Error<Span<'s, C>>>
+where
+    P: ParseContext<'s, C>,
+    C: Code,
+    O: Debug,
+{
+    /// Test for a nom error that occurred.
+    #[must_use]
+    pub fn err(&self, kind: nom::error::ErrorKind) -> &Self {
+        match &self.result {
+            Ok(_) => {
+                println!("FAIL: Expected error, but was ok!");
+                self.flag_fail();
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                if e.code != kind {
+                    println!("FAIL: {:?} <> {:?}", e.code, kind);
+                    self.flag_fail();
+                }
+            }
+            Err(nom::Err::Incomplete(_)) => {
+                println!("FAIL: nom::Err::Incomplete");
+                self.flag_fail();
+            }
+        }
+        self
+    }
+}
+
+impl<'s, P, C, O> Test<'s, P, C, O, ParserError<'s, C>>
+where
+    P: ParseContext<'s, C>,
+    O: Debug,
+    C: Code,
+{
+    /// Checks for an error.
+    ///
+    /// Finish the test with q()
+    #[must_use]
+    pub fn err(&self, code: C) -> &Self {
+        match &self.result {
+            Ok(_) => {
+                println!("FAIL: Expected error, but was ok!");
+                self.flag_fail();
+            }
+            Err(nom::Err::Error(e)) => {
+                if e.code != code {
+                    println!("ERROR: {:?} <> {:?}", e.code, code);
+                    self.flag_fail();
+                }
+            }
+            Err(nom::Err::Failure(e)) => {
+                if e.code != code {
+                    println!("FAILURE: {:?} <> {:?}", e.code, code);
+                    self.flag_fail();
+                }
+            }
+            Err(nom::Err::Incomplete(e)) => {
+                println!("INCOMPLETE: {:?}", e);
+                self.flag_fail();
+            }
+        }
+        self
+    }
+
+    /// Checks for an expect value.
+    ///
+    /// Finish the test with q()
+    #[must_use]
+    pub fn expect(&self, code: C) -> &Self {
+        match &self.result {
+            Ok(_) => {
+                println!("FAIL: {:?} was ok not an error.", code,);
+                self.flag_fail();
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                if !e.is_expected(code) {
+                    println!(
+                        "FAIL: {:?} is not an expected token. {:?}",
+                        code,
+                        e.iter_expected().collect::<Vec<_>>()
+                    );
+                    self.flag_fail();
+                }
+            }
+            Err(nom::Err::Incomplete(e)) => {
+                println!("FAIL: {:?} was incomplete not an error.", code,);
+                self.flag_fail();
+            }
+        }
+
+        self
+    }
+
+    // /// Checks for an expect value.
+    // ///
+    // /// Finish the test with q()
+    // #[must_use]
+    // pub fn expect2(&self, code: C, parent: C) -> &Self {
+    //     match &self.result {
+    //         Ok(_) => {
+    //             println!("FAIL: {:?} was ok not an error.", code,);
+    //             self.flag_fail();
+    //         }
+    //         Err(e) => {
+    //             if !e.is_expected2(code, parent) {
+    //                 println!(
+    //                     "FAIL: {:?} is not an expected token. {:?}",
+    //                     code,
+    //                     e.expect_as_ref()
+    //                 );
+    //                 self.flag_fail();
+    //             }
+    //         }
+    //     }
+    //
+    //     self
+    // }
+}
+
+mod span {
+    use crate::{Code, Span};
+
+    /// Compare with an Ok(Span<'s>)
+    #[allow(clippy::needless_lifetimes)]
+    #[allow(dead_code)]
+    pub fn span<'a, 'b, 's, C: Code>(span: &'a Span<'s, C>, value: (usize, &'b str)) -> bool {
+        **span == value.1 && span.location_offset() == value.0
+    }
+
+    /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the first span, fail on None.
+    #[allow(clippy::needless_lifetimes)]
+    #[allow(dead_code)]
+    pub fn span_0<'a, 'b, 's, C: Code>(
+        span: &'a (Option<Span<'s, C>>, Span<'s, C>),
+        value: (usize, &'b str),
+    ) -> bool {
+        if let Some(span) = &span.0 {
+            **span == value.1 && span.location_offset() == value.0
+        } else {
+            false
+        }
+    }
+
+    /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the first span, fail on Some.
+    #[allow(clippy::needless_lifetimes)]
+    #[allow(dead_code)]
+    pub fn span_0_isnone<'a, 's, C: Code>(
+        span: &'a (Option<Span<'s, C>>, Span<'s, C>),
+        _value: (),
+    ) -> bool {
+        span.0.is_none()
+    }
+
+    /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the second span.
+    #[allow(clippy::needless_lifetimes)]
+    #[allow(dead_code)]
+    pub fn span_1<'a, 'b, 's, C: Code>(
+        span: &'a (Option<Span<'s, C>>, Span<'s, C>),
+        value: (usize, &'b str),
+    ) -> bool {
+        *span.1 == value.1 && span.1.location_offset() == value.0
+    }
+}
+
+mod report {
+    use crate::debug::{restrict, restrict_str, DebugWidth};
+    use crate::test::debug_track::debug_tracks;
+    use crate::test::{Report, Test};
+    use crate::{Code, ParseContext, Track, TrackingContext};
+    use std::fmt::{Debug, Formatter};
+
+    /// Dumps the Result data if any test failed.
+    pub struct CheckDump;
+
+    impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for CheckDump
+    where
+        P: ParseContext<'s, C>,
+        C: Code,
+        O: Debug,
+        E: Debug,
+    {
+        #[track_caller]
+        fn report(&self, test: Test<'s, P, C, O, E>) {
+            if test.failed.get() {
+                dump(test);
+                panic!("test failed")
+            }
+        }
+    }
+
+    /// Dumps the Result data.
+    pub struct Timing(pub u32);
+
+    impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for Timing
+    where
+        P: ParseContext<'s, C>,
+        C: Code,
+        O: Debug,
+        E: Debug,
+    {
+        fn report(&self, test: Test<'s, P, C, O, E>) {
+            println!(
+                "when parsing '{}' in {} =>",
+                restrict_str(DebugWidth::Medium, test.text),
+                humantime::format_duration(test.duration / self.0)
+            );
+            match &test.result {
+                Ok(_) => {
+                    println!("OK");
+                }
+                Err(_) => {
+                    println!("ERROR");
+                }
+            }
+        }
+    }
+
+    /// Dumps the Result data.
+    pub struct Dump;
+
+    impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for Dump
+    where
+        P: ParseContext<'s, C>,
+        C: Code,
+        O: Debug,
+        E: Debug,
+    {
+        fn report(&self, test: Test<'s, P, C, O, E>) {
+            dump(test)
+        }
+    }
+
+    fn dump<'s, P, C, O, E>(test: Test<'s, P, C, O, E>)
+    where
+        P: ParseContext<'s, C>,
+        C: Code,
+        O: Debug,
+        E: Debug,
+    {
+        println!();
+        println!(
+            "when parsing '{}' in {} =>",
+            restrict_str(DebugWidth::Medium, test.text),
+            humantime::format_duration(test.duration)
+        );
+        match &test.result {
+            Ok((rest, token)) => {
+                println!("rest {}:\"{}\"", rest.location_offset(), rest);
+                println!("{:0?}", token);
+            }
+            Err(e) => {
+                println!("error");
+                println!("{:1?}", e);
+            }
+        }
+    }
+
+    /// Dumps the full parser trace if any test failed.
+    pub struct CheckTrace;
+
+    impl<'s, C, O, E, const TRACK: bool> Report<Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>>
+        for CheckTrace
+    where
+        C: Code,
+        O: Debug,
+        E: Debug,
+    {
+        #[track_caller]
+        fn report(&self, test: Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>) {
+            if test.failed.get() {
+                trace(test);
+                panic!("test failed")
+            }
+        }
+    }
+
+    /// Dumps the full parser trace.
+    pub struct Trace;
+
+    impl<'s, C, O, E, const TRACK: bool> Report<Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>>
+        for Trace
+    where
+        C: Code,
+        O: Debug,
+        E: Debug,
+    {
+        fn report(&self, test: Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>) {
+            trace(test);
+        }
+    }
+
+    fn trace<'s, C, O, E, const TRACK: bool>(test: Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>)
+    where
+        C: Code,
+        O: Debug,
+        E: Debug,
+    {
+        println!();
+        println!(
+            "when parsing '{}' in {} =>",
+            restrict_str(DebugWidth::Medium, test.text),
+            humantime::format_duration(test.duration)
+        );
+
+        struct Tracks<'s, C: Code>(Vec<Track<'s, C>>);
+
+        impl<'s, C: Code> Debug for Tracks<'s, C> {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                debug_tracks(f, DebugWidth::Long, &self.0)
+            }
+        }
+
+        println!("{:?}", Tracks(test.context.into_result()));
+
+        match &test.result {
+            Ok((rest, token)) => {
+                println!(
+                    "rest {}:\"{}\"",
+                    rest.location_offset(),
+                    restrict(DebugWidth::Medium, *rest)
+                );
+                println!("{:0?}", token);
+            }
+            Err(e) => {
+                println!("error");
+                println!("{:1?}", e);
+            }
+        }
+    }
+}
