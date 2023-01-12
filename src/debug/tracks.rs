@@ -3,6 +3,15 @@ use crate::{
     Code, DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, WarnTrack,
 };
 use std::fmt;
+use std::fmt::{Debug, Formatter};
+
+pub struct Tracks<'s, C: Code>(&'s Vec<Track<'s, C>>);
+
+impl<'s, C: Code> Debug for Tracks<'s, C> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        debug_tracks(f, DebugWidth::Medium, &self.0)
+    }
+}
 
 fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
     write!(f, "{}", " ".repeat(ind * 2))?;

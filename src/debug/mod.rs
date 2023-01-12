@@ -1,4 +1,5 @@
 pub mod error;
+pub mod tracks;
 
 use crate::{Code, Span};
 use nom::bytes::complete::take_while_m_n;

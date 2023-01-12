@@ -22,8 +22,8 @@ impl<'s, C: Code> RawContext<'s, C> {
 }
 
 impl<'s, C: Code> ParseContext<'s, C> for RawContext<'s, C> {
-    fn original(&'s self, _span: &Span<'s, C>) -> Span<'s, C> {
-        self.span()
+    fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
+        Span::new_extra(self.span, span.extra)
     }
 
     unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {

@@ -9,7 +9,7 @@ use std::ops::Deref;
 
 mod conversion;
 mod data_frame;
-pub(crate) mod debug;
+pub mod debug;
 mod error;
 mod raw_context;
 pub mod test;
@@ -57,7 +57,7 @@ pub trait Code: Copy + Display + Debug + Eq {
 ///
 pub trait ParseContext<'s, C: Code> {
     /// Returns a span that encloses all of the current parser.
-    fn original(&'s self, span: &Span<'s, C>) -> Span<'s, C>;
+    fn original(&self, span: &Span<'s, C>) -> Span<'s, C>;
 
     /// Create a span that goes from the start of the first to the
     /// end of the second span.
@@ -90,18 +90,75 @@ pub trait ParseContext<'s, C: Code> {
     fn exit_err(&self, span: &Span<'s, C>, code: C, err: &dyn Error);
 }
 
+/// Null Context
+impl<'s, C: Code> ParseContext<'s, C> for () {
+    fn original(&self, _span: &Span<'s, C>) -> Span<'s, C> {
+        Span::new_extra("", HoldContext(&()))
+    }
+
+    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
+        Span::new_extra("", HoldContext(&()))
+    }
+
+    fn enter(&self, _: C, _: &Span<'s, C>) {}
+
+    fn debug(&self, _: &Span<'s, C>, _: String) {}
+
+    fn info(&self, _: &Span<'s, C>, _: &'static str) {}
+
+    fn warn(&self, _: &Span<'s, C>, _: &'static str) {}
+
+    fn exit_ok(&self, _: &Span<'s, C>, _: &Span<'s, C>) {}
+
+    fn exit_err(&self, _: &Span<'s, C>, _: C, _: &dyn Error) {}
+}
+
 /// Hold the context.
 /// Needed to block the debug implementation for LocatedSpan.
 #[derive(Clone, Copy)]
 pub struct HoldContext<'s, C: Code>(&'s dyn ParseContext<'s, C>);
 
-impl<'s, C: Code> Deref for HoldContext<'s, C> {
-    type Target = &'s dyn ParseContext<'s, C>;
+impl<'s, C: Code> ParseContext<'s, C> for HoldContext<'s, C> {
+    fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
+        self.0.original(span)
+    }
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
+        self.0.span_union(first, second)
+    }
+
+    fn enter(&self, func: C, span: &Span<'s, C>) {
+        self.0.enter(func, span)
+    }
+
+    fn debug(&self, span: &Span<'s, C>, debug: String) {
+        self.0.debug(span, debug)
+    }
+
+    fn info(&self, span: &Span<'s, C>, info: &'static str) {
+        self.0.info(span, info)
+    }
+
+    fn warn(&self, span: &Span<'s, C>, warn: &'static str) {
+        self.0.warn(span, warn)
+    }
+
+    fn exit_ok(&self, span: &Span<'s, C>, parsed: &Span<'s, C>) {
+        self.0.exit_ok(span, parsed)
+    }
+
+    fn exit_err(&self, span: &Span<'s, C>, code: C, err: &dyn Error) {
+        self.0.exit_err(span, code, err)
     }
 }
+
+// impl<'s, C: Code> Deref for HoldContext<'s, C> {
+//     type Target = &'s dyn ParseContext<'s, C>;
+//
+//     fn deref(&self) -> &Self::Target {
+//         &self.0
+//     }
+// }
 
 impl<'s, C: Code> Debug for HoldContext<'s, C> {
     fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
@@ -145,11 +202,14 @@ impl Context {
 
 impl<'s, C: Code> ParseContext<'s, C> for Context {
     fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
-        span.extra.original(span)
+        let tmp = span.extra;
+        tmp.original(span)
     }
 
     unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
-        first.extra.span_union(first, second)
+        let tmp = first.extra;
+
+        tmp.span_union(first, second)
     }
 
     fn enter(&self, func: C, span: &Span<'s, C>) {

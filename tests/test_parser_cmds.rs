@@ -112,7 +112,7 @@ fn test_1() {
 
     for t in tests {
         let now = Instant::now();
-        for i in 1..1000 {
+        for _i in 1..1000 {
             test_parse_raw(&mut None, t, parse_cmds).q(r);
         }
         let elapsed = now.elapsed();

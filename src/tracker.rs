@@ -1,4 +1,4 @@
-use crate::{Code, ParserError, Span, TrackParseErr};
+use crate::{Code, ParseContext, ParserError, Span, TrackParseErr};
 
 impl<'s, 't, C: Code, X: Copy, O, E> TrackParseErr<'s, 't, C, X>
     for Result<(Span<'s, C>, O), nom::Err<E>>

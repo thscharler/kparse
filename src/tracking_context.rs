@@ -40,8 +40,8 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
 
 impl<'s, C: Code, const TRACK: bool> ParseContext<'s, C> for TrackingContext<'s, C, TRACK> {
     // we don't really need _span for this, but it's useful in Context.
-    fn original(&'s self, _span: &Span<'s, C>) -> Span<'s, C> {
-        self.span()
+    fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
+        Span::new_extra(self.span, span.extra)
     }
 
     unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {

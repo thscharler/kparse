@@ -4,8 +4,6 @@ use std::cell::Cell;
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
 
-mod debug_track;
-
 use crate::raw_context::RawContext;
 pub use report::*;
 pub use span::*;
@@ -398,8 +396,8 @@ mod span {
 }
 
 mod report {
+    use crate::debug::tracks::debug_tracks;
     use crate::debug::{restrict, restrict_str, DebugWidth};
-    use crate::test::debug_track::debug_tracks;
     use crate::test::{Report, Test};
     use crate::{Code, ParseContext, Track, TrackingContext};
     use std::fmt::{Debug, Formatter};
