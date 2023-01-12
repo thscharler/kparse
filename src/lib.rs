@@ -5,7 +5,6 @@
 use nom_locate::LocatedSpan;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::ops::Deref;
 
 mod conversion;
 mod data_frame;
@@ -16,6 +15,7 @@ pub mod test;
 mod tracker;
 mod tracking_context;
 
+use crate::data_frame::undo_take_str_slice_unchecked;
 pub use conversion::*;
 pub use data_frame::{
     slice_union, str_union, ByteFrames, ByteSliceIter, DataFrames, FByteSliceIter, FStrIter,
@@ -59,18 +59,6 @@ pub trait ParseContext<'s, C: Code> {
     /// Returns a span that encloses all of the current parser.
     fn original(&self, span: &Span<'s, C>) -> Span<'s, C>;
 
-    /// Create a span that goes from the start of the first to the
-    /// end of the second span.
-    ///
-    /// Safety
-    /// It's unsafe because you must only use spans derived from
-    /// the original span.
-    ///
-    /// Panics
-    /// If first is after second in the original span.
-    /// If any of the calculated offsets lies outsides the original span.
-    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C>;
-
     /// Tracks entering a parser function.
     fn enter(&self, func: C, span: &Span<'s, C>);
 
@@ -92,12 +80,11 @@ pub trait ParseContext<'s, C: Code> {
 
 /// Null Context
 impl<'s, C: Code> ParseContext<'s, C> for () {
-    fn original(&self, _span: &Span<'s, C>) -> Span<'s, C> {
-        Span::new_extra("", HoldContext(&()))
-    }
-
-    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
-        Span::new_extra("", HoldContext(&()))
+    fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
+        unsafe {
+            let buf = undo_take_str_slice_unchecked(span.fragment(), span.location_offset());
+            Span::new_from_raw_offset(0, 1, buf, span.extra)
+        }
     }
 
     fn enter(&self, _: C, _: &Span<'s, C>) {}
@@ -121,10 +108,6 @@ pub struct HoldContext<'s, C: Code>(&'s dyn ParseContext<'s, C>);
 impl<'s, C: Code> ParseContext<'s, C> for HoldContext<'s, C> {
     fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
         self.0.original(span)
-    }
-
-    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
-        self.0.span_union(first, second)
     }
 
     fn enter(&self, func: C, span: &Span<'s, C>) {
@@ -151,14 +134,6 @@ impl<'s, C: Code> ParseContext<'s, C> for HoldContext<'s, C> {
         self.0.exit_err(span, code, err)
     }
 }
-
-// impl<'s, C: Code> Deref for HoldContext<'s, C> {
-//     type Target = &'s dyn ParseContext<'s, C>;
-//
-//     fn deref(&self) -> &Self::Target {
-//         &self.0
-//     }
-// }
 
 impl<'s, C: Code> Debug for HoldContext<'s, C> {
     fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
@@ -198,18 +173,38 @@ impl Context {
         }
         Err(err)
     }
+
+    /// Returns the union of the two Spans
+    ///
+    /// Safety:
+    /// There are assertions that the offsets for the result are within the
+    /// bounds of the original().
+    ///
+    /// But it can't be assured that first and second are derived from it,
+    /// so UB cannot be ruled out.
+    ///
+    /// So the prerequisite is that both first and second are derived from original().
+    pub unsafe fn span_union<'a, 'b, C: Code>(
+        &self,
+        first: &Span<'a, C>,
+        second: &Span<'b, C>,
+    ) -> Span<'a, C> {
+        let original = first.extra.original(first);
+        let str = str_union(original.fragment(), first.fragment(), second.fragment());
+
+        Span::new_from_raw_offset(
+            first.location_offset(),
+            first.location_line(),
+            str,
+            first.extra,
+        )
+    }
 }
 
 impl<'s, C: Code> ParseContext<'s, C> for Context {
     fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
         let tmp = span.extra;
         tmp.original(span)
-    }
-
-    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
-        let tmp = first.extra;
-
-        tmp.span_union(first, second)
     }
 
     fn enter(&self, func: C, span: &Span<'s, C>) {

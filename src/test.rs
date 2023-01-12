@@ -396,11 +396,11 @@ mod span {
 }
 
 mod report {
-    use crate::debug::tracks::debug_tracks;
+    use crate::debug::tracks::Tracks;
     use crate::debug::{restrict, restrict_str, DebugWidth};
     use crate::test::{Report, Test};
-    use crate::{Code, ParseContext, Track, TrackingContext};
-    use std::fmt::{Debug, Formatter};
+    use crate::{Code, ParseContext, TrackingContext};
+    use std::fmt::Debug;
 
     #[derive(Clone, Copy)]
     pub struct NoReport;
@@ -553,15 +553,7 @@ mod report {
             humantime::format_duration(test.duration)
         );
 
-        struct Tracks<'s, C: Code>(Vec<Track<'s, C>>);
-
-        impl<'s, C: Code> Debug for Tracks<'s, C> {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                debug_tracks(f, DebugWidth::Long, &self.0)
-            }
-        }
-
-        println!("{:?}", Tracks(test.context.results()));
+        println!("{:?}", Tracks(&test.text, &test.context.results()));
 
         match &test.result {
             Ok((rest, token)) => {

@@ -6,6 +6,9 @@
 //! The main purpose is as a companion for HSpan to get the surroundings of a span.
 //!
 
+pub use self::finder::undo_take_slice;
+pub use self::strings::undo_take_str_slice;
+pub use self::strings::undo_take_str_slice_unchecked;
 pub use byte_frames::*;
 pub use str_lines::*;
 

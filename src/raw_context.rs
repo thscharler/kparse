@@ -1,5 +1,4 @@
-use crate::{str_union, Code, HoldContext, ParseContext, Span};
-use nom_locate::LocatedSpan;
+use crate::{Code, HoldContext, ParseContext, Span, SpanOffset};
 use std::error::Error;
 use std::marker::PhantomData;
 
@@ -24,19 +23,6 @@ impl<'s, C: Code> RawContext<'s, C> {
 impl<'s, C: Code> ParseContext<'s, C> for RawContext<'s, C> {
     fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
         Span::new_extra(self.span, span.extra)
-    }
-
-    unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
-        let u_str = str_union(&*self.span, &*first, &*second);
-
-        // starting point is the first span, so we use it's extra.
-        // and it naturally gives all the other values too.
-        LocatedSpan::new_from_raw_offset(
-            first.location_offset(),
-            first.location_line(),
-            u_str,
-            first.extra.clone(),
-        )
     }
 
     fn enter(&self, _: C, _: &Span<'s, C>) {}
