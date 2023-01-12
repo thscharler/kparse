@@ -11,6 +11,7 @@ mod conversion;
 mod data_frame;
 pub(crate) mod debug;
 mod error;
+mod raw_context;
 pub mod test;
 mod tracker;
 mod tracking_context;

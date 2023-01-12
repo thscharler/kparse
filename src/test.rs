@@ -2,10 +2,13 @@ use crate::debug::{restrict, DebugWidth};
 use crate::{Code, ParseContext, ParserError, Span, TrackingContext};
 use std::cell::Cell;
 use std::fmt::Debug;
-use std::pin::Pin;
 use std::time::{Duration, Instant};
 
 mod debug_track;
+
+use crate::raw_context::RawContext;
+pub use report::*;
+pub use span::*;
 
 /// Value comparison.
 pub type CompareFn<O, V> = for<'a> fn(&'a O, V) -> bool;
@@ -17,7 +20,7 @@ where
     C: Code,
 {
     pub text: &'s str,
-    pub context: P,
+    pub context: &'s P,
     pub result: Result<(Span<'s, C>, O), nom::Err<E>>,
     pub duration: Duration,
     pub failed: Cell<bool>,
@@ -34,11 +37,70 @@ pub trait Report<T> {
 /// Finish the test with q().
 #[must_use]
 pub fn test_parse<'s, C: Code, O, E>(
+    buf: &'s mut Option<TrackingContext<'s, C, true>>,
     text: &'s str,
     fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
 ) -> Test<'s, TrackingContext<'s, C, true>, C, O, E> {
-    let context: TrackingContext<'s, C, true> = TrackingContext::new(text);
-    let span = context.new_span();
+    buf.replace(TrackingContext::new(text));
+    let context = buf.as_ref().expect("yes");
+
+    let span = context.span();
+
+    let now = Instant::now();
+    let result = fn_test(span);
+    let elapsed = now.elapsed();
+
+    Test {
+        text,
+        context,
+        result,
+        duration: elapsed,
+        failed: Cell::new(false),
+    }
+}
+
+/// Runs the parser and records the results.
+/// Use ok(), err(), ... to check specifics.
+///
+/// Finish the test with q().
+#[must_use]
+pub fn test_parse_no_track<'s, C: Code, O, E>(
+    buf: &'s mut Option<TrackingContext<'s, C, false>>,
+    text: &'s str,
+    fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
+) -> Test<'s, TrackingContext<'s, C, false>, C, O, E> {
+    buf.replace(TrackingContext::new(text));
+    let context = buf.as_ref().expect("yes");
+
+    let span = context.span();
+
+    let now = Instant::now();
+    let result = fn_test(span);
+    let elapsed = now.elapsed();
+
+    Test {
+        text,
+        context,
+        result,
+        duration: elapsed,
+        failed: Cell::new(false),
+    }
+}
+
+/// Runs the parser and records the results.
+/// Use ok(), err(), ... to check specifics.
+///
+/// Finish the test with q().
+#[must_use]
+pub fn test_parse_raw<'s, C: Code, O, E>(
+    buf: &'s mut Option<RawContext<'s, C>>,
+    text: &'s str,
+    fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
+) -> Test<'s, RawContext<'s, C>, C, O, E> {
+    buf.replace(RawContext::new(text));
+    let context = buf.as_ref().expect("yes");
+
+    let span = context.span();
 
     let now = Instant::now();
     let result = fn_test(span);
@@ -110,7 +172,7 @@ where
     ///
     /// Panics if any test failed.
     #[track_caller]
-    pub fn q(self, r: &dyn Report<Self>) {
+    pub fn q<R: Report<Self> + Copy>(self, r: R) {
         r.report(self);
     }
 }
@@ -260,7 +322,7 @@ where
                 }
             }
             Err(nom::Err::Incomplete(e)) => {
-                println!("FAIL: {:?} was incomplete not an error.", code,);
+                println!("FAIL: {:?} was incomplete not an error. {:?}", code, e);
                 self.flag_fail();
             }
         }
@@ -299,14 +361,12 @@ mod span {
 
     /// Compare with an Ok(Span<'s>)
     #[allow(clippy::needless_lifetimes)]
-    #[allow(dead_code)]
     pub fn span<'a, 'b, 's, C: Code>(span: &'a Span<'s, C>, value: (usize, &'b str)) -> bool {
         **span == value.1 && span.location_offset() == value.0
     }
 
     /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the first span, fail on None.
     #[allow(clippy::needless_lifetimes)]
-    #[allow(dead_code)]
     pub fn span_0<'a, 'b, 's, C: Code>(
         span: &'a (Option<Span<'s, C>>, Span<'s, C>),
         value: (usize, &'b str),
@@ -320,7 +380,6 @@ mod span {
 
     /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the first span, fail on Some.
     #[allow(clippy::needless_lifetimes)]
-    #[allow(dead_code)]
     pub fn span_0_isnone<'a, 's, C: Code>(
         span: &'a (Option<Span<'s, C>>, Span<'s, C>),
         _value: (),
@@ -330,7 +389,6 @@ mod span {
 
     /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the second span.
     #[allow(clippy::needless_lifetimes)]
-    #[allow(dead_code)]
     pub fn span_1<'a, 'b, 's, C: Code>(
         span: &'a (Option<Span<'s, C>>, Span<'s, C>),
         value: (usize, &'b str),
@@ -346,7 +404,21 @@ mod report {
     use crate::{Code, ParseContext, Track, TrackingContext};
     use std::fmt::{Debug, Formatter};
 
+    #[derive(Clone, Copy)]
+    pub struct NoReport;
+
+    impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for NoReport
+    where
+        P: ParseContext<'s, C>,
+        C: Code,
+        O: Debug,
+        E: Debug,
+    {
+        fn report(&self, _: Test<'s, P, C, O, E>) {}
+    }
+
     /// Dumps the Result data if any test failed.
+    #[derive(Clone, Copy)]
     pub struct CheckDump;
 
     impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for CheckDump
@@ -366,6 +438,7 @@ mod report {
     }
 
     /// Dumps the Result data.
+    #[derive(Clone, Copy)]
     pub struct Timing(pub u32);
 
     impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for Timing
@@ -393,6 +466,7 @@ mod report {
     }
 
     /// Dumps the Result data.
+    #[derive(Clone, Copy)]
     pub struct Dump;
 
     impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for Dump
@@ -433,6 +507,7 @@ mod report {
     }
 
     /// Dumps the full parser trace if any test failed.
+    #[derive(Clone, Copy)]
     pub struct CheckTrace;
 
     impl<'s, C, O, E, const TRACK: bool> Report<Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>>
@@ -452,6 +527,7 @@ mod report {
     }
 
     /// Dumps the full parser trace.
+    #[derive(Clone, Copy)]
     pub struct Trace;
 
     impl<'s, C, O, E, const TRACK: bool> Report<Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>>
@@ -487,7 +563,7 @@ mod report {
             }
         }
 
-        println!("{:?}", Tracks(test.context.into_result()));
+        println!("{:?}", Tracks(test.context.results()));
 
         match &test.result {
             Ok((rest, token)) => {

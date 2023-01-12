@@ -33,7 +33,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
     }
 
     /// Create a new Span from this context using the original str.
-    pub fn new_span(&'s self) -> Span<'s, C> {
+    pub fn span(&'s self) -> Span<'s, C> {
         Span::new_extra(self.span, HoldContext { 0: self })
     }
 }
@@ -41,7 +41,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
 impl<'s, C: Code, const TRACK: bool> ParseContext<'s, C> for TrackingContext<'s, C, TRACK> {
     // we don't really need _span for this, but it's useful in Context.
     fn original(&'s self, _span: &Span<'s, C>) -> Span<'s, C> {
-        self.new_span()
+        self.span()
     }
 
     unsafe fn span_union(&self, first: &Span<'s, C>, second: &Span<'s, C>) -> Span<'s, C> {
@@ -86,8 +86,8 @@ impl<'s, C: Code, const TRACK: bool> ParseContext<'s, C> for TrackingContext<'s,
 }
 
 impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
-    /// Dissolve to the tracking results.
-    pub fn into_result(self) -> Vec<Track<'s, C>> {
+    /// Extract the tracking results.
+    pub fn results(&self) -> Vec<Track<'s, C>> {
         self.data.replace(TrackingData::default()).track
     }
 }

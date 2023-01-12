@@ -2,7 +2,7 @@ pub mod error;
 
 use crate::{Code, Span};
 use nom::bytes::complete::take_while_m_n;
-use nom::{InputIter, InputTake};
+use nom::InputIter;
 use std::cmp::min;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
