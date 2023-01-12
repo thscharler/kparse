@@ -1,5 +1,5 @@
 use crate::data_frame::undo_take_str_slice_unchecked;
-use crate::{Code, HoldContext, ParseContext, Span, SpanOffset};
+use crate::{Code, HoldContext, ParseContext, Span};
 use std::error::Error;
 use std::marker::PhantomData;
 

@@ -5,9 +5,9 @@ use crate::{
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 
-pub struct Tracks<'s, C: Code>(&'s Vec<Track<'s, C>>);
+pub struct Tracks<'a, 's, C: Code>(pub &'a Vec<Track<'s, C>>);
 
-impl<'s, C: Code> Debug for Tracks<'s, C> {
+impl<'a, 's, C: Code> Debug for Tracks<'a, 's, C> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         debug_tracks(f, DebugWidth::Medium, &self.0)
     }

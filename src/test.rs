@@ -553,7 +553,8 @@ mod report {
             humantime::format_duration(test.duration)
         );
 
-        println!("{:?}", Tracks(&test.text, &test.context.results()));
+        let tracks = test.context.results();
+        println!("{:?}", Tracks(&tracks));
 
         match &test.result {
             Ok((rest, token)) => {

@@ -1,4 +1,4 @@
-use crate::{Code, HoldContext, ParseContext, Span, SpanOffset};
+use crate::{Code, HoldContext, ParseContext, Span};
 use std::cell::RefCell;
 use std::error::Error;
 use std::marker::PhantomData;

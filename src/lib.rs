@@ -15,7 +15,6 @@ pub mod test;
 mod tracker;
 mod tracking_context;
 
-use crate::data_frame::undo_take_str_slice_unchecked;
 pub use conversion::*;
 pub use data_frame::{
     slice_union, str_union, ByteFrames, ByteSliceIter, DataFrames, FByteSliceIter, FStrIter,
