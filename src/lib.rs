@@ -165,15 +165,21 @@ impl Context {
         &self,
         first: &Span<'a, C>,
         second: &Span<'b, C>,
-    ) -> Span<'a, C> {
-        let original = first.extra.original(first);
+    ) -> Span<'b, C> {
+        // take the second argument. both should return the same original
+
+        // but if we use ()-Context the original might be truncated before the second fragment.
+        // it's not possible to extend the buffer towards the end, but with LocatedSpan it's
+        // always possible to extend to the very beginning. so if we take the second span here
+        // it will always include the first span too.
+        let original = second.extra.original(second);
         let str = str_union(original.fragment(), first.fragment(), second.fragment());
 
         Span::new_from_raw_offset(
             first.location_offset(),
             first.location_line(),
             str,
-            first.extra,
+            second.extra,
         )
     }
 }

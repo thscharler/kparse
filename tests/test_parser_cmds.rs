@@ -1,5 +1,5 @@
 pub use cmds_parser::*;
-use kparse::test::{test_parse_raw, NoReport};
+use kparse::test::{test_parse_noctx, test_parse_raw, NoReport};
 use std::time::Instant;
 
 #[test]
@@ -113,7 +113,7 @@ fn test_1() {
     for t in tests {
         let now = Instant::now();
         for _i in 1..1000 {
-            test_parse_raw(&mut None, t, parse_cmds).q(r);
+            test_parse_noctx(&mut None, t, parse_cmds).q(r);
         }
         let elapsed = now.elapsed();
         println!("{}", humantime::format_duration(elapsed / 1000));

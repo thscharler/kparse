@@ -4,7 +4,7 @@ use std::cell::Cell;
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
 
-use crate::raw_context::RawContext;
+use crate::raw_context::{new_no_context_span, RawContext};
 pub use report::*;
 pub use span::*;
 
@@ -107,6 +107,31 @@ pub fn test_parse_raw<'s, C: Code, O, E>(
     Test {
         text,
         context,
+        result,
+        duration: elapsed,
+        failed: Cell::new(false),
+    }
+}
+
+/// Runs the parser and records the results.
+/// Use ok(), err(), ... to check specifics.
+///
+/// Finish the test with q().
+#[must_use]
+pub fn test_parse_noctx<'s, C: Code, O, E>(
+    _buf: &'s mut Option<()>,
+    text: &'s str,
+    fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
+) -> Test<'s, (), C, O, E> {
+    let span = new_no_context_span(text);
+
+    let now = Instant::now();
+    let result = fn_test(span);
+    let elapsed = now.elapsed();
+
+    Test {
+        text,
+        context: &(),
         result,
         duration: elapsed,
         failed: Cell::new(false),

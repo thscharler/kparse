@@ -39,6 +39,11 @@ impl<'s, C: Code> ParseContext<'s, C> for RawContext<'s, C> {
     fn exit_err(&self, _: &Span<'s, C>, _: C, _: &dyn Error) {}
 }
 
+/// Create a Span without context. Almost.
+pub fn new_no_context_span<C: Code>(span: &str) -> Span<'_, C> {
+    Span::new_extra(span, HoldContext(&()))
+}
+
 /// Null Context
 impl<'s, C: Code> ParseContext<'s, C> for () {
     fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
