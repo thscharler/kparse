@@ -42,6 +42,12 @@ impl<'s, C: Code, X: Copy> From<ParserError<'s, C, X>> for nom::Err<ParserError<
     }
 }
 
+impl<'s, C: Code, X: Copy> WithCode<C, ParserError<'s, C, X>> for ParserError<'s, C, X> {
+    fn with_code(self, code: C) -> ParserError<'s, C, X> {
+        self.with_code(code)
+    }
+}
+
 //
 // nom::error::Error
 //
@@ -65,7 +71,7 @@ impl<'s, C: Code, X: Copy> From<nom::error::Error<Span<'s, C>>> for ParserError<
 //
 // 1. just to call with_code on an existing ParserError.
 // 2. to convert whatever to a ParserError and give it a code.
-impl<'s, C: Code, X: Copy, E> WithCode<'s, C, nom::Err<ParserError<'s, C, X>>> for nom::Err<E>
+impl<'s, C: Code, X: Copy, E> WithCode<C, nom::Err<ParserError<'s, C, X>>> for nom::Err<E>
 where
     E: Into<ParserError<'s, C, X>>,
 {
@@ -115,10 +121,10 @@ where
 //
 // 1. this is a ParserResult with a nom::Err with a ParserError.
 // 2. this is a Result with a whatever which has a WithCode<ParserError>
-impl<'s, C: Code, X: Copy, O, E> WithCode<'s, C, ParserResult<'s, O, C, X>>
+impl<'s, C: Code, X: Copy, O, E> WithCode<C, ParserResult<'s, O, C, X>>
     for Result<(Span<'s, C>, O), E>
 where
-    E: WithCode<'s, C, nom::Err<ParserError<'s, C, X>>>,
+    E: WithCode<C, nom::Err<ParserError<'s, C, X>>>,
 {
     fn with_code(self, code: C) -> ParserResult<'s, O, C, X> {
         match self {

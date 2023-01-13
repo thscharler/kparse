@@ -2,9 +2,11 @@
 //! Additional functionality surrounding nom.
 //!
 
+use nom::Parser;
 use nom_locate::LocatedSpan;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::marker::PhantomData;
 
 mod conversion;
 mod data_frame;
@@ -237,7 +239,127 @@ pub trait WithSpan<'s, C: Code, R> {
 }
 
 /// Translate the error code to a new one.
-pub trait WithCode<'s, C: Code, R> {
+pub trait WithCode<C: Code, R> {
     /// Translate the error code to a new one.
     fn with_code(self, code: C) -> R;
+}
+
+/// Make the trait WithCode work as a parser.
+pub struct AddCode<C: Code, P, E1, E2> {
+    code: C,
+    parser: P,
+    _phantom: PhantomData<(E1, E2)>,
+}
+
+impl<C: Code, P, E1, E2> AddCode<C, P, E1, E2> {
+    pub fn new(parser: P, code: C) -> Self {
+        Self {
+            code,
+            parser,
+            _phantom: Default::default(),
+        }
+    }
+}
+
+pub fn with_code<'s, O, C, P, E1, E2>(parser: P, code: C) -> AddCode<C, P, E1, E2>
+where
+    C: Code + 's,
+    E1: WithCode<C, E2>,
+    P: Parser<Span<'s, C>, O, E1>,
+{
+    AddCode::new(parser, code)
+}
+
+impl<'s, O, C, P, E1, E2> Parser<Span<'s, C>, O, E2> for AddCode<C, P, E1, E2>
+where
+    C: Code,
+    E1: WithCode<C, E2>,
+    P: Parser<Span<'s, C>, O, E1>,
+{
+    fn parse(&mut self, input: Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>> {
+        let r = self.parser.parse(input);
+        match r {
+            Ok(v) => Ok(v),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(self.code))),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.with_code(self.code))),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+        }
+    }
+}
+
+/// Make the trait WithSpan work as a parser.
+///
+/// Makes a double step as it applies an additional converter to a parser-result.
+/// Translates errors on both steps as some Result-Error.
+pub struct Transform<'s, O, C, P, T, E0, E1, E2>
+where
+    C: Code + 's,
+    E0: WithCode<C, E2>,
+    E1: WithSpan<'s, C, nom::Err<E2>>,
+    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
+    T: Fn(Span<'s, C>) -> Result<O, E1>,
+{
+    code: C,
+    parser: P,
+    transform: T,
+    _phantom: PhantomData<&'s (O, E0, E1, E2)>,
+}
+
+impl<'s, O, C, P, T, E0, E1, E2> Transform<'s, O, C, P, T, E0, E1, E2>
+where
+    C: Code + 's,
+    E0: WithCode<C, E2>,
+    E1: WithSpan<'s, C, nom::Err<E2>>,
+    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
+    T: Fn(Span<'s, C>) -> Result<O, E1>,
+{
+    pub fn new(parser: P, transform: T, code: C) -> Self {
+        Self {
+            code,
+            parser,
+            transform,
+            _phantom: Default::default(),
+        }
+    }
+}
+
+pub fn tr<'s, O, C, P, T, E0, E1, E2>(
+    parser: P,
+    transform: T,
+    code: C,
+) -> Transform<'s, O, C, P, T, E0, E1, E2>
+where
+    C: Code + 's,
+    E0: WithCode<C, E2>,
+    E1: WithSpan<'s, C, nom::Err<E2>>,
+    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
+    T: Fn(Span<'s, C>) -> Result<O, E1>,
+{
+    Transform::new(parser, transform, code)
+}
+
+impl<'s, O, C, P, T, E0, E1, E2> Parser<Span<'s, C>, O, E2>
+    for Transform<'s, O, C, P, T, E0, E1, E2>
+where
+    C: Code + 's,
+    E0: WithCode<C, E2>,
+    E1: WithSpan<'s, C, nom::Err<E2>>,
+    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
+    T: Fn(Span<'s, C>) -> Result<O, E1>,
+{
+    fn parse(&mut self, input: Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>> {
+        let r = self.parser.parse(input);
+        match r {
+            Ok((rest, token)) => {
+                let o = (self.transform)(token);
+                match o {
+                    Ok(o) => Ok((rest, o)),
+                    Err(e) => Err(e.with_span(self.code, token)),
+                }
+            }
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(self.code))),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.with_code(self.code))),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+        }
+    }
 }

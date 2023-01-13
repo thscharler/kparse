@@ -126,15 +126,17 @@ mod cmds_parser {
     use kparse::prelude::*;
     use nom::bytes::complete::{tag, take_till1, take_while1};
     use nom::character::complete::{char as nchar, digit1};
-    use nom::combinator::recognize;
+    use nom::combinator::{consumed, opt, recognize};
     use nom::error::ParseError;
-    use nom::sequence::terminated;
-    use nom::InputTake;
+    use nom::sequence::{terminated, tuple};
     use nom::{AsChar, InputTakeAtPosition};
+    use nom::{InputTake, Parser};
     use std::fmt::{Debug, Display, Formatter};
+    use std::num::ParseIntError;
     use std::path::{Path, PathBuf};
     use std::{fs, io};
 
+    use kparse::{tr, with_code, AddCode, Transform};
     use CCode::*;
 
     pub type Span<'s> = kparse::Span<'s, CCode>;
@@ -1181,31 +1183,50 @@ mod cmds_parser {
     // }
 
     fn token_nummer(rest: Span<'_>) -> CParserResult<'_, Nummer<'_>> {
-        match nom_number(rest) {
-            Ok((rest, tok)) => Ok((
-                rest,
-                Nummer {
-                    nummer: tok.parse::<u32>().with_span(CNummer, rest)?,
-                    span: tok,
-                },
-            )),
-            Err(e) => Err(e.with_code(CNummer)),
-        }
+        tr(
+            nom_number,
+            |s| -> Result<Nummer<'_>, ParseIntError> {
+                Ok(Nummer {
+                    nummer: (*s).parse::<u32>()?,
+                    span: s,
+                })
+            },
+            CNummer,
+        )
+        .parse(rest)
+
+        // match nom_number(rest) {
+        //     Ok((rest, tok)) => Ok((
+        //         rest,
+        //         Nummer {
+        //             nummer: tok.parse::<u32>().with_span(CNummer, rest)?,
+        //             span: tok,
+        //         },
+        //     )),
+        //     Err(e) => Err(e.with_code(CNummer)),
+        // }
     }
 
     fn token_datum(rest: Span<'_>) -> CParserResult<'_, Datum<'_>> {
-        let (rest, day) = nom_number(rest).with_code(CDateDay)?;
-        let (rest, _) = nom_dot(rest).with_code(CDotDay)?;
-        let (rest, month) = nom_number(rest).with_code(CDateMonth)?;
-        let (rest, _) = nom_dot(rest).with_code(CDotMonth)?;
-        let (rest, year) = nom_number(rest).with_code(CDateYear)?;
+        // let (rest, day) = nom_number(rest).with_code(CDateDay)?;
+        // let (rest, _) = nom_dot(rest).with_code(CDotDay)?;
+        // let (rest, month) = nom_number(rest).with_code(CDateMonth)?;
+        // let (rest, _) = nom_dot(rest).with_code(CDotMonth)?;
+        // let (rest, year) = nom_number(rest).with_code(CDateYear)?;
+        //
+        // let iday: u32 = (*day).parse().with_span(CDateDay, day)?;
+        // let imonth: u32 = (*month).parse().with_span(CDateMonth, month)?;
+        // let iyear: i32 = (*year).parse().with_span(CDateYear, year)?;
 
-        let iday: u32 = (*day).parse().with_span(CDateDay, day)?;
-        let imonth: u32 = (*month).parse().with_span(CDateMonth, month)?;
-        let iyear: i32 = (*year).parse().with_span(CDateYear, year)?;
+        let (rest, (span, (day, _, month, _, year))) = consumed(tuple((
+            tr(nom_number, |s| (*s).parse::<u32>(), CDateDay),
+            with_code(nom_dot, CDotDay),
+            tr(nom_number, |s| (*s).parse::<u32>(), CDateMonth),
+            with_code(nom_dot, CDotDay),
+            tr(nom_number, |s| (*s).parse::<i32>(), CDateYear),
+        )))(rest)?;
 
-        let span = unsafe { Context.span_union(&day, &year) };
-        let datum = NaiveDate::from_ymd_opt(iyear, imonth, iday);
+        let datum = NaiveDate::from_ymd_opt(year, month, day);
 
         if let Some(datum) = datum {
             Ok((rest, Datum { datum, span }))

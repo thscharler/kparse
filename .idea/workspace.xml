@@ -14,11 +14,10 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/core2/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m3 it rises from the ashes&#10;&#10;another context experiment">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m3 it rises from the ashes&#10;&#10;give up all context experiments. &#10;made the () context run, but it's practically&#10;the same as the raw context except some pointer trickery to get the span.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raw_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/raw_context.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
