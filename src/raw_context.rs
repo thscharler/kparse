@@ -1,5 +1,5 @@
 use crate::data_frame::undo_take_str_slice_unchecked;
-use crate::{Code, HoldContext, ParseContext, Span};
+use crate::{Code, DynContext, ParseContext, Span};
 use std::error::Error;
 use std::marker::PhantomData;
 
@@ -17,7 +17,7 @@ impl<'s, C: Code> RawContext<'s, C> {
     }
 
     pub fn span(&'s self) -> Span<'s, C> {
-        Span::new_extra(self.span, HoldContext { 0: self })
+        Span::new_extra(self.span, DynContext { 0: self })
     }
 }
 
@@ -41,7 +41,7 @@ impl<'s, C: Code> ParseContext<'s, C> for RawContext<'s, C> {
 
 /// Create a Span without context. Almost.
 pub fn new_no_context_span<C: Code>(span: &str) -> Span<'_, C> {
-    Span::new_extra(span, HoldContext(&()))
+    Span::new_extra(span, DynContext(&()))
 }
 
 /// Null Context

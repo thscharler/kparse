@@ -15,9 +15,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m4 shine&#10;&#10;new AddCode and Transform and company">
+      <change afterPath="$PROJECT_DIR$/tests/test_x.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/raw_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/raw_context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_sizes.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_sizes.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,9 +84,43 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\test" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test test_1">
+  <component name="RunManager" selected="Cargo.Test tests::test_convoluted">
     <configuration name="Test test_1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package kparse --test test_parser_cmds test_1 -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test test_convoluted" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_x test_convoluted -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::test_convoluted" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_x tests::test_convoluted -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -117,10 +155,14 @@
     </configuration>
     <list>
       <item itemvalue="Cargo.Test" />
+      <item itemvalue="Cargo.Test tests::test_convoluted" />
+      <item itemvalue="Cargo.Test test_convoluted" />
       <item itemvalue="Cargo.Test test_1" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::test_convoluted" />
+        <item itemvalue="Cargo.Test test_convoluted" />
         <item itemvalue="Cargo.Test test_1" />
       </list>
     </recent_temporary>
@@ -296,7 +338,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673593190499</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="m4 shine&#10;&#10;new AddCode and Transform and company">
+      <created>1673628901845</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1673628901845</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">

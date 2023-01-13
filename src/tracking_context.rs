@@ -1,4 +1,4 @@
-use crate::{Code, HoldContext, ParseContext, Span};
+use crate::{Code, DynContext, ParseContext, Span};
 use std::cell::RefCell;
 use std::error::Error;
 use std::marker::PhantomData;
@@ -33,7 +33,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
 
     /// Create a new Span from this context using the original str.
     pub fn span(&'s self) -> Span<'s, C> {
-        Span::new_extra(self.span, HoldContext { 0: self })
+        Span::new_extra(self.span, DynContext { 0: self })
     }
 }
 

@@ -12,18 +12,18 @@ use std::num::NonZeroUsize;
 
 /// Parser error.
 ///
-// todo: support for X
-pub struct ParserError<'s, C: Code, X: Copy = ()> {
+// todo: support for Y
+pub struct ParserError<'s, C: Code, Y: Copy = ()> {
     /// Error code
     pub code: C,
     /// Error span
     pub span: Span<'s, C>,
     /// Extra information
-    pub hints: Vec<Hints<'s, C, X>>,
+    pub hints: Vec<Hints<'s, C, Y>>,
 }
 
 /// Extra information added to a ParserError.
-pub enum Hints<'s, C: Code, X: Copy> {
+pub enum Hints<'s, C: Code, Y: Copy> {
     /// Contains any nom error that occurred.
     Nom(Nom<'s, C>),
     /// Contains the nom needed information.
@@ -35,7 +35,7 @@ pub enum Hints<'s, C: Code, X: Copy> {
     /// External cause for the error.
     Cause(Box<dyn Error>),
     /// Extra user context.
-    UserData(X),
+    UserData(Y),
 }
 
 #[derive(Clone, Copy)]
@@ -55,24 +55,25 @@ pub struct SpanAndCode<'s, C: Code> {
     /// Span
     pub span: Span<'s, C>,
 }
+
 /// Combines two ParserErrors.
-pub trait CombineParserError<'s, C: Code, X: Copy = (), Rhs = Self> {
-    fn add(&mut self, err: Rhs) -> Result<(), nom::Err<ParserError<'s, C, X>>>;
+pub trait CombineParserError<'s, C: Code, Y: Copy = (), Rhs = Self> {
+    fn add(&mut self, err: Rhs) -> Result<(), nom::Err<ParserError<'s, C, Y>>>;
 }
 
-impl<'s, C: Code, X: Copy> CombineParserError<'s, C, X, ParserError<'s, C, X>>
-    for ParserError<'s, C, X>
+impl<'s, C: Code, Y: Copy> CombineParserError<'s, C, Y, ParserError<'s, C, Y>>
+    for ParserError<'s, C, Y>
 {
-    fn add(&mut self, err: ParserError<'s, C, X>) -> Result<(), nom::Err<ParserError<'s, C, X>>> {
+    fn add(&mut self, err: ParserError<'s, C, Y>) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
         self.append(err);
         Ok(())
     }
 }
 
-impl<'s, C: Code, X: Copy> CombineParserError<'s, C, X, ParserError<'s, C, X>>
-    for Option<ParserError<'s, C, X>>
+impl<'s, C: Code, Y: Copy> CombineParserError<'s, C, Y, ParserError<'s, C, Y>>
+    for Option<ParserError<'s, C, Y>>
 {
-    fn add(&mut self, err: ParserError<'s, C, X>) -> Result<(), nom::Err<ParserError<'s, C, X>>> {
+    fn add(&mut self, err: ParserError<'s, C, Y>) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
         match self {
             None => *self = Some(err),
             Some(v) => v.append(err),
@@ -81,13 +82,13 @@ impl<'s, C: Code, X: Copy> CombineParserError<'s, C, X, ParserError<'s, C, X>>
     }
 }
 
-impl<'s, C: Code, X: Copy> CombineParserError<'s, C, X, nom::Err<ParserError<'s, C, X>>>
-    for Option<ParserError<'s, C, X>>
+impl<'s, C: Code, Y: Copy> CombineParserError<'s, C, Y, nom::Err<ParserError<'s, C, Y>>>
+    for Option<ParserError<'s, C, Y>>
 {
     fn add(
         &mut self,
-        err: nom::Err<ParserError<'s, C, X>>,
-    ) -> Result<(), nom::Err<ParserError<'s, C, X>>> {
+        err: nom::Err<ParserError<'s, C, Y>>,
+    ) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
         match self {
             None => match err {
                 nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(e)),
@@ -104,7 +105,7 @@ impl<'s, C: Code, X: Copy> CombineParserError<'s, C, X, nom::Err<ParserError<'s,
     }
 }
 
-impl<'s, C: Code, X: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'s, C, X> {
+impl<'s, C: Code, Y: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'s, C, Y> {
     fn from_error_kind(input: Span<'s, C>, kind: ErrorKind) -> Self {
         ParserError {
             code: C::NOM_ERROR,
@@ -145,7 +146,7 @@ impl<'s, C: Code, X: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
     }
 }
 
-impl<'s, C: Code, X: Copy> Display for ParserError<'s, C, X> {
+impl<'s, C: Code, Y: Copy> Display for ParserError<'s, C, Y> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} expects ", self.code)?;
 
@@ -171,7 +172,7 @@ impl<'s, C: Code, X: Copy> Display for ParserError<'s, C, X> {
     }
 }
 
-impl<'s, C: Code, X: Copy> Debug for ParserError<'s, C, X> {
+impl<'s, C: Code, Y: Copy> Debug for ParserError<'s, C, Y> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match f.width() {
             None | Some(0) => debug_parse_of_error_short(f, self),
@@ -190,7 +191,7 @@ impl<'s, C: Code> Debug for SpanAndCode<'s, C> {
     }
 }
 
-impl<'s, C: Code, X: Copy> Error for ParserError<'s, C, X> {
+impl<'s, C: Code, Y: Copy> Error for ParserError<'s, C, Y> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.hints
             .iter()
@@ -207,7 +208,7 @@ impl<'s, C: Code, X: Copy> Error for ParserError<'s, C, X> {
     }
 }
 
-impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
+impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
     pub fn new(code: C, span: Span<'s, C>) -> Self {
         Self {
             code,
@@ -233,7 +234,7 @@ impl<'s, C: Code, X: Copy> ParserError<'s, C, X> {
     /// Adds all the others expect values.
     ///
     /// TODO: may need completion
-    pub fn append(&mut self, other: ParserError<'s, C, X>) {
+    pub fn append(&mut self, other: ParserError<'s, C, Y>) {
         self.expect(other.code, other.span);
         for expect in other.iter_expected() {
             self.expect(expect.code, expect.span);

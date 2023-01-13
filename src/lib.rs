@@ -36,7 +36,7 @@ pub mod prelude {
 }
 
 /// Standard input type.
-pub type Span<'s, C> = LocatedSpan<&'s str, HoldContext<'s, C>>;
+pub type Span<'s, C> = LocatedSpan<&'s str, DynContext<'s, C>>;
 
 /// Result type.
 pub type ParserResult<'s, O, C, X> = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, X>>>;
@@ -82,9 +82,9 @@ pub trait ParseContext<'s, C: Code> {
 /// Hold the context.
 /// Needed to block the debug implementation for LocatedSpan.
 #[derive(Clone, Copy)]
-pub struct HoldContext<'s, C: Code>(&'s dyn ParseContext<'s, C>);
+pub struct DynContext<'s, C: Code>(&'s dyn ParseContext<'s, C>);
 
-impl<'s, C: Code> ParseContext<'s, C> for HoldContext<'s, C> {
+impl<'s, C: Code> ParseContext<'s, C> for DynContext<'s, C> {
     fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
         self.0.original(span)
     }
@@ -114,7 +114,7 @@ impl<'s, C: Code> ParseContext<'s, C> for HoldContext<'s, C> {
     }
 }
 
-impl<'s, C: Code> Debug for HoldContext<'s, C> {
+impl<'s, C: Code> Debug for DynContext<'s, C> {
     fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
         Ok(())
     }

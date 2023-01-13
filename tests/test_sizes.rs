@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use kparse::{Code, Hints, HoldContext, ParserError, ParserResult, Span};
+use kparse::{Code, DynContext, Hints, ParserError, ParserResult, Span};
 use std::fmt::{Debug, Display, Formatter};
 use std::mem::size_of;
 
@@ -52,7 +52,7 @@ fn test_sizes() {
     dbg!(size_of::<usize>());
     dbg!(size_of::<u32>());
     dbg!(size_of::<&str>());
-    dbg!(size_of::<HoldContext<ZCode>>());
+    dbg!(size_of::<DynContext<ZCode>>());
 
     // offset: usize,
     // line: u32,
