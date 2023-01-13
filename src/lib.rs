@@ -261,13 +261,17 @@ impl<C: Code, P, E1, E2> AddCode<C, P, E1, E2> {
     }
 }
 
-pub fn with_code<'s, O, C, P, E1, E2>(parser: P, code: C) -> AddCode<C, P, E1, E2>
+pub fn error_code<'s, O, C, P, E1, E2>(
+    parser: P,
+    code: C,
+) -> impl FnMut(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>>
 where
     C: Code + 's,
     E1: WithCode<C, E2>,
     P: Parser<Span<'s, C>, O, E1>,
 {
-    AddCode::new(parser, code)
+    let mut a = AddCode::new(parser, code);
+    move |s: Span<'s, C>| a.parse(s)
 }
 
 impl<'s, O, C, P, E1, E2> Parser<Span<'s, C>, O, E2> for AddCode<C, P, E1, E2>
@@ -323,19 +327,22 @@ where
     }
 }
 
-pub fn tr<'s, O, C, P, T, E0, E1, E2>(
+pub fn transform<'s, O, C, P, T, E0, E1, E2>(
     parser: P,
     transform: T,
     code: C,
-) -> Transform<'s, O, C, P, T, E0, E1, E2>
+) -> impl FnMut(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>>
 where
+    O: 's,
     C: Code + 's,
-    E0: WithCode<C, E2>,
-    E1: WithSpan<'s, C, nom::Err<E2>>,
+    E0: WithCode<C, E2> + 's,
+    E1: WithSpan<'s, C, nom::Err<E2>> + 's,
+    E2: 's,
     P: Parser<Span<'s, C>, Span<'s, C>, E0>,
     T: Fn(Span<'s, C>) -> Result<O, E1>,
 {
-    Transform::new(parser, transform, code)
+    let mut t = Transform::new(parser, transform, code);
+    move |s: Span<'s, C>| -> Result<(Span<'s, C>, O), nom::Err<E2>> { t.parse(s) }
 }
 
 impl<'s, O, C, P, T, E0, E1, E2> Parser<Span<'s, C>, O, E2>

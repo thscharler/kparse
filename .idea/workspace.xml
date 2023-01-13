@@ -14,9 +14,8 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/core2/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m3 it rises from the ashes&#10;&#10;give up all context experiments. &#10;made the () context run, but it's practically&#10;the same as the raw context except some pointer trickery to get the span.">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="m4 shine&#10;&#10;new AddCode and Transform and company">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
     </list>
@@ -290,7 +289,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673547895985</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="m4 shine&#10;&#10;new AddCode and Transform and company">
+      <created>1673593190499</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1673593190499</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -325,7 +331,8 @@
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;RawContext&#10;&#10;test runner" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;some f'ing around with ParseContext" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;span_union only in Context.&#10;no need to pass through everything." />
-    <option name="LAST_COMMIT_MESSAGE" value="m2 for throw_away_everything__again&#10;&#10;span_union only in Context.&#10;no need to pass through everything." />
+    <MESSAGE value="m4 shine&#10;&#10;new AddCode and Transform and company" />
+    <option name="LAST_COMMIT_MESSAGE" value="m4 shine&#10;&#10;new AddCode and Transform and company" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
