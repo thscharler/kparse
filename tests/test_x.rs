@@ -2,12 +2,30 @@ use crate::error::ParserError;
 use nom_locate::LocatedSpan;
 use std::error::Error;
 use std::fmt::{Debug, Display};
+use std::marker::PhantomData;
+
+#[derive(Debug, Clone, Copy)]
+pub struct ContextData<C, X> {
+    pub context: X,
+    _phantom: PhantomData<C>,
+}
 
 /// Standard input type.
-pub type Span<'s, X> = LocatedSpan<&'s str, X>;
+pub type Span<'s, C, X> = LocatedSpan<&'s str, ContextData<C, X>>;
+
+pub fn new_ctx_span<C, X: ParseContext<C>>(txt: &str, ctx: X) -> Span<'_, C, X> {
+    Span::new_extra(
+        txt,
+        ContextData {
+            context: ctx,
+            _phantom: Default::default(),
+        },
+    )
+}
 
 /// Result type.
-pub type ParserResult<'s, O, C, X, Y> = Result<(Span<'s, X>, O), nom::Err<ParserError<'s, C, Y>>>;
+pub type ParserResult<'s, O, C, X, Y> =
+    Result<(Span<'s, C, X>, O), nom::Err<ParserError<'s, C, Y>>>;
 
 /// Parser state codes.
 ///
@@ -33,10 +51,41 @@ pub trait ParseContext<C> {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[repr(transparent)]
 pub struct StrContext<'s>(&'s str);
 
+impl<'s> StrContext<'s> {
+    pub fn new(txt: &'s str) -> Self {
+        Self(txt)
+    }
+
+    pub fn new_span<C>(&self) -> Span<'s, C, StrContext<'s>> {
+        let span = Span::new_extra(
+            self.0,
+            ContextData {
+                context: *self,
+                _phantom: Default::default(),
+            },
+        );
+
+        span
+    }
+
+    pub fn new_ref_span<C>(&self) -> Span<'s, C, &StrContext<'s>> {
+        let span = Span::new_extra(
+            self.0,
+            ContextData {
+                context: self,
+                _phantom: Default::default(),
+            },
+        );
+
+        span
+    }
+}
+
 impl<'a, C: Code> ParseContext<C> for StrContext<'a> {
-    type Span<'s> = LocatedSpan<&'a str, StrContext<'a>>;
+    type Span<'s> = LocatedSpan<&'a str, ContextData<C, StrContext<'a>>>;
 
     fn original<'b>(&self, span: &Self::Span<'b>) -> Self::Span<'b> {
         Span::new_extra(self.0, span.extra)
@@ -56,7 +105,7 @@ impl<'a, C: Code> ParseContext<C> for StrContext<'a> {
 }
 
 impl<'a, C: Code> ParseContext<C> for &'a StrContext<'a> {
-    type Span<'s> = LocatedSpan<&'a str, &'a StrContext<'a>>;
+    type Span<'s> = LocatedSpan<&'a str, ContextData<C, &'a StrContext<'a>>>;
 
     fn original<'b>(&self, span: &Self::Span<'b>) -> Self::Span<'b> {
         Span::new_extra(self.0, span.extra)
@@ -75,8 +124,8 @@ impl<'a, C: Code> ParseContext<C> for &'a StrContext<'a> {
     }
 }
 
-impl<C> ParseContext<C> for () {
-    type Span<'a> = LocatedSpan<&'a str, ()>;
+impl<C: Code> ParseContext<C> for () {
+    type Span<'a> = LocatedSpan<&'a str, ContextData<C, ()>>;
 
     fn original<'b>(&self, span: &Self::Span<'b>) -> Self::Span<'b> {
         *span
@@ -99,9 +148,9 @@ mod error {
     use std::fmt::{Debug, Display, Formatter};
     use std::num::NonZeroUsize;
 
-    type ErrSpan<'s> = LocatedSpan<&'s str, ()>;
+    pub type ErrSpan<'s> = LocatedSpan<&'s str, ()>;
 
-    fn drop_extra<'a, X>(span: &LocatedSpan<&'a str, X>) -> LocatedSpan<&'a str, ()> {
+    fn drop_extra<'a, X>(span: &LocatedSpan<&'a str, X>) -> ErrSpan<'a> {
         unsafe {
             LocatedSpan::new_from_raw_offset(
                 span.location_offset(),
@@ -214,11 +263,11 @@ mod error {
         }
     }
 
-    impl<'s, C, X, Y> nom::error::ParseError<Span<'s, X>> for ParserError<'s, C, Y>
+    impl<'s, C, X, Y> nom::error::ParseError<Span<'s, C, X>> for ParserError<'s, C, Y>
     where
         C: Code,
     {
-        fn from_error_kind(input: Span<'s, X>, kind: ErrorKind) -> Self {
+        fn from_error_kind(input: Span<'s, C, X>, kind: ErrorKind) -> Self {
             ParserError {
                 code: C::NOM_ERROR,
                 span: drop_extra(&input),
@@ -230,7 +279,7 @@ mod error {
             }
         }
 
-        fn append(input: Span<'s, X>, kind: ErrorKind, mut other: Self) -> Self {
+        fn append(input: Span<'s, C, X>, kind: ErrorKind, mut other: Self) -> Self {
             other.hints.push(Hints::Nom(Nom {
                 kind,
                 span: drop_extra(&input),
@@ -239,7 +288,7 @@ mod error {
             other
         }
 
-        fn from_char(input: Span<'s, X>, ch: char) -> Self {
+        fn from_char(input: Span<'s, C, X>, ch: char) -> Self {
             ParserError {
                 code: C::NOM_ERROR,
                 span: drop_extra(&input),
@@ -333,7 +382,7 @@ mod error {
     where
         C: Code,
     {
-        pub fn new<X>(code: C, span: Span<'s, X>) -> Self {
+        pub fn new<X>(code: C, span: Span<'s, C, X>) -> Self {
             Self {
                 code,
                 span: drop_extra(&span),
@@ -342,7 +391,7 @@ mod error {
         }
 
         /// New error adds the code as Suggestion too.
-        pub fn new_suggest<X>(code: C, span: Span<'s, X>) -> Self {
+        pub fn new_suggest<X>(code: C, span: Span<'s, C, X>) -> Self {
             Self {
                 code,
                 span: drop_extra(&span),
@@ -417,7 +466,7 @@ mod error {
         }
 
         /// Add an expected code.
-        pub fn expect<X>(&mut self, code: C, span: Span<'s, X>) {
+        pub fn expect<X>(&mut self, code: C, span: LocatedSpan<&'s str, X>) {
             self.hints.push(Hints::Expect(SpanAndCode {
                 code,
                 span: drop_extra(&span),
@@ -496,7 +545,7 @@ mod error {
         }
 
         /// Add an suggested code.
-        pub fn suggest<X>(&mut self, code: C, span: Span<'s, X>) {
+        pub fn suggest<X>(&mut self, code: C, span: LocatedSpan<&'s str, X>) {
             self.hints.push(Hints::Suggest(SpanAndCode {
                 code,
                 span: drop_extra(&span),
@@ -577,9 +626,9 @@ mod error {
 }
 
 mod debug {
-    use crate::Span;
     use nom::bytes::complete::take_while_m_n;
     use nom::InputIter;
+    use nom_locate::LocatedSpan;
 
     #[derive(Clone, Copy, PartialEq, Eq)]
     pub enum DebugWidth {
@@ -602,7 +651,7 @@ mod debug {
         }
     }
 
-    pub fn restrict<X: Copy>(w: DebugWidth, span: Span<'_, X>) -> String {
+    pub fn restrict<X: Copy>(w: DebugWidth, span: LocatedSpan<&'_ str, X>) -> String {
         match w {
             DebugWidth::Short => restrict_n(20, span),
             DebugWidth::Medium => restrict_n(40, span),
@@ -610,14 +659,16 @@ mod debug {
         }
     }
 
-    pub fn restrict_n<X: Copy>(max_len: usize, span: Span<'_, X>) -> String {
-        let shortened =
-            match take_while_m_n::<_, _, nom::error::Error<Span<'_, X>>>(0, max_len, |_c| true)(
-                span,
-            ) {
-                Ok((_rest, short)) => *short,
-                Err(_) => "?error?",
-            };
+    pub fn restrict_n<X: Copy>(max_len: usize, span: LocatedSpan<&'_ str, X>) -> String {
+        let shortened = match take_while_m_n::<_, _, nom::error::Error<LocatedSpan<&'_ str, X>>>(
+            0,
+            max_len,
+            |_c| true,
+        )(span)
+        {
+            Ok((_rest, short)) => *short,
+            Err(_) => "?error?",
+        };
 
         if span.len() > max_len {
             shortened
@@ -634,11 +685,36 @@ mod context2 {
     use crate::{ParseContext, Span};
     use std::error::Error;
 
-    pub fn original<'s, C, X>(_func: C, span: &Span<'s, X>) -> Span<'s, X>
-    where
-        X: ParseContext<C, Span<'s> = Span<'s, X>>,
-    {
-        span.extra.original(span)
+    pub struct Context;
+
+    impl Context {
+        pub fn original<'s, C, X>(&self, span: &Span<'s, C, X>) -> Span<'s, C, X>
+        where
+            X: ParseContext<C, Span<'s> = Span<'s, C, X>>,
+        {
+            span.extra.context.original(span)
+        }
+
+        pub fn enter<'s, C, X>(&self, func: C, span: &Span<'s, C, X>)
+        where
+            X: ParseContext<C, Span<'s> = Span<'s, C, X>>,
+        {
+            span.extra.context.enter(func, span)
+        }
+
+        pub fn exit_ok<'s, C, X>(&self, span: &Span<'s, C, X>, parsed: &Span<'s, C, X>)
+        where
+            X: ParseContext<C, Span<'s> = Span<'s, C, X>>,
+        {
+            span.extra.context.exit_ok(span, parsed)
+        }
+
+        pub fn exit_err<'s, C, X>(&self, span: &Span<'s, C, X>, code: C, err: &dyn Error)
+        where
+            X: ParseContext<C, Span<'s> = Span<'s, C, X>>,
+        {
+            span.extra.context.exit_err(span, code, err)
+        }
     }
 }
 
@@ -646,38 +722,42 @@ mod context {
     use crate::{ParseContext, Span};
     use std::error::Error;
 
-    pub fn original<'s, C, X>(_func: C, span: &Span<'s, X>) -> Span<'s, X>
+    pub fn original<'s, C, X>(span: &Span<'s, C, X>) -> Span<'s, C, X>
     where
-        X: ParseContext<C, Span<'s> = Span<'s, X>>,
+        X: ParseContext<C, Span<'s> = Span<'s, C, X>>,
     {
-        span.extra.original(span)
+        span.extra.context.original(span)
     }
 
-    pub fn enter<'s, C, X>(func: C, span: &Span<'s, X>)
+    pub fn enter<'s, C, X>(func: C, span: &Span<'s, C, X>)
     where
-        X: ParseContext<C, Span<'s> = Span<'s, X>>,
+        X: ParseContext<C, Span<'s> = Span<'s, C, X>>,
     {
-        span.extra.enter(func, span)
+        span.extra.context.enter(func, span)
     }
 
-    pub fn exit_ok<'s, C, X>(span: &Span<'s, X>, parsed: &Span<'s, X>)
+    pub fn exit_ok<'s, C, X>(span: &Span<'s, C, X>, parsed: &Span<'s, C, X>)
     where
-        X: ParseContext<C, Span<'s> = Span<'s, X>>,
+        X: ParseContext<C, Span<'s> = Span<'s, C, X>>,
     {
-        span.extra.exit_ok(span, parsed)
+        span.extra.context.exit_ok(span, parsed)
     }
 
-    pub fn exit_err<'s, C, X>(span: &Span<'s, X>, code: C, err: &dyn Error)
+    pub fn exit_err<'s, C, X>(span: &Span<'s, C, X>, code: C, err: &dyn Error)
     where
-        X: ParseContext<C, Span<'s> = Span<'s, X>>,
+        X: ParseContext<C, Span<'s> = Span<'s, C, X>>,
     {
-        span.extra.exit_err(span, code, err)
+        span.extra.context.exit_err(span, code, err)
     }
 }
 
 mod tests {
-    use crate::{context, Code, ParserError, Span, StrContext};
+    use crate::{
+        context, context2, new_ctx_span, Code, ContextData, ParserError, Span, StrContext,
+    };
+    use nom_locate::LocatedSpan;
     use std::fmt::{Display, Formatter};
+    use std::mem::size_of;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum TestCode {
@@ -685,6 +765,7 @@ mod tests {
         Code2,
     }
 
+    use crate::context2::Context;
     use TestCode::*;
 
     impl Display for TestCode {
@@ -700,32 +781,67 @@ mod tests {
     type TParserError<'s, C> = ParserError<'s, C, ()>;
 
     #[test]
+    fn test_sizes() {
+        dbg!(size_of::<LocatedSpan<&'_ str, ()>>());
+
+        dbg!(size_of::<ContextData<TestCode, ()>>());
+        dbg!(size_of::<ContextData<TestCode, StrContext<'_>>>());
+        dbg!(size_of::<ContextData<TestCode, &StrContext<'_>>>());
+
+        dbg!(size_of::<Span<'_, TestCode, ()>>());
+        dbg!(size_of::<Span<'_, TestCode, StrContext<'_>>>());
+        dbg!(size_of::<Span<'_, TestCode, &StrContext<'_>>>());
+
+        dbg!(size_of::<LocatedSpan<&str, ContextData<TestCode, ()>>>());
+        dbg!(size_of::<
+            LocatedSpan<&str, ContextData<TestCode, StrContext<'_>>>,
+        >());
+        dbg!(size_of::<
+            LocatedSpan<&str, ContextData<TestCode, &StrContext<'_>>>,
+        >());
+    }
+
+    #[test]
     fn test_convoluted() {
-        let c0 = ();
-        let s0 = Span::new_extra("wxyz", c0);
+        let _c0 = ();
+        let s0 = new_ctx_span("wxyz", ());
         let e0 = TParserError::new(Code2, s0);
 
-        let c1 = StrContext("abcd");
-        let s1 = Span::new_extra("wxyz", c1);
+        let c1 = StrContext::new("wxyz");
+        let s1 = c1.new_span();
         let e1 = TParserError::new(Code2, s1);
 
-        let c22 = &c1;
-        let s2 = Span::new_extra("wxyz", c22);
+        let s2 = c1.new_ref_span();
         let e2 = TParserError::new(Code2, s2);
 
-        dbg!(context::original(Code1, &s0));
+        dbg!(context::original(&s0));
         dbg!(context::enter(Code1, &s0));
         dbg!(context::exit_err(&s0, Code1, &e0));
         dbg!(context::exit_ok::<TestCode, _>(&s0, &s0));
 
-        dbg!(context::original(Code1, &s1));
+        dbg!(context::original(&s1));
         dbg!(context::enter(Code1, &s1));
         dbg!(context::exit_err(&s1, Code1, &e1));
         dbg!(context::exit_ok::<TestCode, _>(&s1, &s1));
 
-        dbg!(context::original(Code1, &s2));
+        dbg!(context::original(&s2));
         dbg!(context::enter(Code1, &s2));
         dbg!(context::exit_err(&s2, Code1, &e2));
         dbg!(context::exit_ok::<TestCode, _>(&s2, &s2));
+
+        dbg!(Context.original(&s0));
+        dbg!(Context.enter(Code1, &s0));
+        dbg!(Context.exit_err(&s0, Code1, &e0));
+        dbg!(Context.exit_ok::<TestCode, _>(&s0, &s0));
+
+        dbg!(Context.original(&s1));
+        dbg!(Context.enter(Code1, &s1));
+        dbg!(Context.exit_err(&s1, Code1, &e1));
+        dbg!(Context.exit_ok::<TestCode, _>(&s1, &s1));
+
+        dbg!(Context.original(&s2));
+        dbg!(Context.enter(Code1, &s2));
+        dbg!(Context.exit_err(&s2, Code1, &e2));
+        dbg!(Context.exit_ok::<TestCode, _>(&s2, &s2));
     }
 }
