@@ -14,10 +14,10 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/core2/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now.">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="clippy">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -476,7 +476,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673811932829</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="clippy">
+      <created>1673812589539</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1673812589539</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -503,7 +510,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="add errors" />
     <MESSAGE value="add tracker" />
     <MESSAGE value="2nd test" />
     <MESSAGE value="m0 for throw_away_everything__again" />
@@ -528,7 +534,8 @@
     <MESSAGE value="can't stop trying to optimize this Context." />
     <MESSAGE value="ParserError wants Y, X is for LocatedSpan" />
     <MESSAGE value="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now." />
-    <option name="LAST_COMMIT_MESSAGE" value="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now." />
+    <MESSAGE value="clippy" />
+    <option name="LAST_COMMIT_MESSAGE" value="clippy" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

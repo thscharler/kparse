@@ -117,7 +117,7 @@ pub fn test_kultur() {
 
     //todo: should eventually fail. gives Name="" now.
     track_parse(&mut None, " : 1 GKH\n", parse_kultur)
-        .okok()
+        .errerr()
         .q(R);
 }
 

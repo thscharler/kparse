@@ -10,8 +10,6 @@ use std::fmt::{Debug, Display, Formatter};
 use std::num::NonZeroUsize;
 
 /// Parser error.
-///
-// todo: support for Y
 pub struct ParserError<'s, C: Code, Y: Copy = ()> {
     /// Error code
     pub code: C,
@@ -138,7 +136,7 @@ impl<'s, C: Code, Y: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
         }
     }
 
-    // todo: what is self and what is other
+    /// Combines two parser errors.
     fn or(mut self, other: Self) -> Self {
         self.append(other);
         self
@@ -206,6 +204,7 @@ impl<'s, C: Code, Y: Copy> Error for ParserError<'s, C, Y> {
 }
 
 impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
+    /// New error.
     pub fn new(code: C, span: Span<'s, C>) -> Self {
         Self {
             code,
@@ -223,14 +222,32 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
         }
     }
 
-    // todo: something missing?
+    /// Finds the first (single) cause.
+    pub fn cause(&self) -> Option<&dyn Error> {
+        self.hints
+            .iter()
+            .find(|v| matches!(v, Hints::Cause(_)))
+            .and_then(|v| match v {
+                Hints::Cause(e) => Some(e.as_ref()),
+                _ => None,
+            })
+    }
+
+    /// Finds the first (single) user data.
+    pub fn user_data(&self) -> Option<&Y> {
+        self.hints
+            .iter()
+            .find(|v| matches!(v, Hints::UserData(_)))
+            .and_then(|v| match v {
+                Hints::UserData(e) => Some(e),
+                _ => None,
+            })
+    }
 
     /// Adds information from the other parser error to this on.
     ///
     /// Adds the others code and span as expect values.
     /// Adds all the others expect values.
-    ///
-    /// TODO: may need completion
     pub fn append(&mut self, other: ParserError<'s, C, Y>) {
         self.expect(other.code, other.span);
         for expect in other.iter_expected() {

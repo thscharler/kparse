@@ -29,7 +29,7 @@ pub use str_context::StrContext;
 pub use tracker::*;
 pub use tracking_context::{
     DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, TrackingContext,
-    TrackingData, WarnTrack,
+    WarnTrack,
 };
 
 pub mod prelude {

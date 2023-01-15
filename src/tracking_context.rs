@@ -8,8 +8,7 @@ pub struct TrackingContext<'s, C: Code, const TRACK: bool = false> {
     data: RefCell<TrackingData<'s, C, TRACK>>,
 }
 
-// todo: should not be pub
-pub struct TrackingData<'s, C: Code, const TRACK: bool = false> {
+struct TrackingData<'s, C: Code, const TRACK: bool = false> {
     func: Vec<C>,
     track: Vec<Track<'s, C>>,
 }
