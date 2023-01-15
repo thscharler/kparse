@@ -1,5 +1,5 @@
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, ParseContext, ParserError, Span, TrackingContext};
+use crate::{Code, NoContext, ParseContext, ParserError, Span, StrContext, TrackingContext};
 use std::cell::Cell;
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
@@ -90,11 +90,11 @@ pub fn test_parse_no_track<'s, C: Code, O, E>(
 /// Finish the test with q().
 #[must_use]
 pub fn test_parse_raw<'s, C: Code, O, E>(
-    buf: &'s mut Option<RawContext<'s, C>>,
+    buf: &'s mut Option<StrContext<'s, C>>,
     text: &'s str,
     fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
-) -> Test<'s, RawContext<'s, C>, C, O, E> {
-    buf.replace(RawContext::new(text));
+) -> Test<'s, StrContext<'s, C>, C, O, E> {
+    buf.replace(StrContext::new(text));
     let context = buf.as_ref().expect("yes");
 
     let span = context.span();
@@ -118,11 +118,14 @@ pub fn test_parse_raw<'s, C: Code, O, E>(
 /// Finish the test with q().
 #[must_use]
 pub fn test_parse_noctx<'s, C: Code, O, E>(
-    _buf: &'s mut Option<()>,
+    buf: &'s mut Option<NoContext>,
     text: &'s str,
     fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
-) -> Test<'s, (), C, O, E> {
-    let span = new_no_context_span(text);
+) -> Test<'s, NoContext, C, O, E> {
+    buf.replace(NoContext);
+    let context = buf.as_ref().expect("yes");
+
+    let span = context.span(text);
 
     let now = Instant::now();
     let result = fn_test(span);
@@ -130,7 +133,7 @@ pub fn test_parse_noctx<'s, C: Code, O, E>(
 
     Test {
         text,
-        context: &(),
+        context,
         result,
         duration: elapsed,
         failed: Cell::new(false),

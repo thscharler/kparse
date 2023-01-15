@@ -14,14 +14,13 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/core2/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="...">
-      <change afterPath="$PROJECT_DIR$/src/no_context.rs" afterDir="false" />
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="&#10;Adding X to the ParseContext is complete useless. Ends with a recursive type.&#10;&#10;Adding X to the DynContext ends up with complicated code in the usercode, with multiple typedefs for each context that don't interact too well.&#10;&#10;Not adding X to the DynContext but still having it not hidden by DynContext f's up with Context and type ascription (?). &#10;&#10;Using multiple lifetimes in a trait definition is plain hell. Turn the heat up if you use them in an associated type.&#10;&#10;Not having a definite order for your type variables, or having the same one in different places for different purposes leads to madness.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/no_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/no_context.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/raw_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/raw_context.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,7 +83,24 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\test" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::test_sizes">
+  <component name="RunManager" selected="Cargo.Test">
+    <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="clean" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test test_1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package kparse --test test_parser_cmds test_1 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -172,6 +188,7 @@
     </configuration>
     <list>
       <item itemvalue="Cargo.Test" />
+      <item itemvalue="Cargo.Clean" />
       <item itemvalue="Cargo.Test tests::test_sizes" />
       <item itemvalue="Cargo.Test tests::test_convoluted" />
       <item itemvalue="Cargo.Test test_convoluted" />
@@ -371,7 +388,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673641623369</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="&#10;Adding X to the ParseContext is complete useless. Ends with a recursive type.&#10;&#10;Adding X to the DynContext ends up with complicated code in the usercode, with multiple typedefs for each context that don't interact too well.&#10;&#10;Not adding X to the DynContext but still having it not hidden by DynContext f's up with Context and type ascription (?). &#10;&#10;Using multiple lifetimes in a trait definition is plain hell. Turn the heat up if you use them in an associated type.&#10;&#10;Not having a definite order for your type variables, or having the same one in different places for different purposes leads to madness.">
+      <created>1673764948699</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1673764948699</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -408,7 +432,8 @@
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;span_union only in Context.&#10;no need to pass through everything." />
     <MESSAGE value="m4 shine&#10;&#10;new AddCode and Transform and company" />
     <MESSAGE value="m4 shine&#10;&#10;a small razor applied." />
-    <option name="LAST_COMMIT_MESSAGE" value="m4 shine&#10;&#10;a small razor applied." />
+    <MESSAGE value="&#10;Adding X to the ParseContext is complete useless. Ends with a recursive type.&#10;&#10;Adding X to the DynContext ends up with complicated code in the usercode, with multiple typedefs for each context that don't interact too well.&#10;&#10;Not adding X to the DynContext but still having it not hidden by DynContext f's up with Context and type ascription (?). &#10;&#10;Using multiple lifetimes in a trait definition is plain hell. Turn the heat up if you use them in an associated type.&#10;&#10;Not having a definite order for your type variables, or having the same one in different places for different purposes leads to madness." />
+    <option name="LAST_COMMIT_MESSAGE" value="&#10;Adding X to the ParseContext is complete useless. Ends with a recursive type.&#10;&#10;Adding X to the DynContext ends up with complicated code in the usercode, with multiple typedefs for each context that don't interact too well.&#10;&#10;Not adding X to the DynContext but still having it not hidden by DynContext f's up with Context and type ascription (?). &#10;&#10;Using multiple lifetimes in a trait definition is plain hell. Turn the heat up if you use them in an associated type.&#10;&#10;Not having a definite order for your type variables, or having the same one in different places for different purposes leads to madness." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
