@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
-use kparse::{Code, DynContext, Hints, ParserError, ParserResult, Span};
+use kparse::prelude::*;
+use kparse::{DynContext, Hints, Track, TrackingData};
+use std::cell::RefCell;
 use std::fmt::{Debug, Display, Formatter};
 use std::mem::size_of;
 
@@ -64,4 +66,25 @@ fn test_sizes() {
     dbg!(size_of::<Vec<Hints<'_, ZCode, ()>>>());
     dbg!(size_of::<ParserError<ZCode, ()>>());
     dbg!(size_of::<ParserResult<Nummer<'_>, ZCode, ()>>());
+}
+
+#[test]
+fn test_size2() {
+    dbg!(size_of::<NoContext>());
+    dbg!(size_of::<StrContext>());
+    dbg!(size_of::<TrackingContext<ZCode, true>>());
+    dbg!(size_of::<TrackingContext<ZCode, false>>());
+    dbg!(size_of::<RefCell<TrackingData<ZCode, true>>>());
+    dbg!(size_of::<TrackingData<ZCode, true>>());
+    dbg!(size_of::<TrackingData<ZCode, false>>());
+    dbg!(size_of::<Track<ZCode>>());
+
+    dbg!(size_of::<ParserError<ZCode, ()>>());
+
+    dbg!(size_of::<Context>());
+    dbg!(size_of::<ParserNomResult<ZCode, ()>>());
+    dbg!(size_of::<ParserResult<(), ZCode, ()>>());
+    dbg!(size_of::<Span<ZCode>>());
+
+    dbg!(size_of::<DynContext<ZCode>>());
 }

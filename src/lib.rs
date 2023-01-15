@@ -13,7 +13,7 @@ mod data_frame;
 pub mod debug;
 mod error;
 mod no_context;
-mod raw_context;
+mod str_context;
 pub mod test;
 mod tracker;
 mod tracking_context;
@@ -25,11 +25,11 @@ pub use data_frame::{
 };
 pub use error::{CombineParserError, Hints, Nom, ParserError, SpanAndCode};
 pub use no_context::NoContext;
-pub use raw_context::StrContext;
+pub use str_context::StrContext;
 pub use tracker::*;
 pub use tracking_context::{
     DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, TrackingContext,
-    WarnTrack,
+    TrackingData, WarnTrack,
 };
 
 pub mod prelude {
@@ -88,6 +88,7 @@ pub trait ParseContext<'s, C: Code> {
 /// Hold the context.
 /// Needed to block the debug implementation for LocatedSpan.
 #[derive(Clone, Copy)]
+#[repr(transparent)]
 pub struct DynContext<'s, C: Code>(&'s dyn ParseContext<'s, C>);
 
 impl<'s, C: Code> Debug for DynContext<'s, C> {
