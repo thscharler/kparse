@@ -35,6 +35,8 @@ pub mod prelude {
     pub use crate::{Context, ParserNomResult, ParserResult, Span};
 }
 
+// sneaky comment
+
 /// Standard input type.
 pub type Span<'s, C> = LocatedSpan<&'s str, DynContext<'s, C>>;
 
