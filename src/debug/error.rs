@@ -2,9 +2,9 @@ use crate::debug::{restrict, DebugWidth};
 use crate::{Code, ParserError, SpanAndCode};
 use std::fmt;
 
-pub fn debug_parse_of_error_short<'s, C: Code, X: Copy>(
+pub fn debug_parse_of_error_short<'s, C: Code, Y: Copy>(
     f: &mut impl fmt::Write,
-    err: &ParserError<'s, C, X>,
+    err: &ParserError<'s, C, Y>,
 ) -> fmt::Result {
     write!(
         f,
@@ -35,9 +35,9 @@ pub fn debug_parse_of_error_short<'s, C: Code, X: Copy>(
     Ok(())
 }
 
-pub fn debug_parse_of_error_medium<'s, C: Code, X: Copy>(
+pub fn debug_parse_of_error_medium<'s, C: Code, Y: Copy>(
     f: &mut impl fmt::Write,
-    err: &ParserError<'s, C, X>,
+    err: &ParserError<'s, C, Y>,
 ) -> fmt::Result {
     writeln!(
         f,
@@ -77,9 +77,9 @@ pub fn debug_parse_of_error_medium<'s, C: Code, X: Copy>(
     Ok(())
 }
 
-pub fn debug_parse_of_error_long<'s, C: Code, X: Copy>(
+pub fn debug_parse_of_error_long<'s, C: Code, Y: Copy>(
     f: &mut impl fmt::Write,
-    err: &ParserError<'s, C, X>,
+    err: &ParserError<'s, C, Y>,
 ) -> fmt::Result {
     writeln!(
         f,

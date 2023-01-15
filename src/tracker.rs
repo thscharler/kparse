@@ -1,23 +1,23 @@
 use crate::{Code, Context, ParserError, Span, TrackParserError};
 
-impl<'s, 't, C: Code, X: Copy, O, E> TrackParserError<'s, 't, C, X>
+impl<'s, 't, C: Code, Y: Copy, O, E> TrackParserError<'s, 't, C, Y>
     for Result<(Span<'s, C>, O), nom::Err<E>>
 where
-    E: Into<ParserError<'s, C, X>>,
+    E: Into<ParserError<'s, C, Y>>,
 {
-    type Result = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, X>>>;
+    type Result = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, Y>>>;
 
     fn track(self) -> Self::Result {
         match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
-                let p_err: ParserError<'s, C, X> = e.into();
+                let p_err: ParserError<'s, C, Y> = e.into();
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<'s, C, X> = e.into();
+                let p_err: ParserError<'s, C, Y> = e.into();
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }
@@ -29,13 +29,13 @@ where
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
-                let p_err: ParserError<'s, C, X> = e.into();
+                let p_err: ParserError<'s, C, Y> = e.into();
                 let p_err = p_err.with_code(code);
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<'s, C, X> = e.into();
+                let p_err: ParserError<'s, C, Y> = e.into();
                 let p_err = p_err.with_code(code);
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
@@ -51,12 +51,12 @@ where
             }
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
-                let p_err: ParserError<'s, C, X> = e.into();
+                let p_err: ParserError<'s, C, Y> = e.into();
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<'s, C, X> = e.into();
+                let p_err: ParserError<'s, C, Y> = e.into();
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }

@@ -45,11 +45,11 @@ pub mod prelude {
 pub type Span<'s, C> = LocatedSpan<&'s str, DynContext<'s, C>>;
 
 /// Result type.
-pub type ParserResult<'s, O, C, X> = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, X>>>;
+pub type ParserResult<'s, O, C, Y> = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, Y>>>;
 
 /// Type alias for a nom parser. Use this to create a ParserError directly in nom.
-pub type ParserNomResult<'s, C, X> =
-    Result<(Span<'s, C>, Span<'s, C>), nom::Err<ParserError<'s, C, X>>>;
+pub type ParserNomResult<'s, C, Y> =
+    Result<(Span<'s, C>, Span<'s, C>), nom::Err<ParserError<'s, C, Y>>>;
 
 /// Parser state codes.
 ///
@@ -105,23 +105,23 @@ pub struct Context;
 impl Context {
     /// Creates an Ok-Result from the parameters.
     /// Tracks an exit_ok with the ParseContext.
-    pub fn ok<'s, C: Code, T, X: Copy>(
+    pub fn ok<'s, C: Code, T, Y: Copy>(
         &self,
         remainder: Span<'s, C>,
         parsed: Span<'s, C>,
         value: T,
-    ) -> ParserResult<'s, T, C, X> {
+    ) -> ParserResult<'s, T, C, Y> {
         Context.exit_ok(&remainder, &parsed);
         Ok((remainder, value))
     }
 
     /// Creates a Err-ParserResult from the given ParserError.
     /// Tracks an exit_err with the ParseContext.
-    pub fn err<'s, C: Code, T, X: Copy, E: Into<nom::Err<ParserError<'s, C, X>>>>(
+    pub fn err<'s, C: Code, T, Y: Copy, E: Into<nom::Err<ParserError<'s, C, Y>>>>(
         &self,
         err: E,
-    ) -> ParserResult<'s, T, C, X> {
-        let err: nom::Err<ParserError<'s, C, X>> = err.into();
+    ) -> ParserResult<'s, T, C, Y> {
+        let err: nom::Err<ParserError<'s, C, Y>> = err.into();
         match &err {
             nom::Err::Incomplete(_) => {}
             nom::Err::Error(e) => Context.exit_err(&e.span, e.code, &e),
@@ -213,7 +213,7 @@ impl Context {
 }
 
 /// Tracks the error path with the context.
-pub trait TrackParserError<'s, 't, C: Code, X: Copy> {
+pub trait TrackParserError<'s, 't, C: Code, Y: Copy> {
     type Result;
 
     /// Track if this is an error.
