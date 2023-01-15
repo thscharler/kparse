@@ -89,7 +89,7 @@ pub trait ParseContext<'s, C: Code> {
 /// Needed to block the debug implementation for LocatedSpan.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct DynContext<'s, C: Code>(&'s dyn ParseContext<'s, C>);
+pub struct DynContext<'s, C: Code>(Option<&'s dyn ParseContext<'s, C>>);
 
 impl<'s, C: Code> Debug for DynContext<'s, C> {
     fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
@@ -111,7 +111,7 @@ impl Context {
         parsed: Span<'s, C>,
         value: T,
     ) -> ParserResult<'s, T, C, X> {
-        remainder.extra.0.exit_ok(&remainder, &parsed);
+        Context.exit_ok(&remainder, &parsed);
         Ok((remainder, value))
     }
 
@@ -124,8 +124,8 @@ impl Context {
         let err: nom::Err<ParserError<'s, C, X>> = err.into();
         match &err {
             nom::Err::Incomplete(_) => {}
-            nom::Err::Error(e) => e.span.extra.0.exit_err(&e.span, e.code, &e),
-            nom::Err::Failure(e) => e.span.extra.0.exit_err(&e.span, e.code, &e),
+            nom::Err::Error(e) => Context.exit_err(&e.span, e.code, &e),
+            nom::Err::Failure(e) => Context.exit_err(&e.span, e.code, &e),
         }
         Err(err)
     }
@@ -151,7 +151,7 @@ impl Context {
         // it's not possible to extend the buffer towards the end, but with LocatedSpan it's
         // always possible to extend to the very beginning. so if we take the second span here
         // it will always include the first span too.
-        let original = second.extra.0.original(second);
+        let original = Context.original(second);
         let str = str_union(original.fragment(), first.fragment(), second.fragment());
 
         Span::new_from_raw_offset(
@@ -163,31 +163,52 @@ impl Context {
     }
 
     pub fn original<'s, C: Code>(&self, span: &Span<'s, C>) -> Span<'s, C> {
-        span.extra.0.original(span)
+        match span.extra.0 {
+            Some(ctx) => ctx.original(span),
+            None => NoContext.original(span),
+        }
     }
 
     pub fn enter<'s, C: Code>(&self, func: C, span: &Span<'s, C>) {
-        span.extra.0.enter(func, span)
+        match span.extra.0 {
+            Some(ctx) => ctx.enter(func, span),
+            None => {}
+        }
     }
 
     pub fn debug<'s, C: Code>(&self, span: &Span<'s, C>, debug: String) {
-        span.extra.0.debug(span, debug)
+        match span.extra.0 {
+            Some(ctx) => ctx.debug(span, debug),
+            None => {}
+        }
     }
 
     pub fn info<'s, C: Code>(&self, span: &Span<'s, C>, info: &'static str) {
-        span.extra.0.info(span, info)
+        match span.extra.0 {
+            Some(ctx) => ctx.info(span, info),
+            None => {}
+        }
     }
 
     pub fn warn<'s, C: Code>(&self, span: &Span<'s, C>, warn: &'static str) {
-        span.extra.0.warn(span, warn)
+        match span.extra.0 {
+            Some(ctx) => ctx.warn(span, warn),
+            None => {}
+        }
     }
 
     pub fn exit_ok<'s, C: Code>(&self, span: &Span<'s, C>, parsed: &Span<'s, C>) {
-        span.extra.0.exit_ok(span, parsed)
+        match span.extra.0 {
+            Some(ctx) => ctx.exit_ok(span, parsed),
+            None => {}
+        }
     }
 
     pub fn exit_err<'s, C: Code>(&self, span: &Span<'s, C>, code: C, err: &dyn Error) {
-        span.extra.0.exit_err(span, code, err)
+        match span.extra.0 {
+            Some(ctx) => ctx.exit_err(span, code, err),
+            None => {}
+        }
     }
 }
 

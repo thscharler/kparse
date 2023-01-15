@@ -34,7 +34,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
 
     /// Create a new Span from this context using the original str.
     pub fn span(&'s self) -> Span<'s, C> {
-        Span::new_extra(self.span, DynContext { 0: self })
+        Span::new_extra(self.span, DynContext(Some(self)))
     }
 }
 

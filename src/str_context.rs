@@ -12,7 +12,7 @@ impl<'s> StrContext<'s> {
     }
 
     pub fn span<C: Code>(&'s self) -> Span<'s, C> {
-        Span::new_extra(self.span, DynContext { 0: self })
+        Span::new_extra(self.span, DynContext(Some(self)))
     }
 }
 

@@ -14,9 +14,14 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/core2/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="test for sizes">
-      <change afterPath="$PROJECT_DIR$/tests/test_dyncontext.rs" afterDir="false" />
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="can't stop trying to optimize this Context.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/no_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/no_context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/str_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/str_context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,7 +89,7 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\test" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test main">
+  <component name="RunManager" selected="Cargo.Test test_size2">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -215,11 +220,11 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test test_size2" />
         <item itemvalue="Cargo.Test main" />
         <item itemvalue="Cargo.Test test_3" />
         <item itemvalue="Cargo.Test test_2" />
         <item itemvalue="Cargo.Test test_1 (1)" />
-        <item itemvalue="Cargo.Test test_size2" />
       </list>
     </recent_temporary>
   </component>
@@ -436,7 +441,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673767339214</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="can't stop trying to optimize this Context.">
+      <created>1673770991405</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1673770991405</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -463,7 +475,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="some very last amendments to make it compile." />
     <MESSAGE value="repurposed data_frame from a previous experiment.&#10;&#10;streamlined and deduped." />
     <MESSAGE value="put up all the safety flags I could think of." />
     <MESSAGE value="add errors" />
@@ -488,7 +499,8 @@
     <MESSAGE value="&#10;Adding X to the ParseContext is complete useless. Ends with a recursive type.&#10;&#10;Adding X to the DynContext ends up with complicated code in the usercode, with multiple typedefs for each context that don't interact too well.&#10;&#10;Not adding X to the DynContext but still having it not hidden by DynContext f's up with Context and type ascription (?). &#10;&#10;Using multiple lifetimes in a trait definition is plain hell. Turn the heat up if you use them in an associated type.&#10;&#10;Not having a definite order for your type variables, or having the same one in different places for different purposes leads to madness." />
     <MESSAGE value="No need to impl ParseContext on DynContext. Muddies the water.&#10;&#10;The same for Context. &#10;Both are positively not a ParseContext. They are small  gears in the machine." />
     <MESSAGE value="test for sizes" />
-    <option name="LAST_COMMIT_MESSAGE" value="test for sizes" />
+    <MESSAGE value="can't stop trying to optimize this Context." />
+    <option name="LAST_COMMIT_MESSAGE" value="can't stop trying to optimize this Context." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

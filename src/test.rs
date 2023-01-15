@@ -13,7 +13,7 @@ pub type CompareFn<O, V> = for<'a> fn(&'a O, V) -> bool;
 /// Test Results.
 pub struct Test<'s, P, C, O, E>
 where
-    P: ParseContext<'s, C>,
+    //P: ParseContext<'s, C>,
     C: Code,
 {
     pub text: &'s str,
