@@ -4,7 +4,6 @@ use std::cell::Cell;
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
 
-use crate::raw_context::{new_no_context_span, RawContext};
 pub use report::*;
 pub use span::*;
 

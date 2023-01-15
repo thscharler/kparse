@@ -136,7 +136,7 @@ mod cmds_parser {
     use std::path::{Path, PathBuf};
     use std::{fs, io};
 
-    use kparse::{error_code, transform, AddCode, Transform};
+    use kparse::{error_code, transform, ErrorCode, Transform};
     use CCode::*;
 
     pub type Span<'s> = kparse::Span<'s, CCode>;

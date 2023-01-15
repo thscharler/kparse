@@ -12,6 +12,7 @@ mod conversion;
 mod data_frame;
 pub mod debug;
 mod error;
+mod no_context;
 mod raw_context;
 pub mod test;
 mod tracker;
@@ -23,6 +24,8 @@ pub use data_frame::{
     RByteSliceIter, RStrIter, StrIter, StrLines,
 };
 pub use error::{CombineParserError, Hints, Nom, ParserError, SpanAndCode};
+pub use no_context::NoContext;
+pub use raw_context::StrContext;
 pub use tracker::*;
 pub use tracking_context::{
     DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, TrackingContext,
@@ -30,8 +33,9 @@ pub use tracking_context::{
 };
 
 pub mod prelude {
-    pub use crate::{Code, ParseContext, TrackParseErr, WithCode, WithSpan};
-    pub use crate::{CombineParserError, ParserError};
+    pub use crate::{error_code, transform, ErrorCode, Transform};
+    pub use crate::{Code, NoContext, ParseContext, StrContext, TrackingContext};
+    pub use crate::{CombinParserError, ParserError, TrackParserError, WithCode, WithSpan};
     pub use crate::{Context, ParserNomResult, ParserResult, Span};
 }
 
@@ -220,7 +224,7 @@ impl<'s, C: Code> ParseContext<'s, C> for Context {
 }
 
 /// Tracks the error path with the context.
-pub trait TrackParseErr<'s, 't, C: Code, X: Copy> {
+pub trait TrackParserError<'s, 't, C: Code, X: Copy> {
     type Result;
 
     /// Track if this is an error.
@@ -247,13 +251,13 @@ pub trait WithCode<C: Code, R> {
 }
 
 /// Make the trait WithCode work as a parser.
-pub struct AddCode<C: Code, P, E1, E2> {
+pub struct ErrorCode<C: Code, P, E1, E2> {
     code: C,
     parser: P,
     _phantom: PhantomData<(E1, E2)>,
 }
 
-impl<C: Code, P, E1, E2> AddCode<C, P, E1, E2> {
+impl<C: Code, P, E1, E2> ErrorCode<C, P, E1, E2> {
     pub fn new(parser: P, code: C) -> Self {
         Self {
             code,
@@ -272,11 +276,11 @@ where
     E1: WithCode<C, E2>,
     P: Parser<Span<'s, C>, O, E1>,
 {
-    let mut a = AddCode::new(parser, code);
+    let mut a = ErrorCode::new(parser, code);
     move |s: Span<'s, C>| a.parse(s)
 }
 
-impl<'s, O, C, P, E1, E2> Parser<Span<'s, C>, O, E2> for AddCode<C, P, E1, E2>
+impl<'s, O, C, P, E1, E2> Parser<Span<'s, C>, O, E2> for ErrorCode<C, P, E1, E2>
 where
     C: Code,
     E1: WithCode<C, E2>,
