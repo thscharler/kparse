@@ -90,10 +90,10 @@ pub fn test_parse_no_track<'s, C: Code, O, E>(
 /// Finish the test with q().
 #[must_use]
 pub fn test_parse_raw<'s, C: Code, O, E>(
-    buf: &'s mut Option<StrContext<'s, C>>,
+    buf: &'s mut Option<StrContext<'s>>,
     text: &'s str,
     fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
-) -> Test<'s, StrContext<'s, C>, C, O, E> {
+) -> Test<'s, StrContext<'s>, C, O, E> {
     buf.replace(StrContext::new(text));
     let context = buf.as_ref().expect("yes");
 

@@ -1,5 +1,5 @@
 pub use cmds_parser::*;
-use kparse::test::{test_parse_noctx, test_parse_raw, NoReport};
+use kparse::test::{test_parse_noctx, NoReport};
 use std::time::Instant;
 
 #[test]
@@ -126,17 +126,16 @@ mod cmds_parser {
     use kparse::prelude::*;
     use nom::bytes::complete::{tag, take_till1, take_while1};
     use nom::character::complete::{char as nchar, digit1};
-    use nom::combinator::{consumed, opt, recognize};
+    use nom::combinator::{consumed, recognize};
     use nom::error::ParseError;
     use nom::sequence::{terminated, tuple};
-    use nom::{AsChar, InputTakeAtPosition};
-    use nom::{InputTake, Parser};
+    use nom::{AsChar, InputTake, InputTakeAtPosition};
     use std::fmt::{Debug, Display, Formatter};
     use std::num::ParseIntError;
     use std::path::{Path, PathBuf};
     use std::{fs, io};
 
-    use kparse::{error_code, transform, ErrorCode, Transform};
+    use kparse::{error_code, transform};
     use CCode::*;
 
     pub type Span<'s> = kparse::Span<'s, CCode>;

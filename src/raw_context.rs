@@ -1,27 +1,22 @@
 use crate::{Code, DynContext, ParseContext, Span};
 use std::error::Error;
-use std::marker::PhantomData;
 
 /// Just for tests.
-pub struct StrContext<'s, C: Code> {
+pub struct StrContext<'s> {
     span: &'s str,
-    _phantom: PhantomData<C>,
 }
 
-impl<'s, C: Code> StrContext<'s, C> {
+impl<'s> StrContext<'s> {
     pub fn new(span: &'s str) -> Self {
-        Self {
-            span,
-            _phantom: Default::default(),
-        }
+        Self { span }
     }
 
-    pub fn span(&'s self) -> Span<'s, C> {
+    pub fn span<C: Code>(&'s self) -> Span<'s, C> {
         Span::new_extra(self.span, DynContext { 0: self })
     }
 }
 
-impl<'s, C: Code> ParseContext<'s, C> for StrContext<'s, C> {
+impl<'s, C: Code> ParseContext<'s, C> for StrContext<'s> {
     fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
         Span::new_extra(self.span, span.extra)
     }

@@ -2,6 +2,7 @@ use crate::data_frame::undo_take_str_slice_unchecked;
 use crate::{Code, DynContext, ParseContext, Span};
 use std::error::Error;
 
+/// Null Context.
 pub struct NoContext;
 
 impl NoContext {

@@ -125,7 +125,6 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
                 span: *span,
                 debug,
                 parents: parent,
-                _phantom: Default::default(),
             }));
         }
     }
@@ -232,8 +231,6 @@ pub struct DebugTrack<'s, C: Code> {
     pub debug: String,
     /// Parser call stack.
     pub parents: Vec<C>,
-    /// For the lifetime ...
-    pub _phantom: PhantomData<Span<'s, C>>,
 }
 
 /// Track for plain information.
