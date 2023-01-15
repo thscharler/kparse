@@ -10,6 +10,7 @@ pub use self::finder::undo_take_slice;
 pub use self::strings::undo_take_str_slice;
 pub use self::strings::undo_take_str_slice_unchecked;
 pub use byte_frames::*;
+pub use span_lines::*;
 pub use str_lines::*;
 
 use core::str::from_utf8_unchecked;
@@ -184,17 +185,17 @@ mod byte_frames {
         ///
         /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn start(&self, fragment: &'_ [u8]) -> Self::Frame {
-            let buf = finder::current_frame(self.buf, fragment, DELIM);
-            finder::current_frame(buf, &buf[0..0], DELIM)
+            let buf = finder::current_frame(self.buf, fragment, DELIM).1;
+            finder::current_frame(buf, &buf[0..0], DELIM).1
         }
 
         /// Last full line for the fragment.
         ///
         /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn end(&self, fragment: &'_ [u8]) -> Self::Frame {
-            let buf = finder::current_frame(self.buf, fragment, DELIM);
+            let buf = finder::current_frame(self.buf, fragment, DELIM).1;
             let len = buf.len();
-            finder::current_frame(buf, &buf[len..len], DELIM)
+            finder::current_frame(buf, &buf[len..len], DELIM).1
         }
 
         /// Expand the fragment to cover full lines and return an Iterator for the lines.
@@ -202,7 +203,7 @@ mod byte_frames {
         /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn current(&self, fragment: &[u8]) -> Self::Iter {
             ByteSliceIter {
-                buf: finder::current_frame(self.buf, fragment, DELIM),
+                buf: finder::current_frame(self.buf, fragment, DELIM).1,
                 fragment: None,
             }
         }
@@ -260,11 +261,16 @@ mod byte_frames {
             // nothing bad additionally happens.
             unsafe {
                 if let Some(fragment) = self.fragment {
-                    let (fragment, result) = finder::next_frame(self.buf, fragment, DELIM);
+                    let (_offset, fragment, result) = finder::next_frame(self.buf, fragment, DELIM);
                     self.fragment = Some(fragment);
-                    result
+                    if result {
+                        self.fragment
+                    } else {
+                        None
+                    }
                 } else {
-                    let fragment = finder::current_frame(self.buf, &self.buf[0..0], DELIM);
+                    let (_offset, fragment) =
+                        finder::current_frame(self.buf, &self.buf[0..0], DELIM);
                     self.fragment = Some(fragment);
                     Some(fragment)
                 }
@@ -285,9 +291,14 @@ mod byte_frames {
             // if the constraints where upheld at creation we can be sure
             // nothing bad additionally happens.
             unsafe {
-                let (fragment, result) = finder::next_frame(self.buf, self.fragment, DELIM);
+                let (_offset, fragment, result) =
+                    finder::next_frame(self.buf, self.fragment, DELIM);
                 self.fragment = fragment;
-                return result;
+                if result {
+                    Some(self.fragment)
+                } else {
+                    None
+                }
             }
         }
     }
@@ -305,10 +316,293 @@ mod byte_frames {
             // if the constraints where upheld at creation we can be sure
             // nothing bad additionally happens.
             unsafe {
-                let (fragment, result) = finder::prev_frame(self.buf, self.fragment, DELIM);
+                let (_offset, fragment, result) =
+                    finder::prev_frame(self.buf, self.fragment, DELIM);
 
                 self.fragment = fragment;
-                return result;
+                if result {
+                    Some(self.fragment)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+mod span_lines {
+    use crate::data_frame::finder;
+    use crate::DataFrames;
+    use nom_locate::LocatedSpan;
+    use std::str::from_utf8_unchecked;
+
+    const DELIM: u8 = b'\n';
+
+    pub struct SpanLines<'s, X> {
+        buf: LocatedSpan<&'s str, X>,
+    }
+
+    impl<'s, X: Copy + 's> SpanLines<'s, X> {
+        /// Create a new SpanLines buffer.
+        pub fn new(buf: LocatedSpan<&'s str, X>) -> Self {
+            Self { buf }
+        }
+
+        /// Return n lines before and after the fragment, and place the lines of the fragment
+        /// between them.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        pub unsafe fn get_lines_around(
+            &self,
+            fragment: &LocatedSpan<&'s str, X>,
+            n: usize,
+        ) -> Vec<LocatedSpan<&'s str, X>> {
+            let mut buf: Vec<_> = self.backward_from(&fragment).take(3).collect();
+            buf.reverse();
+            buf.extend(self.current(&fragment));
+            buf.extend(self.forward_from(&fragment).take(n));
+
+            buf
+        }
+
+        /// 0-based column index of the fragment with respect to the previous fragment boundary.
+        /// This is assuming all is ascii text.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        pub unsafe fn ascii_column(&self, fragment: &LocatedSpan<&'s str, X>) -> usize {
+            finder::ascii_column(self.buf.as_bytes(), fragment.as_bytes(), DELIM)
+        }
+
+        /// 0-based column index of the fragment with respect to the previous fragment boundary.
+        /// This is counting UTF-8 encoded Unicode codepoints.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        pub unsafe fn utf8_column(&self, fragment: &LocatedSpan<&'s str, X>) -> usize {
+            // \n is none of the utf8 specials so at least we can be sure of the count.
+            finder::utf8_column(self.buf.as_bytes(), fragment.as_bytes(), DELIM)
+        }
+
+        /// 0-based column index of the fragment with respect to the previous fragment boundary.
+        /// This is counting UTF-8 encoded Unicode codepoints.
+        /// Naive implementation, might do better in some situations.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        pub unsafe fn naive_utf8_column(&self, fragment: &LocatedSpan<&'s str, X>) -> usize {
+            // \n is none of the utf8 specials so at least we can be sure of the count.
+            finder::naive_utf8_column(self.buf.as_bytes(), fragment.as_bytes(), DELIM)
+        }
+    }
+
+    impl<'s, X: Copy + 's> DataFrames<'s, LocatedSpan<&'s str, X>> for SpanLines<'s, X> {
+        type Frame = LocatedSpan<&'s str, X>;
+        type Iter = SpanIter<'s, X>;
+        type FwdIter = FSpanIter<'s, X>;
+        type RevIter = RSpanIter<'s, X>;
+
+        /// First full line for the fragment.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        unsafe fn start(&self, fragment: &LocatedSpan<&'s str, X>) -> Self::Frame {
+            let (_offset, buf) =
+                finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM);
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
+            let (offset, current) = finder::current_frame(buf, &buf[0..0], DELIM);
+
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
+            LocatedSpan::new_from_raw_offset(
+                offset,
+                fragment.location_line(),
+                from_utf8_unchecked(current),
+                fragment.extra,
+            )
+        }
+
+        /// Last full line for the fragment.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        unsafe fn end(&self, fragment: &LocatedSpan<&'s str, X>) -> Self::Frame {
+            let (_offset, buf) =
+                finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM);
+            let len = buf.len();
+            let (offset, current) = finder::current_frame(buf, &buf[len..len], DELIM);
+
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
+            LocatedSpan::new_from_raw_offset(
+                offset,
+                fragment.location_line(), // todo: this is wrong for multiline spans
+                from_utf8_unchecked(current),
+                fragment.extra,
+            )
+        }
+
+        /// Expand the fragment to cover full lines and return an Iterator for the lines.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        unsafe fn current(&self, fragment: &LocatedSpan<&'s str, X>) -> Self::Iter {
+            let (offset, current) =
+                finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM);
+
+            SpanIter {
+                // \n is none of the utf8 specials, so as all inputs are str
+                // the result must be too.
+                buf: LocatedSpan::new_from_raw_offset(
+                    offset,
+                    fragment.location_line(),
+                    from_utf8_unchecked(current),
+                    fragment.extra,
+                ),
+                fragment: None,
+            }
+        }
+
+        /// Iterator for all lines of the buffer.
+        fn iter(&self) -> Self::Iter {
+            SpanIter {
+                buf: self.buf,
+                fragment: None,
+            }
+        }
+
+        /// Iterator over the lines following the last line of the fragment.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        unsafe fn forward_from(&self, fragment: &LocatedSpan<&'s str, X>) -> Self::FwdIter {
+            let current = self.end(fragment);
+            FSpanIter {
+                buf: self.buf,
+                fragment: current,
+            }
+        }
+
+        /// Iterator over the lines preceeding the first line of the fragment.
+        /// In descending order.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        unsafe fn backward_from(&self, fragment: &LocatedSpan<&'s str, X>) -> Self::RevIter {
+            let current = self.start(fragment);
+            RSpanIter {
+                buf: self.buf,
+                fragment: current,
+            }
+        }
+
+        /// Offset in the buffer.
+        ///
+        /// Safety: The fragment really has to be a fragment of buf.
+        unsafe fn offset(&self, fragment: &LocatedSpan<&'s str, X>) -> usize {
+            finder::fragment_offset(self.buf.as_bytes(), fragment.as_bytes())
+        }
+    }
+
+    /// Iterates all lines.
+    pub struct SpanIter<'s, X> {
+        buf: LocatedSpan<&'s str, X>,
+        fragment: Option<LocatedSpan<&'s str, X>>,
+    }
+
+    impl<'s, X: Copy> Iterator for SpanIter<'s, X> {
+        type Item = LocatedSpan<&'s str, X>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
+            unsafe {
+                if let Some(old_fragment) = self.fragment {
+                    let (offset, fragment, result) =
+                        finder::next_frame(self.buf.as_bytes(), old_fragment.as_bytes(), DELIM);
+
+                    self.fragment = Some(LocatedSpan::new_from_raw_offset(
+                        offset,
+                        old_fragment.location_line() + 1,
+                        from_utf8_unchecked(fragment),
+                        self.buf.extra,
+                    ));
+                    if result {
+                        self.fragment
+                    } else {
+                        None
+                    }
+                } else {
+                    let (offset, fragment) = finder::current_frame(
+                        self.buf.as_bytes(),
+                        &self.buf[0..0].as_bytes(),
+                        DELIM,
+                    );
+
+                    self.fragment = Some(LocatedSpan::new_from_raw_offset(
+                        offset,
+                        1,
+                        from_utf8_unchecked(fragment),
+                        self.buf.extra,
+                    ));
+
+                    self.fragment
+                }
+            }
+        }
+    }
+
+    /// Forward iterator..
+    pub struct FSpanIter<'s, X> {
+        buf: LocatedSpan<&'s str, X>,
+        fragment: LocatedSpan<&'s str, X>,
+    }
+
+    impl<'s, X: Copy> Iterator for FSpanIter<'s, X> {
+        type Item = LocatedSpan<&'s str, X>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
+            unsafe {
+                let (offset, fragment, result) =
+                    finder::next_frame(self.buf.as_bytes(), self.fragment.as_bytes(), DELIM);
+
+                self.fragment = LocatedSpan::new_from_raw_offset(
+                    offset,
+                    self.fragment.location_line() + 1,
+                    from_utf8_unchecked(fragment),
+                    self.buf.extra,
+                );
+                if result {
+                    Some(self.fragment)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    /// Backward iterator.
+    pub struct RSpanIter<'s, X> {
+        buf: LocatedSpan<&'s str, X>,
+        fragment: LocatedSpan<&'s str, X>,
+    }
+
+    impl<'s, X: Copy> Iterator for RSpanIter<'s, X> {
+        type Item = LocatedSpan<&'s str, X>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            // \n is none of the utf8 specials, so as all inputs are str
+            // the result must be too.
+            unsafe {
+                let (offset, fragment, result) =
+                    finder::prev_frame(self.buf.as_bytes(), self.fragment.as_bytes(), DELIM);
+
+                self.fragment = LocatedSpan::new_from_raw_offset(
+                    offset,
+                    self.fragment.location_line() - 1,
+                    from_utf8_unchecked(fragment),
+                    self.buf.extra,
+                );
+                if result {
+                    Some(self.fragment)
+                } else {
+                    None
+                }
             }
         }
     }
@@ -374,21 +668,21 @@ mod str_lines {
         ///
         /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn start(&self, fragment: &'_ str) -> Self::Frame {
-            let buf = finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM);
+            let buf = finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM).1;
             // \n is none of the utf8 specials, so as all inputs are str
             // the result must be too.
-            from_utf8_unchecked(finder::current_frame(buf, &buf[0..0], DELIM))
+            from_utf8_unchecked(finder::current_frame(buf, &buf[0..0], DELIM).1)
         }
 
         /// Last full line for the fragment.
         ///
         /// Safety: The fragment really has to be a fragment of buf.
         unsafe fn end(&self, fragment: &'_ str) -> Self::Frame {
-            let buf = finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM);
+            let buf = finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM).1;
             let len = buf.len();
             // \n is none of the utf8 specials, so as all inputs are str
             // the result must be too.
-            from_utf8_unchecked(finder::current_frame(buf, &buf[len..len], DELIM))
+            from_utf8_unchecked(finder::current_frame(buf, &buf[len..len], DELIM).1)
         }
 
         /// Expand the fragment to cover full lines and return an Iterator for the lines.
@@ -398,11 +692,9 @@ mod str_lines {
             StrIter {
                 // \n is none of the utf8 specials, so as all inputs are str
                 // the result must be too.
-                buf: from_utf8_unchecked(finder::current_frame(
-                    self.buf.as_bytes(),
-                    fragment.as_bytes(),
-                    DELIM,
-                )),
+                buf: from_utf8_unchecked(
+                    finder::current_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM).1,
+                ),
                 fragment: None,
             }
         }
@@ -460,20 +752,24 @@ mod str_lines {
             // the result must be too.
             unsafe {
                 if let Some(fragment) = self.fragment {
-                    let (fragment, result) =
+                    let (_offset, fragment, result) =
                         finder::next_frame(self.buf.as_bytes(), fragment.as_bytes(), DELIM);
 
                     self.fragment = Some(from_utf8_unchecked(fragment));
-                    result.map(|v| from_utf8_unchecked(v))
+                    if result {
+                        self.fragment
+                    } else {
+                        None
+                    }
                 } else {
-                    let fragment = finder::current_frame(
+                    let (_offset, fragment) = finder::current_frame(
                         self.buf.as_bytes(),
                         &self.buf[0..0].as_bytes(),
                         DELIM,
                     );
 
                     self.fragment = Some(from_utf8_unchecked(fragment));
-                    Some(from_utf8_unchecked(fragment))
+                    self.fragment
                 }
             }
         }
@@ -492,11 +788,15 @@ mod str_lines {
             // \n is none of the utf8 specials, so as all inputs are str
             // the result must be too.
             unsafe {
-                let (fragment, result) =
+                let (_offset, fragment, result) =
                     finder::next_frame(self.buf.as_bytes(), self.fragment.as_bytes(), DELIM);
 
                 self.fragment = from_utf8_unchecked(fragment);
-                return result.map(|v| from_utf8_unchecked(v));
+                if result {
+                    Some(self.fragment)
+                } else {
+                    None
+                }
             }
         }
     }
@@ -514,11 +814,15 @@ mod str_lines {
             // \n is none of the utf8 specials, so as all inputs are str
             // the result must be too.
             unsafe {
-                let (fragment, result) =
+                let (_offset, fragment, result) =
                     finder::prev_frame(self.buf.as_bytes(), self.fragment.as_bytes(), DELIM);
 
                 self.fragment = from_utf8_unchecked(fragment);
-                return result.map(|v| from_utf8_unchecked(v));
+                if result {
+                    Some(self.fragment)
+                } else {
+                    None
+                }
             }
         }
     }
@@ -612,7 +916,11 @@ mod finder {
     /// The result is the fragment expanded at both ends.
     ///
     /// Safety: The fragment really has to be a fragment of buf.
-    pub unsafe fn current_frame<'s>(buf: &'s [u8], fragment: &'_ [u8], sep: u8) -> &'s [u8] {
+    pub unsafe fn current_frame<'s>(
+        buf: &'s [u8],
+        fragment: &'_ [u8],
+        sep: u8,
+    ) -> (usize, &'s [u8]) {
         let offset = fragment_offset(buf, fragment);
         let len = fragment.len();
 
@@ -625,7 +933,7 @@ mod finder {
             Some(o) => offset + len + o,
         };
 
-        &buf[start..end]
+        (start, &buf[start..end])
     }
 
     /// Finds the next frame.
@@ -638,7 +946,7 @@ mod finder {
         buf: &'s [u8],
         fragment: &'_ [u8],
         sep: u8,
-    ) -> (&'s [u8], Option<&'s [u8]>) {
+    ) -> (usize, &'s [u8], bool) {
         let offset = unsafe { fragment_offset(buf, fragment) };
 
         let (trunc_start, start) = match offset + fragment.len() + 1 {
@@ -653,9 +961,9 @@ mod finder {
         let next_fragment = &buf[start..end];
 
         if trunc_start {
-            (next_fragment, None)
+            (start, next_fragment, false)
         } else {
-            (next_fragment, Some(next_fragment))
+            (start, next_fragment, true)
         }
     }
 
@@ -674,7 +982,7 @@ mod finder {
         buf: &'s [u8],
         fragment: &'_ [u8],
         sep: u8,
-    ) -> (&'s [u8], Option<&'s [u8]>) {
+    ) -> (usize, &'s [u8], bool) {
         let offset = unsafe { fragment_offset(buf, fragment) };
 
         let (trunc_end, end) = match offset as isize - 1 {
@@ -689,9 +997,9 @@ mod finder {
         let prev_fragment = &buf[start..end];
 
         if trunc_end {
-            (prev_fragment, None)
+            (start, prev_fragment, false)
         } else {
-            (prev_fragment, Some(prev_fragment))
+            (start, prev_fragment, true)
         }
     }
 

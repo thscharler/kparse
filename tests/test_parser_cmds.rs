@@ -1,5 +1,5 @@
 pub use cmds_parser::*;
-use kparse::test::{test_parse_noctx, NoReport};
+use kparse::test::{noctx_parse, notrack_parse, str_parse, CheckDump, Dump, NoReport, Timing};
 use std::time::Instant;
 
 #[test]
@@ -108,16 +108,20 @@ fn test_1() {
         "asdf",
     ];
 
-    let r = NoReport;
+    let r = CheckDump;
 
+    let now = Instant::now();
     for t in tests {
-        let now = Instant::now();
-        for _i in 1..1000 {
-            test_parse_noctx(&mut None, t, parse_cmds).q(r);
+        for _i in 1..100 {
+            notrack_parse(&mut None, t, parse_cmds).q(r);
         }
-        let elapsed = now.elapsed();
-        println!("{}", humantime::format_duration(elapsed / 1000));
     }
+    let elapsed = now.elapsed();
+    println!(
+        "{} tests in {}",
+        tests.len(),
+        humantime::format_duration(elapsed / tests.len() as u32 / 100u32)
+    );
 }
 
 mod cmds_parser {

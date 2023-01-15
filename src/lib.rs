@@ -20,8 +20,8 @@ mod tracking_context;
 
 pub use conversion::*;
 pub use data_frame::{
-    slice_union, str_union, ByteFrames, ByteSliceIter, DataFrames, FByteSliceIter, FStrIter,
-    RByteSliceIter, RStrIter, StrIter, StrLines,
+    slice_union, str_union, ByteFrames, ByteSliceIter, DataFrames, FByteSliceIter, FSpanIter,
+    FStrIter, RByteSliceIter, RSpanIter, RStrIter, SpanIter, SpanLines, StrIter, StrLines,
 };
 pub use error::{CombineParserError, Hints, Nom, ParserError, SpanAndCode};
 pub use no_context::NoContext;

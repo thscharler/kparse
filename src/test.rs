@@ -1,5 +1,5 @@
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, NoContext, ParseContext, ParserError, Span, StrContext, TrackingContext};
+use crate::{Code, NoContext, ParserError, Span, StrContext, TrackingContext};
 use std::cell::Cell;
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
@@ -13,7 +13,6 @@ pub type CompareFn<O, V> = for<'a> fn(&'a O, V) -> bool;
 /// Test Results.
 pub struct Test<'s, P, C, O, E>
 where
-    //P: ParseContext<'s, C>,
     C: Code,
 {
     pub text: &'s str,
@@ -25,7 +24,7 @@ where
 
 /// Result reporting.
 pub trait Report<T> {
-    fn report(&self, test: T);
+    fn report(&self, test: &T);
 }
 
 /// Runs the parser and records the results.
@@ -33,7 +32,7 @@ pub trait Report<T> {
 ///
 /// Finish the test with q().
 #[must_use]
-pub fn test_parse<'s, C: Code, O, E>(
+pub fn track_parse<'s, C: Code, O, E>(
     buf: &'s mut Option<TrackingContext<'s, C, true>>,
     text: &'s str,
     fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
@@ -61,7 +60,7 @@ pub fn test_parse<'s, C: Code, O, E>(
 ///
 /// Finish the test with q().
 #[must_use]
-pub fn test_parse_no_track<'s, C: Code, O, E>(
+pub fn notrack_parse<'s, C: Code, O, E>(
     buf: &'s mut Option<TrackingContext<'s, C, false>>,
     text: &'s str,
     fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
@@ -89,7 +88,7 @@ pub fn test_parse_no_track<'s, C: Code, O, E>(
 ///
 /// Finish the test with q().
 #[must_use]
-pub fn test_parse_raw<'s, C: Code, O, E>(
+pub fn str_parse<'s, C: Code, O, E>(
     buf: &'s mut Option<StrContext<'s>>,
     text: &'s str,
     fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
@@ -117,7 +116,7 @@ pub fn test_parse_raw<'s, C: Code, O, E>(
 ///
 /// Finish the test with q().
 #[must_use]
-pub fn test_parse_noctx<'s, C: Code, O, E>(
+pub fn noctx_parse<'s, C: Code, O, E>(
     buf: &'s mut Option<NoContext>,
     text: &'s str,
     fn_test: impl Fn(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E>>,
@@ -142,7 +141,6 @@ pub fn test_parse_noctx<'s, C: Code, O, E>(
 
 impl<'s, P, C, O, E> Test<'s, P, C, O, E>
 where
-    P: ParseContext<'s, C>,
     C: Code,
     O: Debug,
     E: Debug,
@@ -197,7 +195,7 @@ where
     ///
     /// Panics if any test failed.
     #[track_caller]
-    pub fn q<R: Report<Self> + Copy>(self, r: R) {
+    pub fn q<R: Report<Self> + Copy>(&self, r: R) {
         r.report(self);
     }
 }
@@ -205,7 +203,6 @@ where
 // works for any fn that uses a Span as input and returns a (Span, X) pair.
 impl<'s, P, C, O, E> Test<'s, P, C, O, E>
 where
-    P: ParseContext<'s, C>,
     C: Code,
     O: Debug,
     E: Debug,
@@ -263,7 +260,6 @@ where
 // works for any NomFn.
 impl<'s, P, C, O> Test<'s, P, C, O, nom::error::Error<Span<'s, C>>>
 where
-    P: ParseContext<'s, C>,
     C: Code,
     O: Debug,
 {
@@ -292,7 +288,6 @@ where
 
 impl<'s, P, C, O> Test<'s, P, C, O, ParserError<'s, C>>
 where
-    P: ParseContext<'s, C>,
     O: Debug,
     C: Code,
 {
@@ -354,31 +349,6 @@ where
 
         self
     }
-
-    // /// Checks for an expect value.
-    // ///
-    // /// Finish the test with q()
-    // #[must_use]
-    // pub fn expect2(&self, code: C, parent: C) -> &Self {
-    //     match &self.result {
-    //         Ok(_) => {
-    //             println!("FAIL: {:?} was ok not an error.", code,);
-    //             self.flag_fail();
-    //         }
-    //         Err(e) => {
-    //             if !e.is_expected2(code, parent) {
-    //                 println!(
-    //                     "FAIL: {:?} is not an expected token. {:?}",
-    //                     code,
-    //                     e.expect_as_ref()
-    //                 );
-    //                 self.flag_fail();
-    //             }
-    //         }
-    //     }
-    //
-    //     self
-    // }
 }
 
 mod span {
@@ -426,7 +396,7 @@ mod report {
     use crate::debug::tracks::Tracks;
     use crate::debug::{restrict, restrict_str, DebugWidth};
     use crate::test::{Report, Test};
-    use crate::{Code, ParseContext, TrackingContext};
+    use crate::{Code, TrackingContext};
     use std::fmt::Debug;
 
     #[derive(Clone, Copy)]
@@ -434,12 +404,11 @@ mod report {
 
     impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for NoReport
     where
-        P: ParseContext<'s, C>,
         C: Code,
         O: Debug,
         E: Debug,
     {
-        fn report(&self, _: Test<'s, P, C, O, E>) {}
+        fn report(&self, _: &Test<'s, P, C, O, E>) {}
     }
 
     /// Dumps the Result data if any test failed.
@@ -448,13 +417,12 @@ mod report {
 
     impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for CheckDump
     where
-        P: ParseContext<'s, C>,
         C: Code,
         O: Debug,
         E: Debug,
     {
         #[track_caller]
-        fn report(&self, test: Test<'s, P, C, O, E>) {
+        fn report(&self, test: &Test<'s, P, C, O, E>) {
             if test.failed.get() {
                 dump(test);
                 panic!("test failed")
@@ -468,12 +436,11 @@ mod report {
 
     impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for Timing
     where
-        P: ParseContext<'s, C>,
         C: Code,
         O: Debug,
         E: Debug,
     {
-        fn report(&self, test: Test<'s, P, C, O, E>) {
+        fn report(&self, test: &Test<'s, P, C, O, E>) {
             println!(
                 "when parsing '{}' in {} =>",
                 restrict_str(DebugWidth::Medium, test.text),
@@ -496,19 +463,17 @@ mod report {
 
     impl<'s, P, C, O, E> Report<Test<'s, P, C, O, E>> for Dump
     where
-        P: ParseContext<'s, C>,
         C: Code,
         O: Debug,
         E: Debug,
     {
-        fn report(&self, test: Test<'s, P, C, O, E>) {
+        fn report(&self, test: &Test<'s, P, C, O, E>) {
             dump(test)
         }
     }
 
-    fn dump<'s, P, C, O, E>(test: Test<'s, P, C, O, E>)
+    fn dump<P, C, O, E>(test: &Test<P, C, O, E>)
     where
-        P: ParseContext<'s, C>,
         C: Code,
         O: Debug,
         E: Debug,
@@ -543,7 +508,7 @@ mod report {
         E: Debug,
     {
         #[track_caller]
-        fn report(&self, test: Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>) {
+        fn report(&self, test: &Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>) {
             if test.failed.get() {
                 trace(test);
                 panic!("test failed")
@@ -562,13 +527,14 @@ mod report {
         O: Debug,
         E: Debug,
     {
-        fn report(&self, test: Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>) {
+        fn report(&self, test: &Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>) {
             trace(test);
         }
     }
 
-    fn trace<'s, C, O, E, const TRACK: bool>(test: Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>)
-    where
+    fn trace<'s, C, O, E, const TRACK: bool>(
+        test: &Test<'s, TrackingContext<'s, C, TRACK>, C, O, E>,
+    ) where
         C: Code,
         O: Debug,
         E: Debug,
