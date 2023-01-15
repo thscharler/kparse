@@ -23,7 +23,7 @@ pub use data_frame::{
     slice_union, str_union, ByteFrames, ByteSliceIter, DataFrames, FByteSliceIter, FSpanIter,
     FStrIter, RByteSliceIter, RSpanIter, RStrIter, SpanIter, SpanLines, StrIter, StrLines,
 };
-pub use error::{CombineParserError, Hints, Nom, ParserError, SpanAndCode};
+pub use error::{AppendParserError, Hints, Nom, ParserError, SpanAndCode};
 pub use no_context::NoContext;
 pub use str_context::StrContext;
 pub use tracker::*;
@@ -34,8 +34,8 @@ pub use tracking_context::{
 
 pub mod prelude {
     pub use crate::{error_code, transform, ErrorCode, Transform};
+    pub use crate::{AppendParserError, ParserError, TrackParserError, WithCode, WithSpan};
     pub use crate::{Code, NoContext, ParseContext, StrContext, TrackingContext};
-    pub use crate::{CombineParserError, ParserError, TrackParserError, WithCode, WithSpan};
     pub use crate::{Context, ParserNomResult, ParserResult, Span};
 }
 
@@ -320,7 +320,7 @@ pub fn transform<'s, O, C, P, T, E0, E1, E2>(
     parser: P,
     transform: T,
     code: C,
-) -> impl FnMut(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>>
+) -> impl FnMut(Span<'s, C>) -> Result<(Span<'s, C>, (Span<'s, C>, O)), nom::Err<E2>>
 where
     O: 's,
     C: Code + 's,
@@ -331,10 +331,10 @@ where
     T: Fn(Span<'s, C>) -> Result<O, E1>,
 {
     let mut t = Transform::new(parser, transform, code);
-    move |s: Span<'s, C>| -> Result<(Span<'s, C>, O), nom::Err<E2>> { t.parse(s) }
+    move |s: Span<'s, C>| -> Result<(Span<'s, C>, (Span<'s, C>, O)), nom::Err<E2>> { t.parse(s) }
 }
 
-impl<'s, O, C, P, T, E0, E1, E2> Parser<Span<'s, C>, O, E2>
+impl<'s, O, C, P, T, E0, E1, E2> Parser<Span<'s, C>, (Span<'s, C>, O), E2>
     for Transform<'s, O, C, P, T, E0, E1, E2>
 where
     C: Code + 's,
@@ -343,13 +343,16 @@ where
     P: Parser<Span<'s, C>, Span<'s, C>, E0>,
     T: Fn(Span<'s, C>) -> Result<O, E1>,
 {
-    fn parse(&mut self, input: Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>> {
+    fn parse(
+        &mut self,
+        input: Span<'s, C>,
+    ) -> Result<(Span<'s, C>, (Span<'s, C>, O)), nom::Err<E2>> {
         let r = self.parser.parse(input);
         match r {
             Ok((rest, token)) => {
                 let o = (self.transform)(token);
                 match o {
-                    Ok(o) => Ok((rest, o)),
+                    Ok(o) => Ok((rest, (token, o))),
                     Err(e) => Err(e.with_span(self.code, token)),
                 }
             }

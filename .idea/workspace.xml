@@ -14,10 +14,15 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/core2/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="clippy">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="Rename CombineParserError to AppendParserError to have a concise naming scheme for this.&#10;&#10;Transform now returns the parsed Span too.&#10;&#10;Add readme">
+      <change afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/kparse.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kparse.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,21 +66,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;TODO_SCOPE&quot;: &quot;Module 'kparse'&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/stommy/Documents/IdeaProjects/kparse/tests&quot;,
-    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;language.rust.cargo&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "TODO_SCOPE": "Module 'kparse'",
+    "last_opened_file_path": "C:/Users/stommy/Documents/IdeaProjects/kparse",
+    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "language.rust.cargo"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse" />
+      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\examples" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\tests" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\debug" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src" />
@@ -85,7 +92,7 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\test" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Clippy">
+  <component name="RunManager" selected="Cargo.Run example1">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -120,8 +127,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test main" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_dyncontext main -- --exact" />
+    <configuration name="Run example1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="run --package kparse --example example1" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -226,19 +233,19 @@
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clean" />
       <item itemvalue="Cargo.Clippy" />
+      <item itemvalue="Cargo.Run example1" />
       <item itemvalue="Cargo.Test test_parser4" />
       <item itemvalue="Cargo.Test timing" />
       <item itemvalue="Cargo.Test test_1" />
-      <item itemvalue="Cargo.Test main" />
       <item itemvalue="Cargo.Test test_size2" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Run example1" />
         <item itemvalue="Cargo.Test test_parser4" />
         <item itemvalue="Cargo.Test timing" />
         <item itemvalue="Cargo.Test test_1" />
         <item itemvalue="Cargo.Test test_size2" />
-        <item itemvalue="Cargo.Test main" />
       </list>
     </recent_temporary>
   </component>
@@ -483,7 +490,14 @@
       <option name="project" value="LOCAL" />
       <updated>1673812589539</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="check todos">
+      <created>1673813320481</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1673813320481</updated>
+    </task>
+    <option name="localTasksCounter" value="34" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -510,8 +524,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="add tracker" />
-    <MESSAGE value="2nd test" />
     <MESSAGE value="m0 for throw_away_everything__again" />
     <MESSAGE value="m1 for throw_away_everything__again&#10;&#10;now have a dyn ParseContext, which is fine.&#10;some things still marked as todo or &#10;commented out ..." />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;clean up the todo's" />
@@ -535,7 +547,9 @@
     <MESSAGE value="ParserError wants Y, X is for LocatedSpan" />
     <MESSAGE value="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now." />
     <MESSAGE value="clippy" />
-    <option name="LAST_COMMIT_MESSAGE" value="clippy" />
+    <MESSAGE value="check todos" />
+    <MESSAGE value="Rename CombineParserError to AppendParserError to have a concise naming scheme for this.&#10;&#10;Transform now returns the parsed Span too.&#10;&#10;Add readme" />
+    <option name="LAST_COMMIT_MESSAGE" value="Rename CombineParserError to AppendParserError to have a concise naming scheme for this.&#10;&#10;Transform now returns the parsed Span too.&#10;&#10;Add readme" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

@@ -1,7 +1,8 @@
 [package]
 name = "kparse"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
+readme = "readme.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,8 +19,3 @@ features = [ "alloc" ]
 [dependencies.nom_locate]
 version = "4.0"
 
-[dev-dependencies]
-glob = "0.3"
-
-[dev-dependencies.iparse]
-path="../iparse"

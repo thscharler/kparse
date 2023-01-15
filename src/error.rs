@@ -54,23 +54,29 @@ pub struct SpanAndCode<'s, C: Code> {
 }
 
 /// Combines two ParserErrors.
-pub trait CombineParserError<'s, C: Code, Y: Copy = (), Rhs = Self> {
-    fn add(&mut self, err: Rhs) -> Result<(), nom::Err<ParserError<'s, C, Y>>>;
+pub trait AppendParserError<'s, C: Code, Y: Copy = (), Rhs = Self> {
+    fn append(&mut self, err: Rhs) -> Result<(), nom::Err<ParserError<'s, C, Y>>>;
 }
 
-impl<'s, C: Code, Y: Copy> CombineParserError<'s, C, Y, ParserError<'s, C, Y>>
+impl<'s, C: Code, Y: Copy> AppendParserError<'s, C, Y, ParserError<'s, C, Y>>
     for ParserError<'s, C, Y>
 {
-    fn add(&mut self, err: ParserError<'s, C, Y>) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
+    fn append(
+        &mut self,
+        err: ParserError<'s, C, Y>,
+    ) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
         self.append(err);
         Ok(())
     }
 }
 
-impl<'s, C: Code, Y: Copy> CombineParserError<'s, C, Y, ParserError<'s, C, Y>>
+impl<'s, C: Code, Y: Copy> AppendParserError<'s, C, Y, ParserError<'s, C, Y>>
     for Option<ParserError<'s, C, Y>>
 {
-    fn add(&mut self, err: ParserError<'s, C, Y>) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
+    fn append(
+        &mut self,
+        err: ParserError<'s, C, Y>,
+    ) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
         match self {
             None => *self = Some(err),
             Some(v) => v.append(err),
@@ -79,10 +85,10 @@ impl<'s, C: Code, Y: Copy> CombineParserError<'s, C, Y, ParserError<'s, C, Y>>
     }
 }
 
-impl<'s, C: Code, Y: Copy> CombineParserError<'s, C, Y, nom::Err<ParserError<'s, C, Y>>>
+impl<'s, C: Code, Y: Copy> AppendParserError<'s, C, Y, nom::Err<ParserError<'s, C, Y>>>
     for Option<ParserError<'s, C, Y>>
 {
-    fn add(
+    fn append(
         &mut self,
         err: nom::Err<ParserError<'s, C, Y>>,
     ) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {

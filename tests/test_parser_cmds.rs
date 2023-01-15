@@ -422,91 +422,91 @@ mod cmds_parser {
         if PARSE_CREATE.lah(rest) {
             match PARSE_CREATE.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_PRINT.lah(rest) {
             match PARSE_PRINT.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_IMPORT.lah(rest) {
             match PARSE_IMPORT.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_EXPORT.lah(rest) {
             match PARSE_EXPORT.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if lah_new(rest) {
             match parse_new(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if lah_set(rest) {
             match parse_set(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_GET.lah(rest) {
             match PARSE_GET.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_DIFF.lah(rest) {
             match PARSE_DIFF.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if lah_etik(rest) {
             match parse_etik(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if lah_report(rest) {
             match parse_report(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_SENDMAIL.lah(rest) {
             match PARSE_SENDMAIL.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_HELP_1.lah(rest) {
             match PARSE_HELP_1.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_HELP_2.lah(rest) {
             match PARSE_HELP_2.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_TEST.lah(rest) {
             match PARSE_TEST.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
         if PARSE_DEBUG.lah(rest) {
             match PARSE_DEBUG.parse(rest) {
                 Ok((_, cmd)) => command = Some(cmd),
-                Err(e) => err.add(e)?,
+                Err(e) => err.append(e)?,
             }
         }
 
