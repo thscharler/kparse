@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::ICode::*;
 use kparse::prelude::*;
 use kparse::test::{track_parse, Trace};
@@ -283,13 +285,13 @@ fn run_parser() {
     let ctx: TrackingContext<'_, ICode, true> = TrackingContext::new("A");
     let span = ctx.span();
 
-    let r = parse_terminal_a(span);
+    let _r = parse_terminal_a(span);
 }
 
 fn run_parser2() {
     let span = NoContext.span("A");
 
-    let r = parse_terminal_a(span);
+    let _r = parse_terminal_a(span);
 }
 
 fn main() {

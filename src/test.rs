@@ -1,3 +1,7 @@
+//!
+//! Test framework for parsers.
+//!
+
 use crate::debug::{restrict, DebugWidth};
 use crate::{Code, NoContext, ParserError, Span, StrContext, TrackingContext};
 use std::cell::Cell;
@@ -15,15 +19,21 @@ pub struct Test<'s, P, C, O, E>
 where
     C: Code,
 {
+    /// text
     pub text: &'s str,
+    /// ParseContext
     pub context: &'s P,
+    /// Test Result
     pub result: Result<(Span<'s, C>, O), nom::Err<E>>,
+    /// Test duration
     pub duration: Duration,
+    /// Any check failed
     pub failed: Cell<bool>,
 }
 
 /// Result reporting.
 pub trait Report<T> {
+    /// Report something.
     fn report(&self, test: &T);
 }
 
@@ -399,6 +409,7 @@ mod report {
     use crate::{Code, TrackingContext};
     use std::fmt::Debug;
 
+    /// Do nothing report.
     #[derive(Clone, Copy)]
     pub struct NoReport;
 
@@ -472,7 +483,7 @@ mod report {
         }
     }
 
-    fn dump<P, C, O, E>(test: &Test<P, C, O, E>)
+    fn dump<P, C, O, E>(test: &Test<'_, P, C, O, E>)
     where
         C: Code,
         O: Debug,

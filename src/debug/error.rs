@@ -2,7 +2,20 @@ use crate::debug::{restrict, DebugWidth};
 use crate::{Code, ParserError, SpanAndCode};
 use std::fmt;
 
-pub fn debug_parse_of_error_short<'s, C: Code, Y: Copy>(
+/// impl of debug for ParserError.
+pub(crate) fn debug_parse_error<'s, C: Code, Y: Copy>(
+    f: &mut fmt::Formatter<'_>,
+    err: &ParserError<'s, C, Y>,
+) -> fmt::Result {
+    match f.width() {
+        None | Some(0) => debug_parse_error_short(f, err),
+        Some(1) => debug_parse_error_medium(f, err),
+        Some(2) => debug_parse_error_long(f, err),
+        _ => Ok(()),
+    }
+}
+
+fn debug_parse_error_short<'s, C: Code, Y: Copy>(
     f: &mut impl fmt::Write,
     err: &ParserError<'s, C, Y>,
 ) -> fmt::Result {
@@ -35,7 +48,7 @@ pub fn debug_parse_of_error_short<'s, C: Code, Y: Copy>(
     Ok(())
 }
 
-pub fn debug_parse_of_error_medium<'s, C: Code, Y: Copy>(
+fn debug_parse_error_medium<'s, C: Code, Y: Copy>(
     f: &mut impl fmt::Write,
     err: &ParserError<'s, C, Y>,
 ) -> fmt::Result {
@@ -77,7 +90,7 @@ pub fn debug_parse_of_error_medium<'s, C: Code, Y: Copy>(
     Ok(())
 }
 
-pub fn debug_parse_of_error_long<'s, C: Code, Y: Copy>(
+fn debug_parse_error_long<'s, C: Code, Y: Copy>(
     f: &mut impl fmt::Write,
     err: &ParserError<'s, C, Y>,
 ) -> fmt::Result {

@@ -6,7 +6,6 @@
 //! The main purpose is as a companion for HSpan to get the surroundings of a span.
 //!
 
-pub use self::finder::undo_take_slice;
 pub use self::strings::undo_take_str_slice;
 pub use self::strings::undo_take_str_slice_unchecked;
 pub use byte_frames::*;
@@ -332,13 +331,17 @@ mod byte_frames {
 }
 
 mod span_lines {
-    use crate::data_frame::finder;
-    use crate::DataFrames;
+    use crate::data_frame::{finder, DataFrames};
     use nom_locate::LocatedSpan;
     use std::str::from_utf8_unchecked;
 
     const DELIM: u8 = b'\n';
 
+    /// Split a LocatedSpan into lines.
+    ///
+    /// Helps locating a parsed span inside the original parse text and iterating over
+    /// adjacent lines.
+    #[derive(Debug)]
     pub struct SpanLines<'s, X> {
         buf: LocatedSpan<&'s str, X>,
     }
@@ -844,7 +847,6 @@ mod strings {
     ///
     /// Safety
     /// offset must be within the original bounds.
-    #[allow(dead_code)]
     pub unsafe fn undo_take_str_slice(s: &str, offset: usize) -> Result<&str, Utf8Error> {
         let bytes = undo_take_slice(s.as_bytes(), offset);
         from_utf8(bytes)
@@ -855,14 +857,13 @@ mod strings {
     /// Safety
     /// offset must be within the original bounds.
     /// offset must not hit between an utf8 boundary.
-    #[allow(dead_code)]
     pub unsafe fn undo_take_str_slice_unchecked(s: &str, offset: usize) -> &str {
         let bytes = undo_take_slice(s.as_bytes(), offset);
         from_utf8_unchecked(bytes)
     }
 }
 
-mod finder {
+pub(crate) mod finder {
     use bytecount::{naive_num_chars, num_chars};
     use memchr::{memchr, memrchr};
     use std::slice;
@@ -871,7 +872,7 @@ mod finder {
     /// This is assuming all is ascii text.
     ///
     /// # Safety The fragment really has to be a fragment of buf.
-    pub unsafe fn ascii_column(buf: &[u8], fragment: &[u8], sep: u8) -> usize {
+    pub(crate) unsafe fn ascii_column(buf: &[u8], fragment: &[u8], sep: u8) -> usize {
         let prefix = current_prefix(buf, fragment, sep);
         prefix.len()
     }
@@ -884,7 +885,7 @@ mod finder {
     ///
     /// The fragment must not be inside a utf8 sequence and the separator must not
     /// be a utf8 special, otherwise the result will be off. But not UB.
-    pub unsafe fn utf8_column(buf: &[u8], fragment: &[u8], sep: u8) -> usize {
+    pub(crate) unsafe fn utf8_column(buf: &[u8], fragment: &[u8], sep: u8) -> usize {
         let prefix = current_prefix(buf, fragment, sep);
         num_chars(prefix)
     }
@@ -898,7 +899,7 @@ mod finder {
     ///
     /// The fragment must not be inside a utf8 sequence and the separator must not
     /// be a utf8 special, otherwise the result will be off. But not UB.
-    pub unsafe fn naive_utf8_column(buf: &[u8], fragment: &[u8], sep: u8) -> usize {
+    pub(crate) unsafe fn naive_utf8_column(buf: &[u8], fragment: &[u8], sep: u8) -> usize {
         let prefix = current_prefix(buf, fragment, sep);
         naive_num_chars(prefix)
     }
@@ -907,7 +908,11 @@ mod finder {
     ///
     /// # Safety
     /// The fragment really has to be a fragment of buf.
-    pub unsafe fn current_prefix<'s>(buf: &'s [u8], fragment: &'_ [u8], sep: u8) -> &'s [u8] {
+    pub(crate) unsafe fn current_prefix<'s>(
+        buf: &'s [u8],
+        fragment: &'_ [u8],
+        sep: u8,
+    ) -> &'s [u8] {
         let offset = fragment_offset(buf, fragment);
 
         let start = match memrchr(sep, &buf[..offset]) {
@@ -924,7 +929,7 @@ mod finder {
     /// The result is the fragment expanded at both ends.
     ///
     /// # Safety The fragment really has to be a fragment of buf.
-    pub unsafe fn current_frame<'s>(
+    pub(crate) unsafe fn current_frame<'s>(
         buf: &'s [u8],
         fragment: &'_ [u8],
         sep: u8,
@@ -950,7 +955,7 @@ mod finder {
     /// not an intermediary empty frame.
     ///
     /// # Safety The fragment really has to be a fragment of buf.
-    pub unsafe fn next_frame<'s>(
+    pub(crate) unsafe fn next_frame<'s>(
         buf: &'s [u8],
         fragment: &'_ [u8],
         sep: u8,
@@ -986,7 +991,7 @@ mod finder {
     /// To start with a clean fragment call current_frame first.
     ///
     /// # Safety The fragment really has to be a fragment of buf.
-    pub unsafe fn prev_frame<'s>(
+    pub(crate) unsafe fn prev_frame<'s>(
         buf: &'s [u8],
         fragment: &'_ [u8],
         sep: u8,
@@ -1015,7 +1020,7 @@ mod finder {
     ///
     /// # Safety
     /// The fragment really has to be a fragment of buf.
-    pub unsafe fn fragment_offset(buf: &[u8], fragment: &[u8]) -> usize {
+    pub(crate) unsafe fn fragment_offset(buf: &[u8], fragment: &[u8]) -> usize {
         let o = buf.as_ptr();
         let f = fragment.as_ptr();
 
@@ -1029,7 +1034,7 @@ mod finder {
     ///
     /// Safety
     /// offset must be within the original bounds.
-    pub unsafe fn undo_take_slice(s: &[u8], offset: usize) -> &[u8] {
+    pub(crate) unsafe fn undo_take_slice(s: &[u8], offset: usize) -> &[u8] {
         assert!(offset < isize::MAX as usize);
 
         let ptr = s.as_ptr();

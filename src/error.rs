@@ -1,12 +1,10 @@
-use crate::debug::error::{
-    debug_parse_of_error_long, debug_parse_of_error_medium, debug_parse_of_error_short,
-};
+use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::{Code, Span};
 use nom::error::ErrorKind;
 use std::error::Error;
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display};
 use std::num::NonZeroUsize;
 
 /// Parser error.
@@ -35,6 +33,7 @@ pub enum Hints<'s, C: Code, Y: Copy> {
     UserData(Y),
 }
 
+/// Contains the data of a nom error.
 #[derive(Clone, Copy)]
 pub struct Nom<'s, C: Code> {
     /// nom ErrorKind
@@ -45,6 +44,7 @@ pub struct Nom<'s, C: Code> {
     pub ch: Option<char>,
 }
 
+/// Contains a error code and the span.
 #[derive(Clone, Copy)]
 pub struct SpanAndCode<'s, C: Code> {
     /// Error code
@@ -54,40 +54,40 @@ pub struct SpanAndCode<'s, C: Code> {
 }
 
 /// Combines two ParserErrors.
-pub trait AppendParserError<'s, C: Code, Y: Copy = (), Rhs = Self> {
-    fn append(&mut self, err: Rhs) -> Result<(), nom::Err<ParserError<'s, C, Y>>>;
+pub trait AppendParserError<Rhs = Self> {
+    /// Result of the append. Usually (), but for nom::Err::Incomplete the error is not
+    /// appended but passed through.
+    type Output;
+    /// Appends
+    fn append(&mut self, err: Rhs) -> Self::Output;
 }
 
-impl<'s, C: Code, Y: Copy> AppendParserError<'s, C, Y, ParserError<'s, C, Y>>
-    for ParserError<'s, C, Y>
-{
-    fn append(
-        &mut self,
-        err: ParserError<'s, C, Y>,
-    ) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
+impl<'s, C: Code, Y: Copy> AppendParserError<ParserError<'s, C, Y>> for ParserError<'s, C, Y> {
+    type Output = ();
+
+    fn append(&mut self, err: ParserError<'s, C, Y>) {
         self.append(err);
-        Ok(())
     }
 }
 
-impl<'s, C: Code, Y: Copy> AppendParserError<'s, C, Y, ParserError<'s, C, Y>>
+impl<'s, C: Code, Y: Copy> AppendParserError<ParserError<'s, C, Y>>
     for Option<ParserError<'s, C, Y>>
 {
-    fn append(
-        &mut self,
-        err: ParserError<'s, C, Y>,
-    ) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
+    type Output = ();
+
+    fn append(&mut self, err: ParserError<'s, C, Y>) {
         match self {
             None => *self = Some(err),
             Some(v) => v.append(err),
         }
-        Ok(())
     }
 }
 
-impl<'s, C: Code, Y: Copy> AppendParserError<'s, C, Y, nom::Err<ParserError<'s, C, Y>>>
+impl<'s, C: Code, Y: Copy> AppendParserError<nom::Err<ParserError<'s, C, Y>>>
     for Option<ParserError<'s, C, Y>>
 {
+    type Output = Result<(), nom::Err<ParserError<'s, C, Y>>>;
+
     fn append(
         &mut self,
         err: nom::Err<ParserError<'s, C, Y>>,
@@ -150,7 +150,7 @@ impl<'s, C: Code, Y: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
 }
 
 impl<'s, C: Code, Y: Copy> Display for ParserError<'s, C, Y> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} expects ", self.code)?;
 
         for (i, exp) in self.iter_expected().enumerate() {
@@ -177,12 +177,28 @@ impl<'s, C: Code, Y: Copy> Display for ParserError<'s, C, Y> {
 
 impl<'s, C: Code, Y: Copy> Debug for ParserError<'s, C, Y> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match f.width() {
-            None | Some(0) => debug_parse_of_error_short(f, self),
-            Some(1) => debug_parse_of_error_medium(f, self),
-            Some(2) => debug_parse_of_error_long(f, self),
-            _ => Ok(()),
+        debug_parse_error(f, self)
+    }
+}
+
+impl<'s, C: Code, Y: Debug + Copy> Debug for Hints<'s, C, Y> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Hints::Nom(v) => write!(f, "Nom {:?}", v),
+            Hints::Needed(v) => write!(f, "Needed {:?}", v),
+            Hints::Expect(v) => write!(f, "Expect {:?}", v),
+            Hints::Suggest(v) => write!(f, "Suggest {:?}", v),
+            Hints::Cause(v) => write!(f, "Cause {:?}", v),
+            Hints::UserData(v) => write!(f, "UserData {:?}", v),
         }
+    }
+}
+
+impl<'s, C: Code> Debug for Nom<'s, C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let w = f.width().into();
+        write!(f, "{:?}:\"{}\"", self.kind, restrict(w, self.span))?;
+        Ok(())
     }
 }
 

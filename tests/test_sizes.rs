@@ -1,8 +1,7 @@
 #![allow(dead_code)]
 
 use kparse::prelude::*;
-use kparse::{DynContext, Hints, Track, TrackingData};
-use std::cell::RefCell;
+use kparse::{DynContext, Hints, Track};
 use std::fmt::{Debug, Display, Formatter};
 use std::mem::size_of;
 
@@ -74,9 +73,9 @@ fn test_size2() {
     dbg!(size_of::<StrContext>());
     dbg!(size_of::<TrackingContext<ZCode, true>>());
     dbg!(size_of::<TrackingContext<ZCode, false>>());
-    dbg!(size_of::<RefCell<TrackingData<ZCode, true>>>());
-    dbg!(size_of::<TrackingData<ZCode, true>>());
-    dbg!(size_of::<TrackingData<ZCode, false>>());
+    // dbg!(size_of::<RefCell<TrackingData<ZCode, true>>>());
+    // dbg!(size_of::<TrackingData<ZCode, true>>());
+    // dbg!(size_of::<TrackingData<ZCode, false>>());
     dbg!(size_of::<Track<ZCode>>());
 
     dbg!(size_of::<ParserError<ZCode, ()>>());

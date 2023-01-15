@@ -1,4 +1,5 @@
-use kparse::{DataFrames, StrLines};
+use kparse::data_frame::DataFrames;
+use kparse::StrLines;
 use std::arch::x86_64::_rdrand16_step;
 use std::hint::black_box;
 

@@ -1,3 +1,7 @@
+//!
+//! Debug output for Track
+//!
+
 use crate::debug::{restrict, DebugWidth};
 use crate::{
     Code, DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, WarnTrack,
@@ -5,6 +9,7 @@ use crate::{
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 
+/// Implementation of Debug for a Vec<Track>
 pub struct Tracks<'a, 's, C: Code>(pub &'a Vec<Track<'s, C>>);
 
 impl<'a, 's, C: Code> Debug for Tracks<'a, 's, C> {
@@ -18,7 +23,7 @@ fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
     Ok(())
 }
 
-pub fn debug_tracks<C: Code>(
+fn debug_tracks<C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     tracks: &Vec<Track<'_, C>>,

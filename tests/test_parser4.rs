@@ -318,6 +318,7 @@ mod planung4 {
     use kparse::{Code, ParserNomResult, ParserResult};
 
     #[allow(clippy::enum_variant_names)]
+    #[allow(dead_code)]
     #[derive(Clone, Copy, PartialEq, Eq, Debug)]
     pub enum APCode {
         APCNomError,
@@ -456,12 +457,12 @@ mod planung4 {
             ) {
                 if test.failed.get() {
                     match &test.result {
-                        Ok(v) => {}
+                        Ok(_v) => {}
                         Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
                             dump_diagnostics(&PathBuf::from(""), e, "", true);
                             panic!("test failed");
                         }
-                        Err(nom::Err::Incomplete(e)) => {}
+                        Err(nom::Err::Incomplete(_e)) => {}
                     }
                 }
             }
@@ -545,6 +546,7 @@ mod planung4 {
         }
 
         /// Write some diagnostics.
+        #[allow(dead_code)]
         pub fn dump_diagnostics_info(src: &Path, err: &ParserError<'_, APCode>, msg: &str) {
             let txt = SpanLines::new(Context.original(&err.span));
 

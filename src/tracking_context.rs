@@ -3,6 +3,11 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::marker::PhantomData;
 
+///
+/// Context that can track the execution of a parser.
+///
+/// The parser impl must call the tracking functions via Context.
+///
 pub struct TrackingContext<'s, C: Code, const TRACK: bool = false> {
     span: &'s str,
     data: RefCell<TrackingData<'s, C, TRACK>>,

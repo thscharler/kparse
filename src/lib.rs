@@ -2,6 +2,38 @@
 //! Additional functionality surrounding nom.
 //!
 
+#![doc(html_root_url = "https://docs.rs/kparse")]
+#![warn(absolute_paths_not_starting_with_crate)]
+// NO #![warn(box_pointers)]
+#![warn(elided_lifetimes_in_paths)]
+#![warn(explicit_outlives_requirements)]
+#![warn(keyword_idents)]
+#![warn(macro_use_extern_crate)]
+#![warn(meta_variable_misuse)]
+#![warn(missing_abi)]
+// NOT_ACCURATE #![warn(missing_copy_implementations)]
+// #![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(non_ascii_idents)]
+#![warn(noop_method_call)]
+// NO #![warn(or_patterns_back_compat)]
+#![warn(pointer_structural_match)]
+#![warn(semicolon_in_expressions_from_macros)]
+// NOT_ACCURATE #![warn(single_use_lifetimes)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unreachable_pub)]
+// #![warn(unsafe_code)]
+// #![warn(unsafe_op_in_unsafe_fn)]
+#![warn(unstable_features)]
+// NO #![warn(unused_crate_dependencies)]
+// NO #![warn(unused_extern_crates)]
+#![warn(unused_import_braces)]
+#![warn(unused_lifetimes)]
+#![warn(unused_qualifications)]
+// NO #![warn(unused_results)]
+#![warn(variant_size_differences)]
+
 use nom::Parser;
 use nom_locate::LocatedSpan;
 use std::error::Error;
@@ -9,7 +41,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 
 mod conversion;
-mod data_frame;
+pub mod data_frame;
 pub mod debug;
 mod error;
 mod no_context;
@@ -18,22 +50,24 @@ pub mod test;
 mod tracker;
 mod tracking_context;
 
+use crate::data_frame::str_union;
+#[allow(unreachable_pub)]
 pub use conversion::*;
-pub use data_frame::{
-    slice_union, str_union, ByteFrames, ByteSliceIter, DataFrames, FByteSliceIter, FSpanIter,
-    FStrIter, RByteSliceIter, RSpanIter, RStrIter, SpanIter, SpanLines, StrIter, StrLines,
-};
+pub use data_frame::{SpanIter, SpanLines, StrIter, StrLines};
 pub use error::{AppendParserError, Hints, Nom, ParserError, SpanAndCode};
 pub use no_context::NoContext;
 pub use str_context::StrContext;
+#[allow(unreachable_pub)]
 pub use tracker::*;
 pub use tracking_context::{
     DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, TrackingContext,
     WarnTrack,
 };
 
+/// Prelude.
+/// There are a lot of traits ...
 pub mod prelude {
-    pub use crate::{error_code, transform, ErrorCode, Transform};
+    pub use crate::{error_code, transform, vtransform};
     pub use crate::{AppendParserError, ParserError, TrackParserError, WithCode, WithSpan};
     pub use crate::{Code, NoContext, ParseContext, StrContext, TrackingContext};
     pub use crate::{Context, ParserNomResult, ParserResult, Span};
@@ -56,6 +90,7 @@ pub type ParserNomResult<'s, C, Y> =
 /// These are used for error handling and parser results and
 /// everything else.
 pub trait Code: Copy + Display + Debug + Eq {
+    /// Default error code for nom-errors.
     const NOM_ERROR: Self;
 }
 
@@ -162,6 +197,7 @@ impl Context {
         )
     }
 
+    /// Returns the original string for the parser.
     pub fn original<'s, C: Code>(&self, span: &Span<'s, C>) -> Span<'s, C> {
         match span.extra.0 {
             Some(ctx) => ctx.original(span),
@@ -169,36 +205,42 @@ impl Context {
         }
     }
 
+    /// Enter a parser function. For tracking.
     pub fn enter<'s, C: Code>(&self, func: C, span: &Span<'s, C>) {
         if let Some(ctx) = span.extra.0 {
             ctx.enter(func, span)
         }
     }
 
+    /// Track some debug info.
     pub fn debug<'s, C: Code>(&self, span: &Span<'s, C>, debug: String) {
         if let Some(ctx) = span.extra.0 {
             ctx.debug(span, debug)
         }
     }
 
+    /// Track some other info.
     pub fn info<'s, C: Code>(&self, span: &Span<'s, C>, info: &'static str) {
         if let Some(ctx) = span.extra.0 {
             ctx.info(span, info)
         }
     }
 
+    /// Track some warning.
     pub fn warn<'s, C: Code>(&self, span: &Span<'s, C>, warn: &'static str) {
         if let Some(ctx) = span.extra.0 {
             ctx.warn(span, warn)
         }
     }
 
+    /// Calls exit_ok() on the ParseContext. You might want to use ok() instead.
     pub fn exit_ok<'s, C: Code>(&self, span: &Span<'s, C>, parsed: &Span<'s, C>) {
         if let Some(ctx) = span.extra.0 {
             ctx.exit_ok(span, parsed)
         }
     }
 
+    /// Calls exit_err() on the ParseContext. You might want to use err() instead.
     pub fn exit_err<'s, C: Code>(&self, span: &Span<'s, C>, code: C, err: &dyn Error) {
         if let Some(ctx) = span.extra.0 {
             ctx.exit_err(span, code, err)
@@ -208,6 +250,7 @@ impl Context {
 
 /// Tracks the error path with the context.
 pub trait TrackParserError<'s, 't, C: Code, Y: Copy> {
+    /// Result type of the track fn.
     type Result;
 
     /// Track if this is an error.
@@ -216,7 +259,7 @@ pub trait TrackParserError<'s, 't, C: Code, Y: Copy> {
     /// Track if this is an error. Set a new code too.
     fn track_as(self, code: C) -> Self::Result;
 
-    /// Track if this is an error. And if this is ok.
+    /// Track if this is an error. And if this is ok too.
     fn track_ok(self, parsed: Span<'s, C>) -> Self::Result;
 }
 
@@ -234,14 +277,14 @@ pub trait WithCode<C: Code, R> {
 }
 
 /// Make the trait WithCode work as a parser.
-pub struct ErrorCode<C: Code, P, E1, E2> {
+struct ErrorCode<C: Code, P, E1, E2> {
     code: C,
     parser: P,
     _phantom: PhantomData<(E1, E2)>,
 }
 
 impl<C: Code, P, E1, E2> ErrorCode<C, P, E1, E2> {
-    pub fn new(parser: P, code: C) -> Self {
+    fn new(parser: P, code: C) -> Self {
         Self {
             code,
             parser,
@@ -250,6 +293,7 @@ impl<C: Code, P, E1, E2> ErrorCode<C, P, E1, E2> {
     }
 }
 
+/// Takes a parser and converts the error via the WithCode trait.
 pub fn error_code<'s, O, C, P, E1, E2>(
     parser: P,
     code: C,
@@ -283,8 +327,8 @@ where
 /// Make the trait WithSpan work as a parser.
 ///
 /// Makes a double step as it applies an additional converter to a parser-result.
-/// Translates errors on both steps as some Result-Error.
-pub struct Transform<'s, O, C, P, T, E0, E1, E2>
+/// Translates errors on both steps as some error code.
+struct Transform<'s, O, C, P, T, E0, E1, E2>
 where
     C: Code + 's,
     E0: WithCode<C, E2>,
@@ -306,7 +350,8 @@ where
     P: Parser<Span<'s, C>, Span<'s, C>, E0>,
     T: Fn(Span<'s, C>) -> Result<O, E1>,
 {
-    pub fn new(parser: P, transform: T, code: C) -> Self {
+    // new
+    fn new(parser: P, transform: T, code: C) -> Self {
         Self {
             code,
             parser,
@@ -316,6 +361,8 @@ where
     }
 }
 
+/// Takes a parser and a transformation of the parser result.
+/// Maps any error to the given error code.
 pub fn transform<'s, O, C, P, T, E0, E1, E2>(
     parser: P,
     transform: T,
@@ -353,6 +400,85 @@ where
                 let o = (self.transform)(token);
                 match o {
                     Ok(o) => Ok((rest, (token, o))),
+                    Err(e) => Err(e.with_span(self.code, token)),
+                }
+            }
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(self.code))),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.with_code(self.code))),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+        }
+    }
+}
+
+struct VTransform<'s, O, C, P, T, E0, E1, E2>
+where
+    C: Code + 's,
+    E0: WithCode<C, E2>,
+    E1: WithSpan<'s, C, nom::Err<E2>>,
+    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
+    T: Fn(Span<'s, C>) -> Result<O, E1>,
+{
+    code: C,
+    parser: P,
+    transform: T,
+    _phantom: PhantomData<&'s (O, E0, E1, E2)>,
+}
+
+impl<'s, O, C, P, T, E0, E1, E2> VTransform<'s, O, C, P, T, E0, E1, E2>
+where
+    C: Code + 's,
+    E0: WithCode<C, E2>,
+    E1: WithSpan<'s, C, nom::Err<E2>>,
+    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
+    T: Fn(Span<'s, C>) -> Result<O, E1>,
+{
+    fn new(parser: P, transform: T, code: C) -> Self {
+        Self {
+            code,
+            parser,
+            transform,
+            _phantom: Default::default(),
+        }
+    }
+}
+
+/// Takes a parser and a transformation of the parser result.
+/// Maps any error to the given error code.
+/// Same as Transform but only returns the converted output.
+pub fn vtransform<'s, O, C, P, T, E0, E1, E2>(
+    parser: P,
+    transform: T,
+    code: C,
+) -> impl FnMut(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>>
+where
+    O: 's,
+    C: Code + 's,
+    E0: WithCode<C, E2> + 's,
+    E1: WithSpan<'s, C, nom::Err<E2>> + 's,
+    E2: 's,
+    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
+    T: Fn(Span<'s, C>) -> Result<O, E1>,
+{
+    let mut t = VTransform::new(parser, transform, code);
+    move |s: Span<'s, C>| -> Result<(Span<'s, C>, O), nom::Err<E2>> { t.parse(s) }
+}
+
+impl<'s, O, C, P, T, E0, E1, E2> Parser<Span<'s, C>, O, E2>
+    for VTransform<'s, O, C, P, T, E0, E1, E2>
+where
+    C: Code + 's,
+    E0: WithCode<C, E2>,
+    E1: WithSpan<'s, C, nom::Err<E2>>,
+    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
+    T: Fn(Span<'s, C>) -> Result<O, E1>,
+{
+    fn parse(&mut self, input: Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>> {
+        let r = self.parser.parse(input);
+        match r {
+            Ok((rest, token)) => {
+                let o = (self.transform)(token);
+                match o {
+                    Ok(o) => Ok((rest, o)),
                     Err(e) => Err(e.with_span(self.code, token)),
                 }
             }

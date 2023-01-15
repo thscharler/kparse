@@ -1,4 +1,8 @@
-pub mod error;
+//!
+//! Some utilities for debug output.
+//!
+
+pub(crate) mod error;
 pub mod tracks;
 
 use crate::{Code, Span};
@@ -6,7 +10,8 @@ use nom::bytes::complete::take_while_m_n;
 use nom::InputIter;
 use std::cmp::min;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+/// Maps a width value from the formatstring to a variant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DebugWidth {
     /// Debug flag, can be set with width=0.
     Short,
@@ -27,6 +32,7 @@ impl From<Option<usize>> for DebugWidth {
     }
 }
 
+/// Cuts off the text at 20/40/60 characters.
 pub fn restrict_str(w: DebugWidth, text: &str) -> String {
     match w {
         DebugWidth::Short => restrict_str_n(20, text),
@@ -35,6 +41,7 @@ pub fn restrict_str(w: DebugWidth, text: &str) -> String {
     }
 }
 
+/// Cuts off the text at max_len characters.
 pub fn restrict_str_n(max_len: usize, text: &str) -> String {
     let shortened = text.split_at(min(max_len, text.len())).0;
 
@@ -48,6 +55,7 @@ pub fn restrict_str_n(max_len: usize, text: &str) -> String {
     }
 }
 
+/// Cuts off the text at 20/40/60 characters.
 pub fn restrict<C: Code>(w: DebugWidth, span: Span<'_, C>) -> String {
     match w {
         DebugWidth::Short => restrict_n(20, span),
@@ -56,6 +64,7 @@ pub fn restrict<C: Code>(w: DebugWidth, span: Span<'_, C>) -> String {
     }
 }
 
+/// Cuts off the text at max_len characters.
 pub fn restrict_n<C: Code>(max_len: usize, span: Span<'_, C>) -> String {
     let shortened =
         match take_while_m_n::<_, _, nom::error::Error<Span<'_, C>>>(0, max_len, |_c| true)(span) {

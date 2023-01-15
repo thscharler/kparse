@@ -2,15 +2,18 @@ use crate::{Code, DynContext, ParseContext, Span};
 use std::error::Error;
 
 /// Just for tests.
+#[derive(Debug)]
 pub struct StrContext<'s> {
     span: &'s str,
 }
 
 impl<'s> StrContext<'s> {
+    /// Creates a new Context for the given parse text.
     pub fn new(span: &'s str) -> Self {
         Self { span }
     }
 
+    /// Returns a span with the correct context for StrContext.
     pub fn span<C: Code>(&'s self) -> Span<'s, C> {
         Span::new_extra(self.span, DynContext(Some(self)))
     }

@@ -5,6 +5,7 @@ use nom::error::ParseError;
 // std::num::ParseIntError
 //
 
+// todo: this can't be replicated in user code. switch to result and watch go bang.
 // from the std::wilds
 impl<'s, C: Code, Y: Copy> WithSpan<'s, C, nom::Err<ParserError<'s, C, Y>>>
     for std::num::ParseIntError

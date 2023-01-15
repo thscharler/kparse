@@ -1,8 +1,15 @@
 [package]
 name = "kparse"
 version = "1.0.0"
+authors = [ "thomasscharler <thscharler@gmail.com>" ]
 edition = "2021"
+description = "Tracking and better error handling for nom parsers"
 readme = "readme.md"
+license = "MIT/Apache-2.0"
+repository = "https://github.com/thscharler/kparse"
+keywords = [ "parser", "nom" ]
+categories = [ "Parsing tools" ]
+exclude = [".idea/*", ".gitignore"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -19,3 +26,5 @@ features = [ "alloc" ]
 [dependencies.nom_locate]
 version = "4.0"
 
+[dev-dependencies]
+glob = "0.3"
