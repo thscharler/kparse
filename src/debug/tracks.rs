@@ -9,7 +9,7 @@ pub struct Tracks<'a, 's, C: Code>(pub &'a Vec<Track<'s, C>>);
 
 impl<'a, 's, C: Code> Debug for Tracks<'a, 's, C> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        debug_tracks(f, DebugWidth::Medium, &self.0)
+        debug_tracks(f, DebugWidth::Medium, self.0)
     }
 }
 

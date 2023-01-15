@@ -14,18 +14,10 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/core2/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="can't stop trying to optimize this Context.">
-      <change afterPath="$PROJECT_DIR$/tests/2022_Anbauplan.txt" afterDir="false" />
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data_frame.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_frame.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_dyncontext.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -93,9 +85,26 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\test" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test test_parser4">
+  <component name="RunManager" selected="Cargo.Clippy">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="clippy" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -216,6 +225,7 @@
     <list>
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clean" />
+      <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Test test_parser4" />
       <item itemvalue="Cargo.Test timing" />
       <item itemvalue="Cargo.Test test_1" />
@@ -452,7 +462,21 @@
       <option name="project" value="LOCAL" />
       <updated>1673770991405</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="ParserError wants Y, X is for LocatedSpan">
+      <created>1673811784018</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1673811784018</updated>
+    </task>
+    <task id="LOCAL-00031" summary="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now.">
+      <created>1673811932829</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1673811932829</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -479,8 +503,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="repurposed data_frame from a previous experiment.&#10;&#10;streamlined and deduped." />
-    <MESSAGE value="put up all the safety flags I could think of." />
     <MESSAGE value="add errors" />
     <MESSAGE value="add tracker" />
     <MESSAGE value="2nd test" />
@@ -504,7 +526,9 @@
     <MESSAGE value="No need to impl ParseContext on DynContext. Muddies the water.&#10;&#10;The same for Context. &#10;Both are positively not a ParseContext. They are small  gears in the machine." />
     <MESSAGE value="test for sizes" />
     <MESSAGE value="can't stop trying to optimize this Context." />
-    <option name="LAST_COMMIT_MESSAGE" value="can't stop trying to optimize this Context." />
+    <MESSAGE value="ParserError wants Y, X is for LocatedSpan" />
+    <MESSAGE value="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now." />
+    <option name="LAST_COMMIT_MESSAGE" value="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

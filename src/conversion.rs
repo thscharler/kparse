@@ -1,7 +1,5 @@
 use crate::{Code, ParserError, ParserResult, Span, WithCode, WithSpan};
-use nom;
 use nom::error::ParseError;
-use std;
 
 //
 // std::num::ParseIntError

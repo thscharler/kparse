@@ -3,7 +3,6 @@ use crate::debug::error::{
 };
 use crate::debug::{restrict, DebugWidth};
 use crate::{Code, Span};
-use nom;
 use nom::error::ErrorKind;
 use std::error::Error;
 use std::fmt;
@@ -195,16 +194,14 @@ impl<'s, C: Code, Y: Copy> Error for ParserError<'s, C, Y> {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.hints
             .iter()
-            .filter(|v| matches!(v, Hints::Cause(_)))
-            .next()
-            .map(|v| {
+            .find(|v| matches!(v, Hints::Cause(_)))
+            .and_then(|v| {
                 if let Hints::Cause(e) = v {
                     Some(e.as_ref())
                 } else {
                     None
                 }
             })
-            .flatten()
     }
 }
 
@@ -291,10 +288,7 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
 
     /// Add an expected code.
     pub fn expect(&mut self, code: C, span: Span<'s, C>) {
-        self.hints.push(Hints::Expect(SpanAndCode {
-            code,
-            span: span.into(),
-        }))
+        self.hints.push(Hints::Expect(SpanAndCode { code, span }))
     }
 
     /// Adds some expected codes.
@@ -370,10 +364,7 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
 
     /// Add an suggested code.
     pub fn suggest(&mut self, code: C, span: Span<'s, C>) {
-        self.hints.push(Hints::Suggest(SpanAndCode {
-            code,
-            span: span.into(),
-        }))
+        self.hints.push(Hints::Suggest(SpanAndCode { code, span }))
     }
 
     /// Adds some suggested codes.

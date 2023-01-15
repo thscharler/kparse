@@ -132,7 +132,7 @@ impl Context {
 
     /// Returns the union of the two Spans
     ///
-    /// Safety:
+    /// # Safety
     /// There are assertions that the offsets for the result are within the
     /// bounds of the original().
     ///
@@ -170,44 +170,38 @@ impl Context {
     }
 
     pub fn enter<'s, C: Code>(&self, func: C, span: &Span<'s, C>) {
-        match span.extra.0 {
-            Some(ctx) => ctx.enter(func, span),
-            None => {}
+        if let Some(ctx) = span.extra.0 {
+            ctx.enter(func, span)
         }
     }
 
     pub fn debug<'s, C: Code>(&self, span: &Span<'s, C>, debug: String) {
-        match span.extra.0 {
-            Some(ctx) => ctx.debug(span, debug),
-            None => {}
+        if let Some(ctx) = span.extra.0 {
+            ctx.debug(span, debug)
         }
     }
 
     pub fn info<'s, C: Code>(&self, span: &Span<'s, C>, info: &'static str) {
-        match span.extra.0 {
-            Some(ctx) => ctx.info(span, info),
-            None => {}
+        if let Some(ctx) = span.extra.0 {
+            ctx.info(span, info)
         }
     }
 
     pub fn warn<'s, C: Code>(&self, span: &Span<'s, C>, warn: &'static str) {
-        match span.extra.0 {
-            Some(ctx) => ctx.warn(span, warn),
-            None => {}
+        if let Some(ctx) = span.extra.0 {
+            ctx.warn(span, warn)
         }
     }
 
     pub fn exit_ok<'s, C: Code>(&self, span: &Span<'s, C>, parsed: &Span<'s, C>) {
-        match span.extra.0 {
-            Some(ctx) => ctx.exit_ok(span, parsed),
-            None => {}
+        if let Some(ctx) = span.extra.0 {
+            ctx.exit_ok(span, parsed)
         }
     }
 
     pub fn exit_err<'s, C: Code>(&self, span: &Span<'s, C>, code: C, err: &dyn Error) {
-        match span.extra.0 {
-            Some(ctx) => ctx.exit_err(span, code, err),
-            None => {}
+        if let Some(ctx) = span.extra.0 {
+            ctx.exit_err(span, code, err)
         }
     }
 }
