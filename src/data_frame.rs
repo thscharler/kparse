@@ -131,6 +131,7 @@ mod byte_frames {
     /// utf8_column and naive_utf8_column can be used regardless of the DELIMiter,
     /// but the results might not meet your expectations.
     #[derive(Debug, Clone)]
+    #[repr(transparent)]
     pub struct ByteFrames<'s, const DELIM: u8 = b'\n'> {
         buf: &'s [u8],
     }
@@ -342,6 +343,7 @@ mod span_lines {
     /// Helps locating a parsed span inside the original parse text and iterating over
     /// adjacent lines.
     #[derive(Debug)]
+    #[repr(transparent)]
     pub struct SpanLines<'s, X> {
         buf: LocatedSpan<&'s str, X>,
     }
@@ -628,6 +630,7 @@ mod str_lines {
     /// This uses '\n' as frame separator, as in 'give me lines of text'.
     ///
     #[derive(Debug, Clone)]
+    #[repr(transparent)]
     pub struct StrLines<'s> {
         buf: &'s str,
     }
