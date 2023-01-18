@@ -197,7 +197,7 @@ fn parse_terminal_c(rest: Span<'_>) -> IParserResult<'_, TerminalC<'_>> {
     Context.enter(ICTerminalC, &rest);
 
     let (rest, (tok, v)) =
-        transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger)(rest).track()?;
+        consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
 
     Context.ok(rest, tok, TerminalC { term: v, span: tok })
 }

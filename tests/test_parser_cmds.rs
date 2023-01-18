@@ -139,7 +139,7 @@ mod cmds_parser {
     use std::path::{Path, PathBuf};
     use std::{fs, io};
 
-    use kparse::{error_code, transform, vtransform};
+    use kparse::{error_code, transform};
     use CCode::*;
 
     pub type Span<'s> = kparse::Span<'s, CCode>;
@@ -1186,7 +1186,7 @@ mod cmds_parser {
     // }
 
     fn token_nummer(rest: Span<'_>) -> CParserResult<'_, Nummer<'_>> {
-        let (rest, (_token, nummer)) = transform(
+        transform(
             nom_number,
             |s| -> Result<Nummer<'_>, ParseIntError> {
                 Ok(Nummer {
@@ -1195,9 +1195,7 @@ mod cmds_parser {
                 })
             },
             CNummer,
-        )(rest)?;
-
-        Ok((rest, nummer))
+        )(rest)
 
         // match nom_number(rest) {
         //     Ok((rest, tok)) => Ok((
@@ -1223,11 +1221,11 @@ mod cmds_parser {
         // let iyear: i32 = (*year).parse().with_span(CDateYear, year)?;
 
         let (rest, (span, (day, _, month, _, year))) = consumed(tuple((
-            vtransform(nom_number, |s| (*s).parse::<u32>(), CDateDay),
+            transform(nom_number, |s| (*s).parse::<u32>(), CDateDay),
             error_code(nom_dot, CDotDay),
-            vtransform(nom_number, |s| (*s).parse::<u32>(), CDateMonth),
+            transform(nom_number, |s| (*s).parse::<u32>(), CDateMonth),
             error_code(nom_dot, CDotDay),
-            vtransform(nom_number, |s| (*s).parse::<i32>(), CDateYear),
+            transform(nom_number, |s| (*s).parse::<i32>(), CDateYear),
         )))(rest)?;
 
         let datum = NaiveDate::from_ymd_opt(year, month, day);

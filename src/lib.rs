@@ -67,7 +67,7 @@ pub use tracking_context::{
 /// Prelude.
 /// There are a lot of traits ...
 pub mod prelude {
-    pub use crate::{error_code, transform, vtransform};
+    pub use crate::{error_code, transform};
     pub use crate::{AppendParserError, ParserError, TrackParserError, WithCode, WithSpan};
     pub use crate::{Code, NoContext, ParseContext, StrContext, TrackingContext};
     pub use crate::{Context, ParserNomResult, ParserResult, Span};
@@ -324,18 +324,7 @@ where
     }
 }
 
-/// Make the trait WithSpan work as a parser.
-///
-/// Makes a double step as it applies an additional converter to a parser-result.
-/// Translates errors on both steps as some error code.
-struct Transform<'s, O, C, P, T, E0, E1, E2>
-where
-    C: Code + 's,
-    E0: WithCode<C, E2>,
-    E1: WithSpan<'s, C, nom::Err<E2>>,
-    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
-    T: Fn(Span<'s, C>) -> Result<O, E1>,
-{
+struct Transform<'s, O, C, P, T, E0, E1, E2> {
     code: C,
     parser: P,
     transform: T,
@@ -344,91 +333,11 @@ where
 
 impl<'s, O, C, P, T, E0, E1, E2> Transform<'s, O, C, P, T, E0, E1, E2>
 where
-    C: Code + 's,
-    E0: WithCode<C, E2>,
-    E1: WithSpan<'s, C, nom::Err<E2>>,
-    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
-    T: Fn(Span<'s, C>) -> Result<O, E1>,
-{
-    // new
-    fn new(parser: P, transform: T, code: C) -> Self {
-        Self {
-            code,
-            parser,
-            transform,
-            _phantom: Default::default(),
-        }
-    }
-}
-
-/// Takes a parser and a transformation of the parser result.
-/// Maps any error to the given error code.
-pub fn transform<'s, O, C, P, T, E0, E1, E2>(
-    parser: P,
-    transform: T,
-    code: C,
-) -> impl FnMut(Span<'s, C>) -> Result<(Span<'s, C>, (Span<'s, C>, O)), nom::Err<E2>>
-where
     O: 's,
     C: Code + 's,
     E0: WithCode<C, E2> + 's,
     E1: WithSpan<'s, C, nom::Err<E2>> + 's,
     E2: 's,
-    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
-    T: Fn(Span<'s, C>) -> Result<O, E1>,
-{
-    let mut t = Transform::new(parser, transform, code);
-    move |s: Span<'s, C>| -> Result<(Span<'s, C>, (Span<'s, C>, O)), nom::Err<E2>> { t.parse(s) }
-}
-
-impl<'s, O, C, P, T, E0, E1, E2> Parser<Span<'s, C>, (Span<'s, C>, O), E2>
-    for Transform<'s, O, C, P, T, E0, E1, E2>
-where
-    C: Code + 's,
-    E0: WithCode<C, E2>,
-    E1: WithSpan<'s, C, nom::Err<E2>>,
-    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
-    T: Fn(Span<'s, C>) -> Result<O, E1>,
-{
-    fn parse(
-        &mut self,
-        input: Span<'s, C>,
-    ) -> Result<(Span<'s, C>, (Span<'s, C>, O)), nom::Err<E2>> {
-        let r = self.parser.parse(input);
-        match r {
-            Ok((rest, token)) => {
-                let o = (self.transform)(token);
-                match o {
-                    Ok(o) => Ok((rest, (token, o))),
-                    Err(e) => Err(e.with_span(self.code, token)),
-                }
-            }
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(self.code))),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.with_code(self.code))),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-        }
-    }
-}
-
-struct VTransform<'s, O, C, P, T, E0, E1, E2>
-where
-    C: Code + 's,
-    E0: WithCode<C, E2>,
-    E1: WithSpan<'s, C, nom::Err<E2>>,
-    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
-    T: Fn(Span<'s, C>) -> Result<O, E1>,
-{
-    code: C,
-    parser: P,
-    transform: T,
-    _phantom: PhantomData<&'s (O, E0, E1, E2)>,
-}
-
-impl<'s, O, C, P, T, E0, E1, E2> VTransform<'s, O, C, P, T, E0, E1, E2>
-where
-    C: Code + 's,
-    E0: WithCode<C, E2>,
-    E1: WithSpan<'s, C, nom::Err<E2>>,
     P: Parser<Span<'s, C>, Span<'s, C>, E0>,
     T: Fn(Span<'s, C>) -> Result<O, E1>,
 {
@@ -445,7 +354,7 @@ where
 /// Takes a parser and a transformation of the parser result.
 /// Maps any error to the given error code.
 /// Same as Transform but only returns the converted output.
-pub fn vtransform<'s, O, C, P, T, E0, E1, E2>(
+pub fn transform<'s, O, C, P, T, E0, E1, E2>(
     parser: P,
     transform: T,
     code: C,
@@ -459,12 +368,12 @@ where
     P: Parser<Span<'s, C>, Span<'s, C>, E0>,
     T: Fn(Span<'s, C>) -> Result<O, E1>,
 {
-    let mut t = VTransform::new(parser, transform, code);
+    let mut t = Transform::new(parser, transform, code);
     move |s: Span<'s, C>| -> Result<(Span<'s, C>, O), nom::Err<E2>> { t.parse(s) }
 }
 
 impl<'s, O, C, P, T, E0, E1, E2> Parser<Span<'s, C>, O, E2>
-    for VTransform<'s, O, C, P, T, E0, E1, E2>
+    for Transform<'s, O, C, P, T, E0, E1, E2>
 where
     C: Code + 's,
     E0: WithCode<C, E2>,

@@ -1715,8 +1715,11 @@ mod planung4 {
         use crate::planung4::ast::{APDatum, APMenge, APName, APNummer};
         use crate::planung4::nom_tokens::{nom_dot, nom_name, nom_name_kurz, nom_number};
         use crate::planung4::APCode::*;
-        use crate::planung4::{APParserResult, Span};
+        use crate::planung4::{APCode, APParserResult, Span};
+        use chrono::NaiveDate;
         use kparse::prelude::*;
+        use nom::combinator::recognize;
+        use nom::sequence::tuple;
 
         pub fn token_name(rest: Span<'_>) -> APParserResult<'_, APName<'_>> {
             match nom_name(rest) {
@@ -1756,7 +1759,7 @@ mod planung4 {
                 Ok((rest, tok)) => Ok((
                     rest,
                     APNummer {
-                        nummer: tok.parse::<u32>().with_span(APCNummer, rest)?,
+                        nummer: tok.parse::<u32>().with_span(APCNummer, tok)?,
                         span: tok,
                     },
                 )),
@@ -1777,6 +1780,35 @@ mod planung4 {
             }
         }
 
+        impl<'s, Y: Copy> WithSpan<'s, APCode, nom::Err<ParserError<'s, APCode, Y>>>
+            for chrono::ParseError
+        {
+            fn with_span(
+                self,
+                code: APCode,
+                span: kparse::Span<'s, APCode>,
+            ) -> nom::Err<ParserError<'s, APCode, Y>> {
+                nom::Err::Failure(ParserError::new(code, span))
+            }
+        }
+
+        pub fn token_datum2(rest: Span) -> APParserResult<APDatum> {
+            let k = transform(
+                recognize(tuple((
+                    nom_number, nom_dot, nom_number, nom_dot, nom_number,
+                ))),
+                |v: Span<'_>| -> Result<APDatum<'_>, chrono::ParseError> {
+                    Ok(APDatum {
+                        datum: NaiveDate::parse_from_str(*v, "%d.%m.%Y")?,
+                        span: v,
+                    })
+                },
+                APCDatum,
+            )(rest);
+
+            k
+        }
+
         pub fn token_datum(rest: Span<'_>) -> APParserResult<'_, APDatum<'_>> {
             let (rest, day) = nom_number(rest).with_code(APCDay)?;
             let (rest, _) = nom_dot(rest).with_code(APCDot)?;
@@ -1784,9 +1816,9 @@ mod planung4 {
             let (rest, _) = nom_dot(rest).with_code(APCDot)?;
             let (rest, year) = nom_number(rest).with_code(APCYear)?;
 
-            let iday: u32 = (*day).parse().with_span(APCDay, day)?;
-            let imonth: u32 = (*month).parse().with_span(APCMonth, month)?;
-            let iyear: i32 = (*year).parse().with_span(APCYear, year)?;
+            let iday = (*day).parse::<u32>().with_span(APCDay, day)?;
+            let imonth = (*month).parse::<u32>().with_span(APCMonth, month)?;
+            let iyear = (*year).parse::<i32>().with_span(APCYear, year)?;
 
             let span = unsafe { Context.span_union(&day, &year) };
             let datum = chrono::NaiveDate::from_ymd_opt(iyear, imonth, iday);
