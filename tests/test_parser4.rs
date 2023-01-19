@@ -21,7 +21,7 @@ const RT: CheckDump = CheckDump;
 pub fn timing() {
     let s = read_to_string("tests/2022_Anbauplan.txt").unwrap();
     println!("TRACK=true");
-    track_parse(&mut None, &s, planung4::parser::parse)
+    track_parse(&mut None, s.as_str(), planung4::parser::parse)
         .okok()
         .rest("")
         .q(Timing(1));
@@ -29,7 +29,7 @@ pub fn timing() {
     println!();
     println!();
     println!("TRACK=false");
-    notrack_parse(&mut None, &s, planung4::parser::parse)
+    notrack_parse(&mut None, s.as_str(), planung4::parser::parse)
         .okok()
         .rest("")
         .q(Timing(1));
@@ -37,7 +37,7 @@ pub fn timing() {
     println!();
     println!();
     println!("STR");
-    str_parse(&mut None, &s, planung4::parser::parse)
+    str_parse(&mut None, s.as_str(), planung4::parser::parse)
         .okok()
         .rest("")
         .q(Timing(1));
@@ -45,7 +45,7 @@ pub fn timing() {
     println!();
     println!();
     println!("NOCTX");
-    noctx_parse(&mut None, &s, planung4::parser::parse)
+    noctx_parse(&mut None, s.as_str(), planung4::parser::parse)
         .okok()
         .rest("")
         .q(Timing(1));
@@ -418,9 +418,9 @@ mod planung4 {
         }
     }
 
-    pub type Span<'s> = kparse::Span<'s, APCode>;
-    pub type APParserResult<'s, O> = ParserResult<'s, O, APCode, ()>;
-    pub type APNomResult<'s> = ParserNomResult<'s, APCode, ()>;
+    pub type Span<'s> = kparse::Span<'s, &'s str, APCode>;
+    pub type APParserResult<'s, O> = ParserResult<'s, O, &'s str, APCode, ()>;
+    pub type APNomResult<'s> = ParserNomResult<'s, &'s str, APCode, ()>;
 
     pub mod diagnostics {
         use crate::planung4::APCode;
@@ -435,7 +435,7 @@ mod planung4 {
 
         /// Write out the Tracer.
         #[allow(dead_code)]
-        pub fn dump_trace(tracks: &Vec<Track<'_, APCode>>) {
+        pub fn dump_trace(tracks: &Vec<Track<'_, &str, APCode>>) {
             println!("{:?}", Tracks(tracks));
         }
 
@@ -444,8 +444,9 @@ mod planung4 {
         pub struct ReportDiagnostics;
 
         impl<'s, C, O, const TRACK: bool>
-            Report<Test<'s, TrackingContext<'s, C, TRACK>, C, O, ParserError<'_, C>>>
-            for ReportDiagnostics
+            Report<
+                Test<'s, TrackingContext<'s, &str, C, TRACK>, &str, C, O, ParserError<'_, &str, C>>,
+            > for ReportDiagnostics
         where
             C: Code,
             O: Debug,
@@ -453,7 +454,14 @@ mod planung4 {
             #[track_caller]
             fn report(
                 &self,
-                test: &Test<'s, TrackingContext<'s, C, TRACK>, C, O, ParserError<'_, C>>,
+                test: &Test<
+                    's,
+                    TrackingContext<'s, &str, C, TRACK>,
+                    &str,
+                    C,
+                    O,
+                    ParserError<'_, &str, C>,
+                >,
             ) {
                 if test.failed.get() {
                     match &test.result {
@@ -473,7 +481,7 @@ mod planung4 {
         #[allow(clippy::collapsible_if)]
         pub fn dump_diagnostics<C: Code>(
             src: &Path,
-            err: &ParserError<'_, C>,
+            err: &ParserError<'_, &str, C>,
             msg: &str,
             is_err: bool,
         ) {
@@ -547,7 +555,7 @@ mod planung4 {
 
         /// Write some diagnostics.
         #[allow(dead_code)]
-        pub fn dump_diagnostics_info(src: &Path, err: &ParserError<'_, APCode>, msg: &str) {
+        pub fn dump_diagnostics_info(src: &Path, err: &ParserError<'_, &str, APCode>, msg: &str) {
             let txt = SpanLines::new(Context.original(&err.span));
 
             let text1 = unsafe { txt.get_lines_around(&err.span, 0) };
@@ -1780,14 +1788,15 @@ mod planung4 {
             }
         }
 
-        impl<'s, Y: Copy> WithSpan<'s, APCode, nom::Err<ParserError<'s, APCode, Y>>>
+        impl<'s, Y: Copy>
+            WithSpan<'s, &'s str, APCode, nom::Err<ParserError<'s, &'s str, APCode, Y>>>
             for chrono::ParseError
         {
             fn with_span(
                 self,
                 code: APCode,
-                span: kparse::Span<'s, APCode>,
-            ) -> nom::Err<ParserError<'s, APCode, Y>> {
+                span: kparse::Span<'s, &'s str, APCode>,
+            ) -> nom::Err<ParserError<'s, &'s str, APCode, Y>> {
                 nom::Err::Failure(ParserError::new(code, span))
             }
         }

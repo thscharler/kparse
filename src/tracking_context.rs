@@ -1,4 +1,5 @@
 use crate::{Code, DynContext, ParseContext, Span};
+use nom::AsBytes;
 use std::cell::RefCell;
 use std::error::Error;
 use std::marker::PhantomData;
@@ -8,17 +9,19 @@ use std::marker::PhantomData;
 ///
 /// The parser impl must call the tracking functions via Context.
 ///
-pub struct TrackingContext<'s, C: Code, const TRACK: bool = false> {
-    span: &'s str,
-    data: RefCell<TrackingData<'s, C, TRACK>>,
+pub struct TrackingContext<'s, T: AsBytes + Copy, C: Code, const TRACK: bool = false> {
+    span: T,
+    data: RefCell<TrackingData<'s, T, C, TRACK>>,
 }
 
-struct TrackingData<'s, C: Code, const TRACK: bool = false> {
+struct TrackingData<'s, T: AsBytes + Copy, C: Code, const TRACK: bool = false> {
     func: Vec<C>,
-    track: Vec<Track<'s, C>>,
+    track: Vec<Track<'s, T, C>>,
 }
 
-impl<'s, C: Code, const TRACK: bool> Default for TrackingData<'s, C, TRACK> {
+impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> Default
+    for TrackingData<'s, T, C, TRACK>
+{
     fn default() -> Self {
         Self {
             func: Default::default(),
@@ -27,9 +30,9 @@ impl<'s, C: Code, const TRACK: bool> Default for TrackingData<'s, C, TRACK> {
     }
 }
 
-impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
+impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s, T, C, TRACK> {
     /// Creates a context for a given span.
-    pub fn new(span: &'s str) -> Self {
+    pub fn new(span: T) -> Self {
         Self {
             span,
             data: Default::default(),
@@ -37,52 +40,54 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
     }
 
     /// Create a new Span from this context using the original str.
-    pub fn span(&'s self) -> Span<'s, C> {
+    pub fn span(&'s self) -> Span<'s, T, C> {
         Span::new_extra(self.span, DynContext(Some(self)))
     }
 }
 
-impl<'s, C: Code, const TRACK: bool> ParseContext<'s, C> for TrackingContext<'s, C, TRACK> {
-    fn original(&self, span: &Span<'s, C>) -> Span<'s, C> {
+impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> ParseContext<'s, T, C>
+    for TrackingContext<'s, T, C, TRACK>
+{
+    fn original(&self, span: &Span<'s, T, C>) -> Span<'s, T, C> {
         Span::new_extra(self.span, span.extra)
     }
 
-    fn enter(&self, func: C, span: &Span<'s, C>) {
+    fn enter(&self, func: C, span: &Span<'s, T, C>) {
         self.push_func(func);
         self.track_enter(span);
     }
 
-    fn debug(&self, span: &Span<'s, C>, debug: String) {
+    fn debug(&self, span: &Span<'s, T, C>, debug: String) {
         self.track_debug(span, debug);
     }
 
-    fn info(&self, span: &Span<'s, C>, info: &'static str) {
+    fn info(&self, span: &Span<'s, T, C>, info: &'static str) {
         self.track_info(span, info);
     }
 
-    fn warn(&self, span: &Span<'s, C>, warn: &'static str) {
+    fn warn(&self, span: &Span<'s, T, C>, warn: &'static str) {
         self.track_warn(span, warn);
     }
 
-    fn exit_ok(&self, span: &Span<'s, C>, parsed: &Span<'s, C>) {
+    fn exit_ok(&self, span: &Span<'s, T, C>, parsed: &Span<'s, T, C>) {
         self.track_exit_ok(span, parsed);
         self.pop_func();
     }
 
-    fn exit_err(&self, span: &Span<'s, C>, code: C, err: &dyn Error) {
+    fn exit_err(&self, span: &Span<'s, T, C>, code: C, err: &dyn Error) {
         self.track_exit_err(span, code, err);
         self.pop_func()
     }
 }
 
-impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
+impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s, T, C, TRACK> {
     /// Extract the tracking results.
-    pub fn results(&self) -> Vec<Track<'s, C>> {
+    pub fn results(&self) -> Vec<Track<'s, T, C>> {
         self.data.replace(TrackingData::default()).track
     }
 }
 
-impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
+impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s, T, C, TRACK> {
     // enter function
     fn push_func(&self, func: C) {
         self.data.borrow_mut().func.push(func);
@@ -108,8 +113,8 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
     }
 }
 
-impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
-    fn track_enter(&self, span: &Span<'s, C>) {
+impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s, T, C, TRACK> {
+    fn track_enter(&self, span: &Span<'s, T, C>) {
         if TRACK {
             let parent = self.parent_vec();
             let func = self.func();
@@ -121,7 +126,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
         }
     }
 
-    fn track_debug(&self, span: &Span<'s, C>, debug: String) {
+    fn track_debug(&self, span: &Span<'s, T, C>, debug: String) {
         if TRACK {
             let parent = self.parent_vec();
             let func = self.func();
@@ -134,7 +139,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
         }
     }
 
-    fn track_info(&self, span: &Span<'s, C>, info: &'static str) {
+    fn track_info(&self, span: &Span<'s, T, C>, info: &'static str) {
         if TRACK {
             let parent = self.parent_vec();
             let func = self.func();
@@ -147,7 +152,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
         }
     }
 
-    fn track_warn(&self, span: &Span<'s, C>, warn: &'static str) {
+    fn track_warn(&self, span: &Span<'s, T, C>, warn: &'static str) {
         if TRACK {
             let parent = self.parent_vec();
             let func = self.func();
@@ -160,7 +165,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
         }
     }
 
-    fn track_exit_ok(&self, span: &Span<'s, C>, parsed: &Span<'s, C>) {
+    fn track_exit_ok(&self, span: &Span<'s, T, C>, parsed: &Span<'s, T, C>) {
         if TRACK {
             let parent = self.parent_vec();
             let func = self.func();
@@ -178,7 +183,7 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
         }
     }
 
-    fn track_exit_err(&self, span: &Span<'s, C>, code: C, err: &dyn Error) {
+    fn track_exit_err(&self, span: &Span<'s, T, C>, code: C, err: &dyn Error) {
         if TRACK {
             let err_str = if let Some(cause) = err.source() {
                 cause.to_string()
@@ -206,32 +211,32 @@ impl<'s, C: Code, const TRACK: bool> TrackingContext<'s, C, TRACK> {
 
 /// One track of the parsing trace.
 #[allow(missing_docs)]
-pub enum Track<'s, C: Code> {
-    Enter(EnterTrack<'s, C>),
-    Debug(DebugTrack<'s, C>),
-    Info(InfoTrack<'s, C>),
-    Warn(WarnTrack<'s, C>),
-    Ok(OkTrack<'s, C>),
-    Err(ErrTrack<'s, C>),
-    Exit(ExitTrack<'s, C>),
+pub enum Track<'s, T, C: Code> {
+    Enter(EnterTrack<'s, T, C>),
+    Debug(DebugTrack<'s, T, C>),
+    Info(InfoTrack<'s, T, C>),
+    Warn(WarnTrack<'s, T, C>),
+    Ok(OkTrack<'s, T, C>),
+    Err(ErrTrack<'s, T, C>),
+    Exit(ExitTrack<'s, T, C>),
 }
 
 /// Track for entering a parser function.
-pub struct EnterTrack<'s, C: Code> {
+pub struct EnterTrack<'s, T, C: Code> {
     /// Function
     pub func: C,
     /// Span
-    pub span: Span<'s, C>,
+    pub span: Span<'s, T, C>,
     /// Parser call stack.
     pub parents: Vec<C>,
 }
 
 /// Track for debug information.
-pub struct DebugTrack<'s, C: Code> {
+pub struct DebugTrack<'s, T, C: Code> {
     /// Function.
     pub func: C,
     /// Span
-    pub span: Span<'s, C>,
+    pub span: Span<'s, T, C>,
     /// Debug info.
     pub debug: String,
     /// Parser call stack.
@@ -239,49 +244,49 @@ pub struct DebugTrack<'s, C: Code> {
 }
 
 /// Track for plain information.
-pub struct InfoTrack<'s, C: Code> {
+pub struct InfoTrack<'s, T, C: Code> {
     /// Function
     pub func: C,
     /// Step info.
     pub info: &'static str,
     /// Span
-    pub span: Span<'s, C>,
+    pub span: Span<'s, T, C>,
     /// Parser call stack.
     pub parents: Vec<C>,
 }
 
 /// Track for plain information.
-pub struct WarnTrack<'s, C: Code> {
+pub struct WarnTrack<'s, T, C: Code> {
     /// Function
     pub func: C,
     /// Step info.
     pub warn: &'static str,
     /// Span
-    pub span: Span<'s, C>,
+    pub span: Span<'s, T, C>,
     /// Parser call stack.
     pub parents: Vec<C>,
 }
 
 /// Track for ok results.
-pub struct OkTrack<'s, C: Code> {
+pub struct OkTrack<'s, T, C: Code> {
     /// Function.
     pub func: C,
     /// Span.
-    pub span: Span<'s, C>,
+    pub span: Span<'s, T, C>,
     /// Remaining span.
-    pub parsed: Span<'s, C>,
+    pub parsed: Span<'s, T, C>,
     /// Parser call stack.
     pub parents: Vec<C>,
 }
 
 /// Track for err results.
-pub struct ErrTrack<'s, C: Code> {
+pub struct ErrTrack<'s, T, C: Code> {
     /// Function.
     pub func: C,
     /// Code
     pub code: C,
     /// Span.
-    pub span: Span<'s, C>,
+    pub span: Span<'s, T, C>,
     /// Error message.
     pub err: String,
     /// Parser call stack.
@@ -289,16 +294,16 @@ pub struct ErrTrack<'s, C: Code> {
 }
 
 /// Track for exiting a parser function.
-pub struct ExitTrack<'s, C: Code> {
+pub struct ExitTrack<'s, T, C: Code> {
     /// Function
     pub func: C,
     /// Parser call stack.
     pub parents: Vec<C>,
     /// For the lifetime ...
-    pub _phantom: PhantomData<Span<'s, C>>,
+    pub _phantom: PhantomData<Span<'s, T, C>>,
 }
 
-impl<'s, C: Code> Track<'s, C> {
+impl<'s, T, C: Code> Track<'s, T, C> {
     /// Returns the func value for each branch.
     pub fn func(&self) -> C {
         match self {

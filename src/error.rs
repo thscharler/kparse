@@ -2,31 +2,33 @@ use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::{Code, Span};
 use nom::error::ErrorKind;
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
 use std::num::NonZeroUsize;
+use std::ops::{RangeFrom, RangeTo};
 
 /// Parser error.
-pub struct ParserError<'s, C: Code, Y: Copy = ()> {
+pub struct ParserError<'s, T, C: Code, Y: Copy = ()> {
     /// Error code
     pub code: C,
     /// Error span
-    pub span: Span<'s, C>,
+    pub span: Span<'s, T, C>,
     /// Extra information
-    pub hints: Vec<Hints<'s, C, Y>>,
+    pub hints: Vec<Hints<'s, T, C, Y>>,
 }
 
 /// Extra information added to a ParserError.
-pub enum Hints<'s, C: Code, Y: Copy> {
+pub enum Hints<'s, T, C: Code, Y: Copy> {
     /// Contains any nom error that occurred.
-    Nom(Nom<'s, C>),
+    Nom(Nom<'s, T, C>),
     /// Contains the nom needed information.
     Needed(NonZeroUsize),
     /// Expected outcome of the parser.
-    Expect(SpanAndCode<'s, C>),
+    Expect(SpanAndCode<'s, T, C>),
     /// Suggestions from the parser.
-    Suggest(SpanAndCode<'s, C>),
+    Suggest(SpanAndCode<'s, T, C>),
     /// External cause for the error.
     Cause(Box<dyn Error>),
     /// Extra user context.
@@ -35,22 +37,22 @@ pub enum Hints<'s, C: Code, Y: Copy> {
 
 /// Contains the data of a nom error.
 #[derive(Clone, Copy)]
-pub struct Nom<'s, C: Code> {
+pub struct Nom<'s, T, C: Code> {
     /// nom ErrorKind
     pub kind: ErrorKind,
     /// Span
-    pub span: Span<'s, C>,
+    pub span: Span<'s, T, C>,
     /// Optional char from error.
     pub ch: Option<char>,
 }
 
 /// Contains a error code and the span.
 #[derive(Clone, Copy)]
-pub struct SpanAndCode<'s, C: Code> {
+pub struct SpanAndCode<'s, T, C: Code> {
     /// Error code
     pub code: C,
     /// Span
-    pub span: Span<'s, C>,
+    pub span: Span<'s, T, C>,
 }
 
 /// Combines two ParserErrors.
@@ -62,20 +64,22 @@ pub trait AppendParserError<Rhs = Self> {
     fn append(&mut self, err: Rhs) -> Self::Output;
 }
 
-impl<'s, C: Code, Y: Copy> AppendParserError<ParserError<'s, C, Y>> for ParserError<'s, C, Y> {
-    type Output = ();
-
-    fn append(&mut self, err: ParserError<'s, C, Y>) {
-        self.append(err);
-    }
-}
-
-impl<'s, C: Code, Y: Copy> AppendParserError<ParserError<'s, C, Y>>
-    for Option<ParserError<'s, C, Y>>
+impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> AppendParserError<ParserError<'s, T, C, Y>>
+    for ParserError<'s, T, C, Y>
 {
     type Output = ();
 
-    fn append(&mut self, err: ParserError<'s, C, Y>) {
+    fn append(&mut self, err: ParserError<'s, T, C, Y>) {
+        ParserError::append(self, err);
+    }
+}
+
+impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> AppendParserError<ParserError<'s, T, C, Y>>
+    for Option<ParserError<'s, T, C, Y>>
+{
+    type Output = ();
+
+    fn append(&mut self, err: ParserError<'s, T, C, Y>) {
         match self {
             None => *self = Some(err),
             Some(v) => v.append(err),
@@ -83,15 +87,15 @@ impl<'s, C: Code, Y: Copy> AppendParserError<ParserError<'s, C, Y>>
     }
 }
 
-impl<'s, C: Code, Y: Copy> AppendParserError<nom::Err<ParserError<'s, C, Y>>>
-    for Option<ParserError<'s, C, Y>>
+impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy>
+    AppendParserError<nom::Err<ParserError<'s, T, C, Y>>> for Option<ParserError<'s, T, C, Y>>
 {
-    type Output = Result<(), nom::Err<ParserError<'s, C, Y>>>;
+    type Output = Result<(), nom::Err<ParserError<'s, T, C, Y>>>;
 
     fn append(
         &mut self,
-        err: nom::Err<ParserError<'s, C, Y>>,
-    ) -> Result<(), nom::Err<ParserError<'s, C, Y>>> {
+        err: nom::Err<ParserError<'s, T, C, Y>>,
+    ) -> Result<(), nom::Err<ParserError<'s, T, C, Y>>> {
         match self {
             None => match err {
                 nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(e)),
@@ -108,8 +112,10 @@ impl<'s, C: Code, Y: Copy> AppendParserError<nom::Err<ParserError<'s, C, Y>>>
     }
 }
 
-impl<'s, C: Code, Y: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'s, C, Y> {
-    fn from_error_kind(input: Span<'s, C>, kind: ErrorKind) -> Self {
+impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> nom::error::ParseError<Span<'s, T, C>>
+    for ParserError<'s, T, C, Y>
+{
+    fn from_error_kind(input: Span<'s, T, C>, kind: ErrorKind) -> Self {
         ParserError {
             code: C::NOM_ERROR,
             span: input,
@@ -121,7 +127,7 @@ impl<'s, C: Code, Y: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
         }
     }
 
-    fn append(input: Span<'s, C>, kind: ErrorKind, mut other: Self) -> Self {
+    fn append(input: Span<'s, T, C>, kind: ErrorKind, mut other: Self) -> Self {
         other.hints.push(Hints::Nom(Nom {
             kind,
             span: input,
@@ -130,7 +136,7 @@ impl<'s, C: Code, Y: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
         other
     }
 
-    fn from_char(input: Span<'s, C>, ch: char) -> Self {
+    fn from_char(input: Span<'s, T, C>, ch: char) -> Self {
         ParserError {
             code: C::NOM_ERROR,
             span: input,
@@ -149,7 +155,15 @@ impl<'s, C: Code, Y: Copy> nom::error::ParseError<Span<'s, C>> for ParserError<'
     }
 }
 
-impl<'s, C: Code, Y: Copy> Display for ParserError<'s, C, Y> {
+impl<'s, T: AsBytes + Copy + Debug, C: Code, Y: Copy> Display for ParserError<'s, T, C, Y>
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} expects ", self.code)?;
 
@@ -159,29 +173,45 @@ impl<'s, C: Code, Y: Copy> Display for ParserError<'s, C, Y> {
             }
             write!(
                 f,
-                "{}:\"{}\"",
+                "{}:{:?}",
                 exp.code,
-                restrict(DebugWidth::Short, exp.span)
+                restrict(DebugWidth::Short, exp.span).fragment()
             )?;
         }
         // no suggest
         write!(
             f,
-            " for span {} \"{}\"",
+            " for span {} {:?}",
             self.span.location_offset(),
-            restrict(DebugWidth::Short, self.span)
+            restrict(DebugWidth::Short, self.span).fragment()
         )?;
         Ok(())
     }
 }
 
-impl<'s, C: Code, Y: Copy> Debug for ParserError<'s, C, Y> {
+impl<'s, T: AsBytes + Copy + Debug + 's, C: Code, Y: Copy> Debug for ParserError<'s, T, C, Y>
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         debug_parse_error(f, self)
     }
 }
 
-impl<'s, C: Code, Y: Debug + Copy> Debug for Hints<'s, C, Y> {
+impl<'s, T: AsBytes + Copy + Debug, C: Code, Y: Debug + Copy> Debug for Hints<'s, T, C, Y>
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Hints::Nom(v) => write!(f, "Nom {:?}", v),
@@ -194,23 +224,47 @@ impl<'s, C: Code, Y: Debug + Copy> Debug for Hints<'s, C, Y> {
     }
 }
 
-impl<'s, C: Code> Debug for Nom<'s, C> {
+impl<'s, T: AsBytes + Copy + Debug, C: Code> Debug for Nom<'s, T, C>
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
-        write!(f, "{:?}:\"{}\"", self.kind, restrict(w, self.span))?;
+        write!(f, "{:?}:{:?}", self.kind, restrict(w, self.span).fragment())?;
         Ok(())
     }
 }
 
-impl<'s, C: Code> Debug for SpanAndCode<'s, C> {
+impl<'s, T: AsBytes + Copy + Debug, C: Code> Debug for SpanAndCode<'s, T, C>
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
-        write!(f, "{}:\"{}\"", self.code, restrict(w, self.span))?;
+        write!(f, "{}:{:?}", self.code, restrict(w, self.span).fragment())?;
         Ok(())
     }
 }
 
-impl<'s, C: Code, Y: Copy> Error for ParserError<'s, C, Y> {
+impl<'s, T: AsBytes + Copy + Debug, C: Code, Y: Copy> Error for ParserError<'s, T, C, Y>
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.hints
             .iter()
@@ -225,9 +279,9 @@ impl<'s, C: Code, Y: Copy> Error for ParserError<'s, C, Y> {
     }
 }
 
-impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
+impl<'s, T: AsBytes + Copy, C: Code, Y: Copy> ParserError<'s, T, C, Y> {
     /// New error.
-    pub fn new(code: C, span: Span<'s, C>) -> Self {
+    pub fn new(code: C, span: Span<'s, T, C>) -> Self {
         Self {
             code,
             span,
@@ -236,7 +290,7 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
     }
 
     /// New error adds the code as Suggestion too.
-    pub fn new_suggest(code: C, span: Span<'s, C>) -> Self {
+    pub fn new_suggest(code: C, span: Span<'s, T, C>) -> Self {
         Self {
             code,
             span,
@@ -270,7 +324,7 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
     ///
     /// Adds the others code and span as expect values.
     /// Adds all the others expect values.
-    pub fn append(&mut self, other: ParserError<'s, C, Y>) {
+    pub fn append(&mut self, other: ParserError<'s, T, C, Y>) {
         self.expect(other.code, other.span);
         for expect in other.iter_expected() {
             self.expect(expect.code, expect.span);
@@ -303,7 +357,7 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
     }
 
     /// Return any nom error codes.
-    pub fn nom(&self) -> Vec<&Nom<'s, C>> {
+    pub fn nom(&self) -> Vec<&Nom<'s, T, C>> {
         self.hints
             .iter()
             .filter_map(|v| match v {
@@ -326,19 +380,19 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
     }
 
     /// Add an expected code.
-    pub fn expect(&mut self, code: C, span: Span<'s, C>) {
+    pub fn expect(&mut self, code: C, span: Span<'s, T, C>) {
         self.hints.push(Hints::Expect(SpanAndCode { code, span }))
     }
 
     /// Adds some expected codes.
-    pub fn append_expected(&mut self, exp: Vec<SpanAndCode<'s, C>>) {
+    pub fn append_expected(&mut self, exp: Vec<SpanAndCode<'s, T, C>>) {
         for exp in exp.into_iter() {
             self.hints.push(Hints::Expect(exp));
         }
     }
 
     /// Returns the expected codes.
-    pub fn iter_expected(&self) -> impl Iterator<Item = &SpanAndCode<'s, C>> {
+    pub fn iter_expected(&self) -> impl Iterator<Item = &SpanAndCode<'s, T, C>> {
         self.hints.iter().rev().filter_map(|v| match v {
             Hints::Expect(n) => Some(n),
             _ => None,
@@ -347,8 +401,8 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
 
     // maybe: move to standalone fn
     /// Get Expect grouped by offset into the string, starting with max first.
-    pub fn expected_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, C>>)> {
-        let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_expected().collect();
+    pub fn expected_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, T, C>>)> {
+        let mut sorted: Vec<&SpanAndCode<'s, T, C>> = self.iter_expected().collect();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
 
         // per offset
@@ -375,8 +429,8 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
 
     // maybe: move to standalone fn
     /// Get Expect grouped by line number, starting with max first.
-    pub fn expected_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, C>>)> {
-        let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_expected().collect();
+    pub fn expected_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, T, C>>)> {
+        let mut sorted: Vec<&SpanAndCode<'s, T, C>> = self.iter_expected().collect();
         sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));
 
         // per offset
@@ -402,19 +456,19 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
     }
 
     /// Add an suggested code.
-    pub fn suggest(&mut self, code: C, span: Span<'s, C>) {
+    pub fn suggest(&mut self, code: C, span: Span<'s, T, C>) {
         self.hints.push(Hints::Suggest(SpanAndCode { code, span }))
     }
 
     /// Adds some suggested codes.
-    pub fn append_suggested(&mut self, exp: Vec<SpanAndCode<'s, C>>) {
+    pub fn append_suggested(&mut self, exp: Vec<SpanAndCode<'s, T, C>>) {
         for exp in exp.into_iter() {
             self.hints.push(Hints::Suggest(exp));
         }
     }
 
     /// Returns the suggested codes.
-    pub fn iter_suggested(&self) -> impl Iterator<Item = &SpanAndCode<'s, C>> {
+    pub fn iter_suggested(&self) -> impl Iterator<Item = &SpanAndCode<'s, T, C>> {
         self.hints.iter().rev().filter_map(|v| match v {
             Hints::Suggest(n) => Some(n),
             _ => None,
@@ -423,8 +477,8 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
 
     // maybe: move to standalone fn
     /// Get Suggest grouped by offset into the string, starting with max first.
-    pub fn suggested_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, C>>)> {
-        let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_suggested().collect();
+    pub fn suggested_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<'s, T, C>>)> {
+        let mut sorted: Vec<&SpanAndCode<'s, T, C>> = self.iter_suggested().collect();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
 
         // per offset
@@ -451,8 +505,8 @@ impl<'s, C: Code, Y: Copy> ParserError<'s, C, Y> {
 
     // maybe: move to standalone fn
     /// Get Suggest grouped by line number, starting with max first.
-    pub fn suggested_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, C>>)> {
-        let mut sorted: Vec<&SpanAndCode<'s, C>> = self.iter_suggested().collect();
+    pub fn suggested_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<'s, T, C>>)> {
+        let mut sorted: Vec<&SpanAndCode<'s, T, C>> = self.iter_suggested().collect();
         sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));
 
         // per offset

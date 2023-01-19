@@ -47,10 +47,10 @@ impl Display for ICode {
     }
 }
 
-pub type Span<'s> = kparse::Span<'s, ICode>;
-pub type IParserResult<'s, O> = ParserResult<'s, O, ICode, ()>;
-pub type INomResult<'s> = ParserNomResult<'s, ICode, ()>;
-pub type IParserError<'s> = ParserError<'s, ICode, ()>;
+pub type Span<'s> = kparse::Span<'s, &'s str, ICode>;
+pub type IParserResult<'s, O> = ParserResult<'s, O, &'s str, ICode, ()>;
+pub type INomResult<'s> = ParserNomResult<'s, &'s str, ICode, ()>;
+pub type IParserError<'s> = ParserError<'s, &'s str, ICode, ()>;
 
 #[derive(Debug)]
 pub struct TerminalA<'s> {
@@ -282,7 +282,7 @@ fn parse_non_terminal_3(rest: Span<'_>) -> IParserResult<'_, ()> {
 }
 
 fn run_parser() {
-    let ctx: TrackingContext<'_, ICode, true> = TrackingContext::new("A");
+    let ctx: TrackingContext<'_, &str, ICode, true> = TrackingContext::new("A");
     let span = ctx.span();
 
     let _r = parse_terminal_a(span);

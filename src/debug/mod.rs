@@ -7,8 +7,8 @@ pub mod tracks;
 
 use crate::{Code, Span};
 use nom::bytes::complete::take_while_m_n;
-use nom::InputIter;
-use std::cmp::min;
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
+use std::ops::{RangeFrom, RangeTo};
 
 /// Maps a width value from the formatstring to a variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,7 +33,15 @@ impl From<Option<usize>> for DebugWidth {
 }
 
 /// Cuts off the text at 20/40/60 characters.
-pub fn restrict_str(w: DebugWidth, text: &str) -> String {
+pub fn restrict_str<T: AsBytes + Copy>(w: DebugWidth, text: T) -> T
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     match w {
         DebugWidth::Short => restrict_str_n(20, text),
         DebugWidth::Medium => restrict_str_n(40, text),
@@ -42,21 +50,31 @@ pub fn restrict_str(w: DebugWidth, text: &str) -> String {
 }
 
 /// Cuts off the text at max_len characters.
-pub fn restrict_str_n(max_len: usize, text: &str) -> String {
-    let shortened = text.split_at(min(max_len, text.len())).0;
-
-    if text.len() > max_len {
-        shortened
-            .escape_default()
-            .chain("...".iter_elements())
-            .collect()
-    } else {
-        shortened.escape_default().collect()
+pub fn restrict_str_n<T: AsBytes + Copy>(max_len: usize, text: T) -> T
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
+    match take_while_m_n::<_, _, nom::error::Error<T>>(0, max_len, |_c| true)(text) {
+        Ok((_, v)) => v,
+        Err(_) => text,
     }
 }
 
 /// Cuts off the text at 20/40/60 characters.
-pub fn restrict<C: Code>(w: DebugWidth, span: Span<'_, C>) -> String {
+pub fn restrict<T: AsBytes + Copy, C: Code>(w: DebugWidth, span: Span<'_, T, C>) -> Span<'_, T, C>
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     match w {
         DebugWidth::Short => restrict_n(20, span),
         DebugWidth::Medium => restrict_n(40, span),
@@ -65,19 +83,20 @@ pub fn restrict<C: Code>(w: DebugWidth, span: Span<'_, C>) -> String {
 }
 
 /// Cuts off the text at max_len characters.
-pub fn restrict_n<C: Code>(max_len: usize, span: Span<'_, C>) -> String {
-    let shortened =
-        match take_while_m_n::<_, _, nom::error::Error<Span<'_, C>>>(0, max_len, |_c| true)(span) {
-            Ok((_rest, short)) => *short,
-            Err(_) => "?error?",
-        };
-
-    if span.len() > max_len {
-        shortened
-            .escape_default()
-            .chain("...".iter_elements())
-            .collect()
-    } else {
-        shortened.escape_default().collect()
+pub fn restrict_n<T: AsBytes + Copy, C: Code>(
+    max_len: usize,
+    span: Span<'_, T, C>,
+) -> Span<'_, T, C>
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
+    match take_while_m_n::<_, _, nom::error::Error<Span<'_, T, C>>>(0, max_len, |_c| true)(span) {
+        Ok((_, v)) => v,
+        Err(_) => span,
     }
 }

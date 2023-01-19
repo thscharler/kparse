@@ -1,12 +1,23 @@
 use crate::debug::{restrict, DebugWidth};
 use crate::{Code, ParserError, SpanAndCode};
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::fmt;
+use std::fmt::Debug;
+use std::ops::{RangeFrom, RangeTo};
 
 /// impl of debug for ParserError.
-pub(crate) fn debug_parse_error<'s, C: Code, Y: Copy>(
+pub(crate) fn debug_parse_error<'s, T: AsBytes + Copy + Debug, C: Code, Y: Copy>(
     f: &mut fmt::Formatter<'_>,
-    err: &ParserError<'s, C, Y>,
-) -> fmt::Result {
+    err: &ParserError<'s, T, C, Y>,
+) -> fmt::Result
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     match f.width() {
         None | Some(0) => debug_parse_error_short(f, err),
         Some(1) => debug_parse_error_medium(f, err),
@@ -15,15 +26,23 @@ pub(crate) fn debug_parse_error<'s, C: Code, Y: Copy>(
     }
 }
 
-fn debug_parse_error_short<'s, C: Code, Y: Copy>(
+fn debug_parse_error_short<'s, T: AsBytes + Copy + Debug, C: Code, Y: Copy>(
     f: &mut impl fmt::Write,
-    err: &ParserError<'s, C, Y>,
-) -> fmt::Result {
+    err: &ParserError<'s, T, C, Y>,
+) -> fmt::Result
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     write!(
         f,
-        "ParserError [{}] for \"{}\"",
+        "ParserError {} for {:?}",
         err.code,
-        restrict(DebugWidth::Short, err.span)
+        restrict(DebugWidth::Short, err.span).fragment()
     )?;
 
     let nom = err.nom();
@@ -32,9 +51,9 @@ fn debug_parse_error_short<'s, C: Code, Y: Copy>(
         for n in &nom {
             write!(
                 f,
-                " {:?}:\"{}\"",
+                " {:?}:{:?}",
                 n.kind,
-                restrict(DebugWidth::Short, n.span)
+                restrict(DebugWidth::Short, n.span).fragment()
             )?;
         }
     }
@@ -48,15 +67,23 @@ fn debug_parse_error_short<'s, C: Code, Y: Copy>(
     Ok(())
 }
 
-fn debug_parse_error_medium<'s, C: Code, Y: Copy>(
+fn debug_parse_error_medium<'s, T: AsBytes + Copy + Debug, C: Code, Y: Copy>(
     f: &mut impl fmt::Write,
-    err: &ParserError<'s, C, Y>,
-) -> fmt::Result {
+    err: &ParserError<'s, T, C, Y>,
+) -> fmt::Result
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     writeln!(
         f,
-        "ParserError {} \"{}\"",
+        "ParserError {} {:?}",
         err.code,
-        restrict(DebugWidth::Medium, err.span)
+        restrict(DebugWidth::Medium, err.span).fragment()
     )?;
 
     let nom = err.nom();
@@ -66,9 +93,9 @@ fn debug_parse_error_medium<'s, C: Code, Y: Copy>(
             indent(f, 1)?;
             writeln!(
                 f,
-                "{:?}:\"{}\"",
+                "{:?}:{:?}",
                 n.kind,
-                restrict(DebugWidth::Medium, n.span)
+                restrict(DebugWidth::Medium, n.span).fragment()
             )?;
         }
     }
@@ -79,9 +106,9 @@ fn debug_parse_error_medium<'s, C: Code, Y: Copy>(
             let first = subgrp.first().unwrap();
             writeln!(
                 f,
-                "expect {}:\"{}\" ",
+                "expect {}:{:?} ",
                 g_off,
-                restrict(DebugWidth::Medium, first.span)
+                restrict(DebugWidth::Medium, first.span).fragment()
             )?;
             debug_expect2_medium(f, &subgrp, 1)?;
         }
@@ -90,15 +117,23 @@ fn debug_parse_error_medium<'s, C: Code, Y: Copy>(
     Ok(())
 }
 
-fn debug_parse_error_long<'s, C: Code, Y: Copy>(
+fn debug_parse_error_long<'s, T: AsBytes + Copy + Debug, C: Code, Y: Copy>(
     f: &mut impl fmt::Write,
-    err: &ParserError<'s, C, Y>,
-) -> fmt::Result {
+    err: &ParserError<'s, T, C, Y>,
+) -> fmt::Result
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     writeln!(
         f,
-        "ParserError {} \"{}\"",
+        "ParserError {} {:?}",
         err.code,
-        restrict(DebugWidth::Long, err.span)
+        restrict(DebugWidth::Long, err.span).fragment()
     )?;
 
     let nom = err.nom();
@@ -106,7 +141,12 @@ fn debug_parse_error_long<'s, C: Code, Y: Copy>(
         writeln!(f, "nom=")?;
         for n in &nom {
             indent(f, 1)?;
-            writeln!(f, "{:?}:\"{}\"", n.kind, restrict(DebugWidth::Long, n.span))?;
+            writeln!(
+                f,
+                "{:?}:{:?}",
+                n.kind,
+                restrict(DebugWidth::Long, n.span).fragment()
+            )?;
         }
     }
 
@@ -129,19 +169,27 @@ fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
 
 // expect2
 
-fn debug_expect2_long<C: Code>(
+fn debug_expect2_long<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
-    exp_vec: &Vec<&SpanAndCode<'_, C>>,
+    exp_vec: &Vec<&SpanAndCode<'_, T, C>>,
     ind: usize,
-) -> fmt::Result {
+) -> fmt::Result
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     for exp in exp_vec {
         indent(f, ind)?;
         write!(
             f,
-            "{}:{}:\"{}\"",
+            "{}:{}:{:?}",
             exp.code,
             exp.span.location_offset(),
-            restrict(DebugWidth::Long, exp.span)
+            restrict(DebugWidth::Long, exp.span).fragment()
         )?;
         writeln!(f)?;
     }
@@ -149,11 +197,19 @@ fn debug_expect2_long<C: Code>(
     Ok(())
 }
 
-fn debug_expect2_medium<C: Code>(
+fn debug_expect2_medium<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
-    exp_vec: &Vec<&SpanAndCode<'_, C>>,
+    exp_vec: &Vec<&SpanAndCode<'_, T, C>>,
     ind: usize,
-) -> fmt::Result {
+) -> fmt::Result
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     for exp in exp_vec {
         indent(f, ind)?;
         write!(f, "{:20}", exp.code)?;
@@ -164,17 +220,25 @@ fn debug_expect2_medium<C: Code>(
     Ok(())
 }
 
-fn debug_expect2_short<'s, C: Code>(
+fn debug_expect2_short<'s, T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
-    it: &Vec<&SpanAndCode<'s, C>>,
+    it: &Vec<&SpanAndCode<'s, T, C>>,
     _ind: usize,
-) -> fmt::Result {
+) -> fmt::Result
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
     for exp in it {
         write!(
             f,
-            "{}:\"{}\" ",
+            "{}:{:?} ",
             exp.code,
-            restrict(DebugWidth::Short, exp.span)
+            restrict(DebugWidth::Short, exp.span).fragment()
         )?;
     }
 

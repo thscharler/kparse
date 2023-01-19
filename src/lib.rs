@@ -34,27 +34,29 @@
 // NO #![warn(unused_results)]
 #![warn(variant_size_differences)]
 
-use nom::Parser;
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Parser, Slice};
 use nom_locate::LocatedSpan;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
+use std::ops::{RangeFrom, RangeTo};
 
 mod conversion;
 pub mod data_frame;
 pub mod debug;
 mod error;
+mod fragments;
 mod no_context;
 mod str_context;
 pub mod test;
 mod tracker;
 mod tracking_context;
 
-use crate::data_frame::str_union;
 #[allow(unreachable_pub)]
 pub use conversion::*;
 pub use data_frame::{SpanIter, SpanLines, StrIter, StrLines};
 pub use error::{AppendParserError, Hints, Nom, ParserError, SpanAndCode};
+pub use fragments::UndoSlicing;
 pub use no_context::NoContext;
 pub use str_context::StrContext;
 #[allow(unreachable_pub)]
@@ -76,14 +78,15 @@ pub mod prelude {
 // sneaky comment
 
 /// Standard input type.
-pub type Span<'s, C> = LocatedSpan<&'s str, DynContext<'s, C>>;
+pub type Span<'s, T, C> = LocatedSpan<T, DynContext<'s, T, C>>;
 
 /// Result type.
-pub type ParserResult<'s, O, C, Y> = Result<(Span<'s, C>, O), nom::Err<ParserError<'s, C, Y>>>;
+pub type ParserResult<'s, O, T, C, Y> =
+    Result<(Span<'s, T, C>, O), nom::Err<ParserError<'s, T, C, Y>>>;
 
 /// Type alias for a nom parser. Use this to create a ParserError directly in nom.
-pub type ParserNomResult<'s, C, Y> =
-    Result<(Span<'s, C>, Span<'s, C>), nom::Err<ParserError<'s, C, Y>>>;
+pub type ParserNomResult<'s, T, C, Y> =
+    Result<(Span<'s, T, C>, Span<'s, T, C>), nom::Err<ParserError<'s, T, C, Y>>>;
 
 /// Parser state codes.
 ///
@@ -97,36 +100,36 @@ pub trait Code: Copy + Display + Debug + Eq {
 ///
 /// Context and tracking for a parser.
 ///
-pub trait ParseContext<'s, C: Code> {
+pub trait ParseContext<'s, T, C: Code> {
     /// Returns a span that encloses all of the current parser.
-    fn original(&self, span: &Span<'s, C>) -> Span<'s, C>;
+    fn original(&self, span: &Span<'s, T, C>) -> Span<'s, T, C>;
 
     /// Tracks entering a parser function.
-    fn enter(&self, func: C, span: &Span<'s, C>);
+    fn enter(&self, func: C, span: &Span<'s, T, C>);
 
     /// Debugging
-    fn debug(&self, span: &Span<'s, C>, debug: String);
+    fn debug(&self, span: &Span<'s, T, C>, debug: String);
 
     /// Track something.
-    fn info(&self, span: &Span<'s, C>, info: &'static str);
+    fn info(&self, span: &Span<'s, T, C>, info: &'static str);
 
     /// Track something more important.
-    fn warn(&self, span: &Span<'s, C>, warn: &'static str);
+    fn warn(&self, span: &Span<'s, T, C>, warn: &'static str);
 
     /// Tracks an Ok result of a parser function.
-    fn exit_ok(&self, span: &Span<'s, C>, parsed: &Span<'s, C>);
+    fn exit_ok(&self, span: &Span<'s, T, C>, parsed: &Span<'s, T, C>);
 
     /// Tracks an Err result of a parser function.    
-    fn exit_err(&self, span: &Span<'s, C>, code: C, err: &dyn Error);
+    fn exit_err(&self, span: &Span<'s, T, C>, code: C, err: &dyn Error);
 }
 
 /// Hold the context.
 /// Needed to block the debug implementation for LocatedSpan.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct DynContext<'s, C: Code>(Option<&'s dyn ParseContext<'s, C>>);
+pub struct DynContext<'s, T, C: Code>(Option<&'s dyn ParseContext<'s, T, C>>);
 
-impl<'s, C: Code> Debug for DynContext<'s, C> {
+impl<'s, T, C: Code> Debug for DynContext<'s, T, C> {
     fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
         Ok(())
     }
@@ -140,23 +143,38 @@ pub struct Context;
 impl Context {
     /// Creates an Ok-Result from the parameters.
     /// Tracks an exit_ok with the ParseContext.
-    pub fn ok<'s, C: Code, T, Y: Copy>(
+    pub fn ok<'s, O, T, C: Code, Y: Copy>(
         &self,
-        remainder: Span<'s, C>,
-        parsed: Span<'s, C>,
-        value: T,
-    ) -> ParserResult<'s, T, C, Y> {
+        remainder: Span<'s, T, C>,
+        parsed: Span<'s, T, C>,
+        value: O,
+    ) -> ParserResult<'s, O, T, C, Y> {
         Context.exit_ok(&remainder, &parsed);
         Ok((remainder, value))
     }
 
     /// Creates a Err-ParserResult from the given ParserError.
     /// Tracks an exit_err with the ParseContext.
-    pub fn err<'s, C: Code, T, Y: Copy, E: Into<nom::Err<ParserError<'s, C, Y>>>>(
+    pub fn err<
+        's,
+        O,
+        T: AsBytes + Copy + Debug,
+        C: Code,
+        Y: Copy,
+        E: Into<nom::Err<ParserError<'s, T, C, Y>>>,
+    >(
         &self,
         err: E,
-    ) -> ParserResult<'s, T, C, Y> {
-        let err: nom::Err<ParserError<'s, C, Y>> = err.into();
+    ) -> ParserResult<'s, O, T, C, Y>
+    where
+        T: Offset
+            + InputTake
+            + InputIter
+            + InputLength
+            + Slice<RangeFrom<usize>>
+            + Slice<RangeTo<usize>>,
+    {
+        let err: nom::Err<ParserError<'s, T, C, Y>> = err.into();
         match &err {
             nom::Err::Incomplete(_) => {}
             nom::Err::Error(e) => Context.exit_err(&e.span, e.code, &e),
@@ -175,11 +193,11 @@ impl Context {
     /// so UB cannot be ruled out.
     ///
     /// So the prerequisite is that both first and second are derived from original().
-    pub unsafe fn span_union<'a, 'b, C: Code>(
+    pub unsafe fn span_union<'a, 'b, T: AsBytes + Copy + UndoSlicing<T>, C: Code>(
         &self,
-        first: &Span<'a, C>,
-        second: &Span<'b, C>,
-    ) -> Span<'b, C> {
+        first: &Span<'a, T, C>,
+        second: &Span<'b, T, C>,
+    ) -> Span<'b, T, C> {
         // take the second argument. both should return the same original
 
         // but if we use ()-Context the original might be truncated before the second fragment.
@@ -187,7 +205,9 @@ impl Context {
         // always possible to extend to the very beginning. so if we take the second span here
         // it will always include the first span too.
         let original = Context.original(second);
-        let str = str_union(original.fragment(), first.fragment(), second.fragment());
+        let str = original
+            .fragment()
+            .union_slice(*first.fragment(), *second.fragment());
 
         Span::new_from_raw_offset(
             first.location_offset(),
@@ -198,7 +218,10 @@ impl Context {
     }
 
     /// Returns the original string for the parser.
-    pub fn original<'s, C: Code>(&self, span: &Span<'s, C>) -> Span<'s, C> {
+    pub fn original<'s, T: AsBytes + Copy + UndoSlicing<T>, C: Code>(
+        &self,
+        span: &Span<'s, T, C>,
+    ) -> Span<'s, T, C> {
         match span.extra.0 {
             Some(ctx) => ctx.original(span),
             None => NoContext.original(span),
@@ -206,42 +229,42 @@ impl Context {
     }
 
     /// Enter a parser function. For tracking.
-    pub fn enter<'s, C: Code>(&self, func: C, span: &Span<'s, C>) {
+    pub fn enter<'s, T, C: Code>(&self, func: C, span: &Span<'s, T, C>) {
         if let Some(ctx) = span.extra.0 {
             ctx.enter(func, span)
         }
     }
 
     /// Track some debug info.
-    pub fn debug<'s, C: Code>(&self, span: &Span<'s, C>, debug: String) {
+    pub fn debug<'s, T, C: Code>(&self, span: &Span<'s, T, C>, debug: String) {
         if let Some(ctx) = span.extra.0 {
             ctx.debug(span, debug)
         }
     }
 
     /// Track some other info.
-    pub fn info<'s, C: Code>(&self, span: &Span<'s, C>, info: &'static str) {
+    pub fn info<'s, T, C: Code>(&self, span: &Span<'s, T, C>, info: &'static str) {
         if let Some(ctx) = span.extra.0 {
             ctx.info(span, info)
         }
     }
 
     /// Track some warning.
-    pub fn warn<'s, C: Code>(&self, span: &Span<'s, C>, warn: &'static str) {
+    pub fn warn<'s, T, C: Code>(&self, span: &Span<'s, T, C>, warn: &'static str) {
         if let Some(ctx) = span.extra.0 {
             ctx.warn(span, warn)
         }
     }
 
     /// Calls exit_ok() on the ParseContext. You might want to use ok() instead.
-    pub fn exit_ok<'s, C: Code>(&self, span: &Span<'s, C>, parsed: &Span<'s, C>) {
+    pub fn exit_ok<'s, T, C: Code>(&self, span: &Span<'s, T, C>, parsed: &Span<'s, T, C>) {
         if let Some(ctx) = span.extra.0 {
             ctx.exit_ok(span, parsed)
         }
     }
 
     /// Calls exit_err() on the ParseContext. You might want to use err() instead.
-    pub fn exit_err<'s, C: Code>(&self, span: &Span<'s, C>, code: C, err: &dyn Error) {
+    pub fn exit_err<'s, T, C: Code>(&self, span: &Span<'s, T, C>, code: C, err: &dyn Error) {
         if let Some(ctx) = span.extra.0 {
             ctx.exit_err(span, code, err)
         }
@@ -249,7 +272,7 @@ impl Context {
 }
 
 /// Tracks the error path with the context.
-pub trait TrackParserError<'s, 't, C: Code, Y: Copy> {
+pub trait TrackParserError<'s, 't, T, C: Code, Y: Copy> {
     /// Result type of the track fn.
     type Result;
 
@@ -260,14 +283,14 @@ pub trait TrackParserError<'s, 't, C: Code, Y: Copy> {
     fn track_as(self, code: C) -> Self::Result;
 
     /// Track if this is an error. And if this is ok too.
-    fn track_ok(self, parsed: Span<'s, C>) -> Self::Result;
+    fn track_ok(self, parsed: Span<'s, T, C>) -> Self::Result;
 }
 
 /// Convert an external error into a ParserError.
-pub trait WithSpan<'s, C: Code, R> {
+pub trait WithSpan<'s, T, C: Code, R> {
     /// Convert an external error into a ParserError.
     /// Usually uses nom::Err::Failure to indicate the finality of the error.
-    fn with_span(self, code: C, span: Span<'s, C>) -> R;
+    fn with_span(self, code: C, span: Span<'s, T, C>) -> R;
 }
 
 /// Translate the error code to a new one.
@@ -277,14 +300,14 @@ pub trait WithCode<C: Code, R> {
 }
 
 /// Make the trait WithCode work as a parser.
-struct ErrorCode<C: Code, P, E1, E2> {
+struct ErrorCode<C: Code, PA, E1, E2> {
     code: C,
-    parser: P,
+    parser: PA,
     _phantom: PhantomData<(E1, E2)>,
 }
 
-impl<C: Code, P, E1, E2> ErrorCode<C, P, E1, E2> {
-    fn new(parser: P, code: C) -> Self {
+impl<C: Code, PA, E1, E2> ErrorCode<C, PA, E1, E2> {
+    fn new(parser: PA, code: C) -> Self {
         Self {
             code,
             parser,
@@ -294,26 +317,28 @@ impl<C: Code, P, E1, E2> ErrorCode<C, P, E1, E2> {
 }
 
 /// Takes a parser and converts the error via the WithCode trait.
-pub fn error_code<'s, O, C, P, E1, E2>(
-    parser: P,
+pub fn error_code<'s, O, T, C, PA, E1, E2>(
+    parser: PA,
     code: C,
-) -> impl FnMut(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>>
+) -> impl FnMut(Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E2>>
 where
+    T: AsBytes + Copy + 's,
     C: Code + 's,
     E1: WithCode<C, E2>,
-    P: Parser<Span<'s, C>, O, E1>,
+    PA: Parser<Span<'s, T, C>, O, E1>,
 {
     let mut a = ErrorCode::new(parser, code);
-    move |s: Span<'s, C>| a.parse(s)
+    move |s: Span<'s, T, C>| a.parse(s)
 }
 
-impl<'s, O, C, P, E1, E2> Parser<Span<'s, C>, O, E2> for ErrorCode<C, P, E1, E2>
+impl<'s, O, T, C, PA, E1, E2> Parser<Span<'s, T, C>, O, E2> for ErrorCode<C, PA, E1, E2>
 where
+    T: AsBytes + Copy + 's,
     C: Code,
     E1: WithCode<C, E2>,
-    P: Parser<Span<'s, C>, O, E1>,
+    PA: Parser<Span<'s, T, C>, O, E1>,
 {
-    fn parse(&mut self, input: Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>> {
+    fn parse(&mut self, input: Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E2>> {
         let r = self.parser.parse(input);
         match r {
             Ok(v) => Ok(v),
@@ -324,24 +349,25 @@ where
     }
 }
 
-struct Transform<'s, O, C, P, T, E0, E1, E2> {
+struct Transform<'s, O, T, C, PA, TRFn, E0, E1, E2> {
     code: C,
-    parser: P,
-    transform: T,
-    _phantom: PhantomData<&'s (O, E0, E1, E2)>,
+    parser: PA,
+    transform: TRFn,
+    _phantom: PhantomData<&'s (O, T, E0, E1, E2)>,
 }
 
-impl<'s, O, C, P, T, E0, E1, E2> Transform<'s, O, C, P, T, E0, E1, E2>
+impl<'s, O, T, C, PA, TRFn, E0, E1, E2> Transform<'s, O, T, C, PA, TRFn, E0, E1, E2>
 where
     O: 's,
+    T: AsBytes + Copy + 's,
     C: Code + 's,
     E0: WithCode<C, E2> + 's,
-    E1: WithSpan<'s, C, nom::Err<E2>> + 's,
+    E1: WithSpan<'s, T, C, nom::Err<E2>> + 's,
     E2: 's,
-    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
-    T: Fn(Span<'s, C>) -> Result<O, E1>,
+    PA: Parser<Span<'s, T, C>, Span<'s, T, C>, E0>,
+    TRFn: Fn(Span<'s, T, C>) -> Result<O, E1>,
 {
-    fn new(parser: P, transform: T, code: C) -> Self {
+    fn new(parser: PA, transform: TRFn, code: C) -> Self {
         Self {
             code,
             parser,
@@ -354,34 +380,36 @@ where
 /// Takes a parser and a transformation of the parser result.
 /// Maps any error to the given error code.
 /// Same as Transform but only returns the converted output.
-pub fn transform<'s, O, C, P, T, E0, E1, E2>(
-    parser: P,
-    transform: T,
+pub fn transform<'s, O, T, C, PA, TRFn, E0, E1, E2>(
+    parser: PA,
+    transform: TRFn,
     code: C,
-) -> impl FnMut(Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>>
+) -> impl FnMut(Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E2>>
 where
     O: 's,
+    T: AsBytes + Copy + 's,
     C: Code + 's,
     E0: WithCode<C, E2> + 's,
-    E1: WithSpan<'s, C, nom::Err<E2>> + 's,
+    E1: WithSpan<'s, T, C, nom::Err<E2>> + 's,
     E2: 's,
-    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
-    T: Fn(Span<'s, C>) -> Result<O, E1>,
+    PA: Parser<Span<'s, T, C>, Span<'s, T, C>, E0>,
+    TRFn: Fn(Span<'s, T, C>) -> Result<O, E1>,
 {
     let mut t = Transform::new(parser, transform, code);
-    move |s: Span<'s, C>| -> Result<(Span<'s, C>, O), nom::Err<E2>> { t.parse(s) }
+    move |s: Span<'s, T, C>| -> Result<(Span<'s, T, C>, O), nom::Err<E2>> { t.parse(s) }
 }
 
-impl<'s, O, C, P, T, E0, E1, E2> Parser<Span<'s, C>, O, E2>
-    for Transform<'s, O, C, P, T, E0, E1, E2>
+impl<'s, O, T, C, PA, TRFn, E0, E1, E2> Parser<Span<'s, T, C>, O, E2>
+    for Transform<'s, O, T, C, PA, TRFn, E0, E1, E2>
 where
+    T: AsBytes + Copy + 's,
     C: Code + 's,
     E0: WithCode<C, E2>,
-    E1: WithSpan<'s, C, nom::Err<E2>>,
-    P: Parser<Span<'s, C>, Span<'s, C>, E0>,
-    T: Fn(Span<'s, C>) -> Result<O, E1>,
+    E1: WithSpan<'s, T, C, nom::Err<E2>>,
+    PA: Parser<Span<'s, T, C>, Span<'s, T, C>, E0>,
+    TRFn: Fn(Span<'s, T, C>) -> Result<O, E1>,
 {
-    fn parse(&mut self, input: Span<'s, C>) -> Result<(Span<'s, C>, O), nom::Err<E2>> {
+    fn parse(&mut self, input: Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E2>> {
         let r = self.parser.parse(input);
         match r {
             Ok((rest, token)) => {
