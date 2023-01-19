@@ -52,11 +52,11 @@ pub mod test;
 mod tracker;
 mod tracking_context;
 
+pub use crate::fragments::{BufferFragments, Fragment};
 #[allow(unreachable_pub)]
 pub use conversion::*;
 pub use data_frame::{SpanIter, SpanLines, StrIter, StrLines};
 pub use error::{AppendParserError, Hints, Nom, ParserError, SpanAndCode};
-pub use fragments::UndoSlicing;
 pub use no_context::NoContext;
 pub use str_context::StrContext;
 #[allow(unreachable_pub)]
@@ -193,7 +193,12 @@ impl Context {
     /// so UB cannot be ruled out.
     ///
     /// So the prerequisite is that both first and second are derived from original().
-    pub unsafe fn span_union<'a, 'b, T: AsBytes + Copy + UndoSlicing<T>, C: Code>(
+    pub fn span_union<
+        'a,
+        'b,
+        T: AsBytes + Copy + Fragment + BufferFragments<'b, T, u8>,
+        C: Code,
+    >(
         &self,
         first: &Span<'a, T, C>,
         second: &Span<'b, T, C>,
@@ -205,20 +210,20 @@ impl Context {
         // always possible to extend to the very beginning. so if we take the second span here
         // it will always include the first span too.
         let original = Context.original(second);
-        let str = original
-            .fragment()
-            .union_slice(*first.fragment(), *second.fragment());
+        let str = original.union_of(*first.fragment(), *second.fragment());
 
-        Span::new_from_raw_offset(
-            first.location_offset(),
-            first.location_line(),
-            str,
-            second.extra,
-        )
+        unsafe {
+            Span::new_from_raw_offset(
+                first.location_offset(),
+                first.location_line(),
+                str,
+                second.extra,
+            )
+        }
     }
 
     /// Returns the original string for the parser.
-    pub fn original<'s, T: AsBytes + Copy + UndoSlicing<T>, C: Code>(
+    pub fn original<'s, T: AsBytes + Copy + Fragment, C: Code>(
         &self,
         span: &Span<'s, T, C>,
     ) -> Span<'s, T, C> {
