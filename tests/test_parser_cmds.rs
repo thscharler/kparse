@@ -696,7 +696,7 @@ mod cmds_parser {
             return Context.err(ParserError::new(CSet, rest));
         }
 
-        let span = unsafe { Context.span_union(&span_sub, &span_value) };
+        let span = Context.span_union(&span_sub, &span_value);
 
         Context.ok(rest, span, BCommand::Set(sub_cmd))
     }
@@ -742,7 +742,7 @@ mod cmds_parser {
         }
 
         let span = if let Some(nummer) = nummer {
-            unsafe { Context.span_union(&span_sub, &nummer.span) }
+            Context.span_union(&span_sub, &nummer.span)
         } else {
             span_sub
         };
@@ -824,7 +824,7 @@ mod cmds_parser {
         }
 
         let span = if let Some(nummer) = nummer {
-            unsafe { Context.span_union(&span_sub, &nummer.span) }
+            Context.span_union(&span_sub, &nummer.span)
         } else {
             span_sub
         };
@@ -888,7 +888,7 @@ mod cmds_parser {
             return Context.err(ParserError::new(CReport, rest));
         }
 
-        let span = unsafe { Context.span_union(&span_sub, &span_datum) };
+        let span = Context.span_union(&span_sub, &span_datum);
         Context.ok(rest, span, BCommand::Report(sub))
     }
 
@@ -1170,7 +1170,7 @@ mod cmds_parser {
                 };
             };
 
-            let span = unsafe { Context.span_union(&token, &span_sub) };
+            let span = Context.span_union(&token, &span_sub);
             Context.ok(rest, span, (span_sub, sub.output))
         }
     }

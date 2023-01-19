@@ -6,17 +6,15 @@ use std::hint::black_box;
 #[test]
 #[should_panic]
 fn test_this_stack() {
-    unsafe {
-        let zero = "zero";
-        let one = "one";
-        let two = "two";
+    let zero = "zero";
+    let one = "one";
+    let two = "two";
 
-        let frames = StrLines::new(zero);
+    let frames = StrLines::new(zero);
 
-        dbg!(frames.start(zero));
-        dbg!(frames.start(one));
-        dbg!(frames.start(two));
-    }
+    dbg!(frames.start(zero));
+    dbg!(frames.start(one));
+    dbg!(frames.start(two));
 }
 
 #[test]
@@ -97,43 +95,41 @@ fn test_iter() {
 
 #[test]
 fn test_str_simple() {
-    unsafe {
-        let buf = "1234\n5678\n90ab";
-        let frames = StrLines::new(buf);
+    let buf = "1234\n5678\n90ab";
+    let frames = StrLines::new(buf);
 
-        let run = |frag: &str| {
-            // println!(
-            //     "'{}'-> '{}' @ {}",
-            //     frag,
-            //     frames.current(frag),
-            //     frames.offset(frag)
-            // );
+    let run = |frag: &str| {
+        // println!(
+        //     "'{}'-> '{}' @ {}",
+        //     frag,
+        //     frames.current(frag),
+        //     frames.offset(frag)
+        // );
 
-            let mut it = frames.forward_from(frag);
-            it.next();
-            it.next();
-            it.next();
-            it.next();
-            // print!("forward_from {:?} ", it.next());
-            // print!("{:?} ", it.next());
-            // print!("{:?} ", it.next());
-            // println!();
-            let mut it = frames.backward_from(frag);
-            it.next();
-            it.next();
-            it.next();
-            it.next();
-            // print!("backward_from {:?} ", it.next());
-            // print!("{:?} ", it.next());
-            // print!("{:?} ", it.next());
-            // println!();
-        };
+        let mut it = frames.forward_from(frag);
+        it.next();
+        it.next();
+        it.next();
+        it.next();
+        // print!("forward_from {:?} ", it.next());
+        // print!("{:?} ", it.next());
+        // print!("{:?} ", it.next());
+        // println!();
+        let mut it = frames.backward_from(frag);
+        it.next();
+        it.next();
+        it.next();
+        it.next();
+        // print!("backward_from {:?} ", it.next());
+        // print!("{:?} ", it.next());
+        // print!("{:?} ", it.next());
+        // println!();
+    };
 
-        for s in 0..=14 {
-            for e in s..=14 {
-                let frag = &buf[s..e];
-                run(frag);
-            }
+    for s in 0..=14 {
+        for e in s..=14 {
+            let frag = &buf[s..e];
+            run(frag);
         }
     }
 }
@@ -193,17 +189,17 @@ fn test_str_full() {
                 // );
 
                 // println!("current:");
-                let it = unsafe { frames.current(frag) };
+                let it = frames.current(frag);
                 let jt = split[i_s..i_e + 1].iter().copied();
                 cmp_it(it, jt);
 
                 // println!("forward:");
-                let it = unsafe { frames.forward_from(frag) };
+                let it = frames.forward_from(frag);
                 let jt = split[i_e + 1..].iter().copied();
                 cmp_it(it, jt);
 
                 // println!("backward:");
-                let it = unsafe { frames.backward_from(frag) };
+                let it = frames.backward_from(frag);
                 let jt = split[..i_s].iter().rev().copied();
                 cmp_it(it, jt);
             }
@@ -259,15 +255,15 @@ fn test_current() {
 
                 let frag = &buf[s..e];
 
-                // println!();
-                // println!(
-                //     "find {:?} in {:?} with start {}, end {}",
-                //     frag, buf, i_s, i_e
-                // );
+                println!();
+                println!(
+                    "find {:?} in {:?} with start {}, end {}",
+                    frag, buf, i_s, i_e
+                );
 
-                let start = unsafe { frames.start(frag) };
+                let start = frames.start(frag);
                 assert_eq!(start, split[i_s]);
-                let end = unsafe { frames.end(frag) };
+                let end = frames.end(frag);
                 assert_eq!(end, split[i_e]);
             }
         }

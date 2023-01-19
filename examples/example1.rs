@@ -210,7 +210,7 @@ fn parse_terminal_d(rest: Span<'_>) -> IParserResult<'_, TerminalD<'_>> {
     let (rest, term) = token_nummer(rest).track()?;
     let (rest, _) = opt(nom_star_star)(rest).track()?;
 
-    let span = unsafe { Context.span_union(&tag, &term.span) };
+    let span = Context.span_union(&tag, &term.span);
     Context.ok(rest, span, TerminalD { term, span })
 }
 
@@ -220,7 +220,7 @@ fn parse_non_terminal1(rest: Span<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
     let (rest, a) = parse_terminal_a(rest).track()?;
     let (rest, b) = parse_terminal_b(rest).track()?;
 
-    let span = unsafe { Context.span_union(&a.span, &b.span) };
+    let span = Context.span_union(&a.span, &b.span);
 
     Context.ok(rest, span, NonTerminal1 { a, b, span })
 }
@@ -242,7 +242,7 @@ fn parse_non_terminal_2(rest: Span<'_>) -> IParserResult<'_, NonTerminal2<'_>> {
     let (rest, c) = parse_terminal_c(rest).track()?;
 
     let span = if let Some(a) = &a {
-        unsafe { Context.span_union(&a.span, &c.span) }
+        Context.span_union(&a.span, &c.span)
     } else {
         c.span
     };

@@ -487,7 +487,7 @@ mod planung4 {
         ) {
             let txt = SpanLines::new(Context.original(&err.span));
 
-            let text1 = unsafe { txt.get_lines_around(&err.span, 3) };
+            let text1 = txt.get_lines_around(&err.span, 3);
 
             println!();
             if !msg.is_empty() {
@@ -558,7 +558,7 @@ mod planung4 {
         pub fn dump_diagnostics_info(src: &Path, err: &ParserError<'_, &str, APCode>, msg: &str) {
             let txt = SpanLines::new(Context.original(&err.span));
 
-            let text1 = unsafe { txt.get_lines_around(&err.span, 0) };
+            let text1 = txt.get_lines_around(&err.span, 0);
 
             println!();
             if !msg.is_empty() {
@@ -1264,7 +1264,7 @@ mod planung4 {
             let (rest, plan) = token_name(rest).track()?;
             let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
 
-            let span = unsafe { Context.span_union(&h0, &h1) };
+            let span = Context.span_union(&h0, &h1);
             Context.ok(rest, span, APPlan { name: plan, span })
         }
 
@@ -1284,7 +1284,7 @@ mod planung4 {
             let (rest, _) = opt(nom_star_star)(rest).track()?;
             let (rest, _) = opt(nom_slash_slash)(rest).track()?;
 
-            let span = unsafe { Context.span_union(&tag, &kdnr.span) };
+            let span = Context.span_union(&tag, &kdnr.span);
             Context.ok(rest, span, APKdNr { kdnr, span })
         }
 
@@ -1305,7 +1305,7 @@ mod planung4 {
 
             let (rest, h1) = nom_header(rest).track()?;
 
-            let span = unsafe { Context.span_union(&h0, &h1) };
+            let span = Context.span_union(&h0, &h1);
             Context.ok(rest, span, APStichtag { stichtag, span })
         }
 
@@ -1325,7 +1325,7 @@ mod planung4 {
             let (rest, _) = opt(nom_star_star)(rest).track()?;
             let (rest, _) = opt(nom_slash_slash)(rest).track()?;
 
-            let span = unsafe { Context.span_union(&tag, &bsnr.span) };
+            let span = Context.span_union(&tag, &bsnr.span);
             Context.ok(rest, span, APBsNr { bsnr, span })
         }
 
@@ -1341,7 +1341,7 @@ mod planung4 {
             let (rest, monat) = token_name(rest).track()?;
             let (rest, h1) = nom_header(rest).track()?;
 
-            let span = unsafe { Context.span_union(&h0, &h1) };
+            let span = Context.span_union(&h0, &h1);
             Context.ok(rest, span, APMonat { monat, span })
         }
 
@@ -1363,7 +1363,7 @@ mod planung4 {
 
             let (rest, h1) = nom_header(rest).track()?;
 
-            let span = unsafe { Context.span_union(&h0, &h1) };
+            let span = Context.span_union(&h0, &h1);
             Context.ok(rest, span, APWoche { datum, span })
         }
 
@@ -1379,7 +1379,7 @@ mod planung4 {
             let (rest, tage) = token_nummer(rest).track()?;
             let (rest, h1) = nom_header(rest).track()?;
 
-            let span = unsafe { Context.span_union(&h0, &h1) };
+            let span = Context.span_union(&h0, &h1);
             Context.ok(rest, span, APTag { tage, span })
         }
 
@@ -1393,7 +1393,7 @@ mod planung4 {
             let (rest, tag) = nom_tag_aktion(rest).track()?;
             let (rest, aktion) = nom_aktion_aktion(rest).track_as(APCAktionTyp)?;
 
-            let span = unsafe { Context.span_union(&tag, &aktion) };
+            let span = Context.span_union(&tag, &aktion);
             Context.ok(rest, span, APAktion { aktion, span })
         }
 
@@ -1420,17 +1420,17 @@ mod planung4 {
             let (rest, brcl) = opt(nom_brcl)(rest).track()?;
 
             let span = if let Some(brcl) = brcl {
-                unsafe { Context.span_union(&tag, &brcl) }
+                Context.span_union(&tag, &brcl)
             } else if let Some(dauer) = &dauer {
-                unsafe { Context.span_union(&tag, &dauer.span) }
+                Context.span_union(&tag, &dauer.span)
             } else if let Some(start) = &start {
-                unsafe { Context.span_union(&tag, &start.span) }
+                Context.span_union(&tag, &start.span)
             } else if let Some(brop) = brop {
-                unsafe { Context.span_union(&tag, &brop) }
+                Context.span_union(&tag, &brop)
             } else if let Some(kultur) = &kultur {
-                unsafe { Context.span_union(&tag, &kultur.span) }
+                Context.span_union(&tag, &kultur.span)
             } else {
-                unsafe { Context.span_union(&tag, &ort.span) }
+                Context.span_union(&tag, &ort.span)
             };
 
             Context.ok(
@@ -1456,7 +1456,7 @@ mod planung4 {
             let (rest, wochen) = token_nummer(rest).track()?;
             let (rest, w) = nom_tag_w(rest).track()?;
 
-            let span = unsafe { Context.span_union(&wochen.span, &w) };
+            let span = Context.span_union(&wochen.span, &w);
             Context.ok(rest, span, APWochen { wochen, span })
         }
 
@@ -1471,7 +1471,7 @@ mod planung4 {
             let (rest, wochen) = token_nummer(rest).track()?;
             let (rest, w) = nom_tag_w(rest).track()?;
 
-            let span = unsafe { Context.span_union(&wochen.span, &w) };
+            let span = Context.span_union(&wochen.span, &w);
             Context.ok(rest, span, APWochen { wochen, span })
         }
 
@@ -1487,7 +1487,7 @@ mod planung4 {
             let (rest, name) = token_name(rest).track()?;
             let (rest, _) = opt(nom_star_star)(rest).track()?;
 
-            let span = unsafe { Context.span_union(&tag, &name.span) };
+            let span = Context.span_union(&tag, &name.span);
 
             Context.ok(rest, span, APKunde { name, span })
         }
@@ -1504,7 +1504,7 @@ mod planung4 {
             let (rest, name) = token_name(rest).track()?;
             let (rest, _) = opt(nom_star_star)(rest).track()?;
 
-            let span = unsafe { Context.span_union(&tag, &name.span) };
+            let span = Context.span_union(&tag, &name.span);
 
             Context.ok(rest, span, APLieferant { name, span })
         }
@@ -1521,7 +1521,7 @@ mod planung4 {
             let (rest, name) = token_name(rest).track()?;
             let (rest, _) = opt(nom_star_star)(rest).track()?;
 
-            let span = unsafe { Context.span_union(&tag, &name.span) };
+            let span = Context.span_union(&tag, &name.span);
 
             Context.ok(rest, span, APMarkt { name, span })
         }
@@ -1560,7 +1560,7 @@ mod planung4 {
                 nom_ws_nl(rest)
             };
 
-            let span = unsafe { Context.span_union(&kultur.span, &sorten.span) };
+            let span = Context.span_union(&kultur.span, &sorten.span);
 
             Context.ok(
                 rest,
@@ -1581,7 +1581,7 @@ mod planung4 {
             let (rest, name) = token_name(rest)?;
             let (rest, brcl) = nom_brcl(rest).track_as(APCBracketClose)?;
 
-            let span = unsafe { Context.span_union(&brop, &brcl) };
+            let span = Context.span_union(&brop, &brcl);
 
             Context.ok(
                 rest,
@@ -1647,7 +1647,7 @@ mod planung4 {
 
             let span = if let Some(first) = first {
                 if let Some(last) = last {
-                    unsafe { Context.span_union(&first.span, &last.span) }
+                    Context.span_union(&first.span, &last.span)
                 } else {
                     unreachable!()
                 }
@@ -1673,7 +1673,7 @@ mod planung4 {
             let (rest, menge) = token_menge(rest).track()?;
             let (rest, name) = token_name(rest).track()?;
 
-            let span = unsafe { Context.span_union(&menge.span, &name.span) };
+            let span = Context.span_union(&menge.span, &name.span);
 
             Context.ok(rest, span, APSorte { menge, name, span })
         }
@@ -1829,7 +1829,7 @@ mod planung4 {
             let imonth = (*month).parse::<u32>().with_span(APCMonth, month)?;
             let iyear = (*year).parse::<i32>().with_span(APCYear, year)?;
 
-            let span = unsafe { Context.span_union(&day, &year) };
+            let span = Context.span_union(&day, &year);
             let datum = chrono::NaiveDate::from_ymd_opt(iyear, imonth, iday);
 
             if let Some(datum) = datum {
