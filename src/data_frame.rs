@@ -67,7 +67,7 @@ pub trait DataFrames<'a, T: ?Sized> {
     ///
     /// # Safety
     /// The fragment must be part of the original allocation.
-    fn offset(&self, fragment: &'_ T) -> usize;
+    unsafe fn offset(&self, fragment: &'_ T) -> usize;
 }
 
 mod byte_frames {
@@ -99,7 +99,7 @@ mod byte_frames {
         ///
         /// # Safety
         /// The fragment really has to be a fragment of buf.
-        pub fn ascii_column(&self, fragment: &[u8]) -> usize {
+        pub unsafe fn ascii_column(&self, fragment: &[u8]) -> usize {
             self.buf.ascii_column(fragment, self.delim)
         }
 
@@ -111,7 +111,7 @@ mod byte_frames {
         ///
         /// If the delimiter is one of the utf8 special bytes this doesn't break,
         /// but the result might not meet your expectation.
-        pub fn utf8_column(&self, fragment: &[u8]) -> usize {
+        pub unsafe fn utf8_column(&self, fragment: &[u8]) -> usize {
             self.buf.utf8_column(fragment, self.delim)
         }
 
@@ -123,7 +123,7 @@ mod byte_frames {
         /// The fragment really has to be a fragment of buf.
         /// If the delimiter is one of the utf8 special bytes this doesn't break,
         /// but the result might not meet your expectation.
-        pub fn naive_utf8_column(&self, fragment: &[u8]) -> usize {
+        pub unsafe fn naive_utf8_column(&self, fragment: &[u8]) -> usize {
             self.buf.naive_utf8_column(fragment, self.delim)
         }
     }
@@ -199,7 +199,7 @@ mod byte_frames {
         /// Offset in the buffer.
         ///
         /// # Safety The fragment really has to be a fragment of buf.
-        fn offset(&self, fragment: &[u8]) -> usize {
+        unsafe fn offset(&self, fragment: &[u8]) -> usize {
             self.buf.subslice_offset(fragment)
         }
     }
@@ -460,7 +460,7 @@ mod span_lines {
         /// Offset in the buffer.
         ///
         /// # Safety The fragment really has to be a fragment of buf.
-        fn offset(&self, fragment: &LocatedSpan<&'s str, X>) -> usize {
+        unsafe fn offset(&self, fragment: &LocatedSpan<&'s str, X>) -> usize {
             self.buf.fragment().subslice_offset(fragment.fragment())
         }
     }
@@ -692,7 +692,7 @@ mod str_lines {
         /// Offset in the buffer.
         ///
         /// # Safety The fragment really has to be a fragment of buf.
-        fn offset(&self, fragment: &str) -> usize {
+        unsafe fn offset(&self, fragment: &str) -> usize {
             self.buf.subslice_offset(fragment)
         }
     }

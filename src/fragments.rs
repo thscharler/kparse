@@ -3,6 +3,7 @@ use memchr::{memchr, memrchr};
 use nom::AsBytes;
 use std::ops::Range;
 use std::slice;
+use std::str::from_utf8_unchecked;
 
 /// Unsafe trait to undo a previous slicing operation.
 pub trait Fragment {
@@ -106,7 +107,11 @@ where
     ///
     /// # Panics
     /// if the fragment is not part of the buffer.
-    fn subslice_offset(self, fragment: A) -> usize;
+    ///
+    /// # Safety
+    /// Tries to check if the fragment is part of the buffer and panics if not,
+    /// but in the end giving in a unrelated fragment is UB.
+    unsafe fn subslice_offset(self, fragment: A) -> usize;
 }
 
 impl<'a, 's> BufferFragments<'s, &'a [u8], u8> for &'s [u8] {
@@ -115,8 +120,10 @@ impl<'a, 's> BufferFragments<'s, &'a [u8], u8> for &'s [u8] {
     /// # Panics
     /// The fragment has to be a fragment of self.    
     fn current_prefix(self, fragment: &'a [u8], sep: u8) -> &'s [u8] {
-        let offset = self.subslice_offset(fragment);
-        let start = match memrchr(sep, &self[..offset]) {
+        // whatever bogus offset is, it will be checked against the
+        // bounds and the result will be part of self or panic.
+        let offset = unsafe { self.subslice_offset(fragment) };
+        let start = match memrchr(sep, unsafe { &self.get_unchecked(..offset) }) {
             None => 0,
             Some(o) => o + 1,
         };
@@ -143,7 +150,7 @@ impl<'a, 's> BufferFragments<'s, &'a [u8], u8> for &'s [u8] {
 
         let mut start = 0;
         loop {
-            match memchr(sep, &self[start..]) {
+            match memchr(sep, unsafe { &self.get_unchecked(start..) }) {
                 None => break,
                 Some(o) => {
                     count += 1;
@@ -156,61 +163,70 @@ impl<'a, 's> BufferFragments<'s, &'a [u8], u8> for &'s [u8] {
     }
 
     fn complete_fragment(self, fragment: &'a [u8], sep: u8) -> (usize, &'s [u8]) {
-        let offset = self.subslice_offset(fragment);
+        // whatever bogus offset is, it will be checked against the
+        // bounds and the result will be part of self or panic.
+        let offset = unsafe { self.subslice_offset(fragment) };
         let len = fragment.len();
+        assert!(offset + len <= self.len());
 
-        let start = match memrchr(sep, &self[..offset]) {
+        let start = match memrchr(sep, unsafe { self.get_unchecked(..offset) }) {
             None => 0,
             Some(o) => o + 1,
         };
-        let end = match memchr(sep, &self[offset + len..]) {
+        let end = match memchr(sep, unsafe { self.get_unchecked(offset + len..) }) {
             None => self.len(),
             Some(o) => offset + len + o,
         };
 
-        (start, &self[start..end])
+        unsafe { (start, self.get_unchecked(start..end)) }
     }
 
     fn next_fragment(self, fragment: &'a [u8], sep: u8) -> (usize, &'s [u8], bool) {
-        let offset = self.subslice_offset(fragment);
+        let offset = unsafe { self.subslice_offset(fragment) };
+        let len = fragment.len();
+        assert!(offset + len <= self.len());
 
-        let (truncate_start, start) = match offset + fragment.len() + 1 {
-            n if n > self.len() => (true, self.len()),
-            n => (false, n),
+        let start_0 = offset + len;
+        let (truncate_start, start) = if start_0 == self.len() {
+            (true, start_0)
+        } else if unsafe { *self.get_unchecked(start_0) } == sep {
+            // skip sep
+            (false, start_0 + 1)
+        } else {
+            (false, start_0)
         };
-        let end = match memchr(sep, &self[start..]) {
+
+        let end = match memchr(sep, unsafe { self.get_unchecked(start..) }) {
             None => self.len(),
             Some(o) => start + o,
         };
 
-        let next_fragment = &self[start..end];
+        let next_fragment = unsafe { self.get_unchecked(start..end) };
 
-        if truncate_start {
-            (start, next_fragment, false)
-        } else {
-            (start, next_fragment, true)
-        }
+        (start, next_fragment, !truncate_start)
     }
 
     fn prev_fragment(self, fragment: &'a [u8], sep: u8) -> (usize, &'s [u8], bool) {
-        let offset = self.subslice_offset(fragment);
+        let offset = unsafe { self.subslice_offset(fragment) };
 
-        let (trunc_end, end) = match offset as isize - 1 {
-            -1 => (true, 0),
-            n => (false, n as usize),
+        let end_0 = offset;
+        let (trunc_end, end) = if end_0 == 0 {
+            (true, end_0)
+        } else if unsafe { *self.get_unchecked(end_0 - 1) } == sep {
+            // skip sep
+            (false, end_0 - 1)
+        } else {
+            (false, end_0)
         };
-        let start = match memrchr(sep, &self[..end]) {
+
+        let start = match memrchr(sep, unsafe { self.get_unchecked(..end) }) {
             None => 0,
             Some(n) => n + 1,
         };
 
-        let prev_fragment = &self[start..end];
+        let prev_fragment = unsafe { self.get_unchecked(start..end) };
 
-        if trunc_end {
-            (start, prev_fragment, false)
-        } else {
-            (start, prev_fragment, true)
-        }
+        (start, prev_fragment, !trunc_end)
     }
 
     /// Returns the union of the two slices.
@@ -224,19 +240,24 @@ impl<'a, 's> BufferFragments<'s, &'a [u8], u8> for &'s [u8] {
     ///
     /// So the prerequisite is that both first and second are derived from buf.
     fn union_of(self, first: &'a [u8], second: &'a [u8]) -> &'s [u8] {
-        let offset_1 = self.subslice_offset(first);
-        let offset_2 = self.subslice_offset(second);
+        let offset_1 = unsafe { self.subslice_offset(first) };
+        let offset_2 = unsafe { self.subslice_offset(second) };
         &self[offset_1..offset_2 + second.len()]
     }
 
     /// Copied from the crate with the same name.
     ///
     /// Returns the offset of the fragment inside of the buffer.
-    fn subslice_offset(self, fragment: &'a [u8]) -> usize {
-        if self.as_ptr_range().contains(&fragment.as_bytes().as_ptr()) {
-            let outer_start = self.as_ptr() as usize;
-            let fragment_start = fragment.as_ptr() as usize;
-            fragment_start - outer_start
+    unsafe fn subslice_offset(self, fragment: &'a [u8]) -> usize {
+        let Range {
+            start: start_self,
+            end: end_self,
+        } = self.as_bytes().as_ptr_range();
+
+        let frag = fragment.as_bytes().as_ptr();
+
+        if frag >= start_self && frag <= end_self {
+            frag.offset_from(start_self) as usize
         } else {
             panic!("subspan");
         }
@@ -249,108 +270,110 @@ impl<'a, 's> BufferFragments<'s, &'a str, u8> for &'s str {
     /// # Panics
     /// The fragment has to be a fragment of self.
     fn current_prefix(self, fragment: &'a str, sep: u8) -> &'s str {
-        let self_bytes = self.as_bytes();
+        let offset = unsafe { self.subslice_offset(fragment) };
 
-        let offset = self.subslice_offset(fragment);
+        let self_bytes = self.as_bytes();
         let start = match memrchr(sep, &self_bytes[..offset]) {
             None => 0,
             Some(o) => o + 1,
         };
-        &self[start..offset]
+
+        unsafe { self.get_unchecked(start..offset) }
     }
 
     fn ascii_column(self, fragment: &'a str, sep: u8) -> usize {
-        let prefix = self.current_prefix(fragment, sep);
-        prefix.len()
+        self.as_bytes().ascii_column(fragment.as_bytes(), sep)
     }
 
     fn utf8_column(self, fragment: &'a str, sep: u8) -> usize {
-        let prefix = self.current_prefix(fragment, sep);
-        num_chars(prefix.as_bytes())
+        self.as_bytes().utf8_column(fragment.as_bytes(), sep)
     }
 
     fn naive_utf8_column(self, fragment: &'a str, sep: u8) -> usize {
-        let prefix = self.current_prefix(fragment, sep);
-        naive_num_chars(prefix.as_bytes())
+        self.as_bytes().naive_utf8_column(fragment.as_bytes(), sep)
     }
 
     fn count(self, sep: u8) -> usize {
-        let self_bytes = self.as_bytes();
-        let mut count = 0;
-
-        let mut start = 0;
-        loop {
-            match memchr(sep, &self_bytes[start..]) {
-                None => break,
-                Some(o) => {
-                    count += 1;
-                    start = o + 1;
-                }
-            }
-        }
-
-        count
+        self.as_bytes().count(sep)
     }
 
     fn complete_fragment(self, fragment: &'a str, sep: u8) -> (usize, &'s str) {
-        let offset = self.subslice_offset(fragment);
+        // only ascii sep
+        assert!(sep <= 127);
+
+        let offset = unsafe { self.subslice_offset(fragment) };
         let len = fragment.len();
+        assert!(offset + len <= self.len());
 
         let self_bytes = self.as_bytes();
-        let start = match memrchr(sep, &self_bytes[..offset]) {
+        let start = match memrchr(sep, unsafe { self_bytes.get_unchecked(..offset) }) {
             None => 0,
             Some(o) => o + 1,
         };
-        let end = match memchr(sep, &self_bytes[offset + len..]) {
+        let end = match memchr(sep, unsafe { self_bytes.get_unchecked(offset + len..) }) {
             None => self.len(),
             Some(o) => offset + len + o,
         };
 
-        (start, &self[start..end])
+        unsafe { (start, self.get_unchecked(start..end)) }
     }
 
     fn next_fragment(self, fragment: &'a str, sep: u8) -> (usize, &'s str, bool) {
-        let offset = self.subslice_offset(fragment);
+        // only ascii sep
+        assert!(sep <= 127);
 
-        let (truncate_start, start) = match offset + fragment.len() + 1 {
-            n if n > self.len() => (true, self.len()),
-            n => (false, n),
-        };
+        let offset = unsafe { self.subslice_offset(fragment) };
+        let len = fragment.len();
+        assert!(offset + len <= self.len());
+
         let self_bytes = self.as_bytes();
-        let end = match memchr(sep, &self_bytes[start..]) {
+
+        let start_0 = offset + len;
+        let (truncate_start, start) = if start_0 == self.len() {
+            (true, start_0)
+        } else if unsafe { *self_bytes.get_unchecked(start_0) } == sep {
+            // skip sep
+            (false, start_0 + 1)
+        } else {
+            (false, start_0)
+        };
+
+        let end = match memchr(sep, unsafe { self_bytes.get_unchecked(start..) }) {
             None => self.len(),
             Some(o) => start + o,
         };
 
-        let next_fragment = &self[start..end];
+        let next_fragment = unsafe { self.get_unchecked(start..end) };
 
-        if truncate_start {
-            (start, next_fragment, false)
-        } else {
-            (start, next_fragment, true)
-        }
+        (start, next_fragment, !truncate_start)
     }
 
     fn prev_fragment(self, fragment: &'a str, sep: u8) -> (usize, &'s str, bool) {
-        let offset = self.subslice_offset(fragment);
+        // only ascii sep
+        assert!(sep <= 127);
 
-        let (trunc_end, end) = match offset as isize - 1 {
-            -1 => (true, 0),
-            n => (false, n as usize),
-        };
+        let offset = unsafe { self.subslice_offset(fragment) };
+
         let self_bytes = self.as_bytes();
-        let start = match memrchr(sep, &self_bytes[..end]) {
+
+        let end_0 = offset;
+        let (trunc_end, end) = if end_0 == 0 {
+            (true, end_0)
+        } else if unsafe { *self_bytes.get_unchecked(end_0 - 1) } == sep {
+            // skip sep
+            (false, end_0 - 1)
+        } else {
+            (false, end_0)
+        };
+
+        let start = match memrchr(sep, unsafe { self_bytes.get_unchecked(..end) }) {
             None => 0,
             Some(n) => n + 1,
         };
 
-        let prev_fragment = &self[start..end];
+        let prev_fragment = unsafe { self.get_unchecked(start..end) };
 
-        if trunc_end {
-            (start, prev_fragment, false)
-        } else {
-            (start, prev_fragment, true)
-        }
+        (start, prev_fragment, !trunc_end)
     }
 
     /// Returns the union of the two slices.
@@ -358,8 +381,8 @@ impl<'a, 's> BufferFragments<'s, &'a str, u8> for &'s str {
     /// # Panics
     /// If any of first and second is not within the range of self.
     fn union_of(self, first: &'a str, second: &'a str) -> &'s str {
-        let offset_1 = self.subslice_offset(first);
-        let offset_2 = self.subslice_offset(second);
+        let offset_1 = unsafe { self.subslice_offset(first) };
+        let offset_2 = unsafe { self.subslice_offset(second) };
         &self[offset_1..offset_2 + second.len()]
     }
 
@@ -367,31 +390,12 @@ impl<'a, 's> BufferFragments<'s, &'a str, u8> for &'s str {
     ///
     /// # Panics
     /// If the fragment is not a part of the buffer.
-    fn subslice_offset(self, fragment: &'a str) -> usize {
-        // println!(
-        //     "{:?} {:?}",
-        //     self.as_bytes().as_ptr_range(),
-        //     fragment.as_bytes().as_ptr()
-        // );
-
-        let Range {
-            start: start_self,
-            end: end_self,
-        } = self.as_bytes().as_ptr_range();
-
-        let frag = fragment.as_bytes().as_ptr();
-
-        if frag >= start_self && frag <= end_self {
-            let outer_start = self.as_bytes().as_ptr() as usize;
-            let fragment_start = fragment.as_bytes().as_ptr() as usize;
-            fragment_start - outer_start
-        } else {
-            panic!("subspan");
-        }
+    unsafe fn subslice_offset(self, fragment: &'a str) -> usize {
+        self.as_bytes().subslice_offset(fragment.as_bytes())
     }
 }
 
-impl<'s, T> Fragment for &'s [T] {
+impl<'s> Fragment for &'s [u8] {
     /// Undo taking a slice.
     ///
     /// # Safety
@@ -402,7 +406,7 @@ impl<'s, T> Fragment for &'s [T] {
         assert!(offset < isize::MAX as usize);
 
         let ptr = self.as_ptr();
-        let new_ptr = ptr.offset(-(offset as isize));
+        let new_ptr = ptr.sub(offset);
 
         slice::from_raw_parts(new_ptr, offset + self.len())
     }
@@ -419,10 +423,9 @@ impl<'s> Fragment for &'s str {
         assert!(offset < isize::MAX as usize);
 
         let ptr = self.as_ptr();
-        let new_ptr = ptr.offset(-(offset as isize));
+        let new_ptr = ptr.sub(offset);
 
-        let bytes = slice::from_raw_parts(new_ptr, self.len() + offset);
-        std::str::from_utf8_unchecked(bytes)
+        from_utf8_unchecked(slice::from_raw_parts(new_ptr, offset + self.len()))
     }
 }
 

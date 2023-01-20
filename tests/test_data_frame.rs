@@ -1,5 +1,6 @@
 use kparse::data_frame::DataFrames;
 use kparse::StrLines;
+use nom::Offset;
 use std::arch::x86_64::_rdrand16_step;
 use std::hint::black_box;
 
@@ -15,6 +16,15 @@ fn test_this_stack() {
     dbg!(frames.start(zero));
     dbg!(frames.start(one));
     dbg!(frames.start(two));
+}
+
+#[test]
+fn test_this_stack_2() {
+    let zero = "zero";
+
+    let frames = StrLines::new(zero);
+
+    dbg!(frames.start(zero));
 }
 
 #[test]
@@ -156,7 +166,7 @@ fn cmp_it<'a>(mut it: impl Iterator<Item = &'a str>, mut jt: impl Iterator<Item 
         let j = jt.next();
 
         assert_eq!(i, j);
-        // println!("cmp_it {:?} == {:?}", i, j);
+        println!("cmp_it {:?} == {:?}", i, j);
 
         if i.is_none() && j.is_none() {
             break;
@@ -178,27 +188,27 @@ fn test_str_full() {
 
                 let frag = &buf[s..e];
 
-                // println!();
-                // println!(
-                //     "find {:?} in {:?} with start {}, end {}, offset {}",
-                //     frag,
-                //     buf,
-                //     i_s,
-                //     i_e,
-                //     unsafe { offset_str(buf, frag) }
-                // );
+                println!();
+                println!(
+                    "find {:?} in {:?} with start {}, end {}, offset {}",
+                    frag,
+                    buf,
+                    i_s,
+                    i_e,
+                    buf.offset(frag)
+                );
 
-                // println!("current:");
+                println!("current:");
                 let it = frames.current(frag);
                 let jt = split[i_s..i_e + 1].iter().copied();
                 cmp_it(it, jt);
 
-                // println!("forward:");
+                println!("forward:");
                 let it = frames.forward_from(frag);
                 let jt = split[i_e + 1..].iter().copied();
                 cmp_it(it, jt);
 
-                // println!("backward:");
+                println!("backward:");
                 let it = frames.backward_from(frag);
                 let jt = split[..i_s].iter().rev().copied();
                 cmp_it(it, jt);
