@@ -70,9 +70,7 @@ fn test_sizes() {
 #[test]
 fn test_size2() {
     dbg!(size_of::<NoContext>());
-    dbg!(size_of::<StrContext<&str>>());
-    dbg!(size_of::<TrackingContext<&str, ZCode, true>>());
-    dbg!(size_of::<TrackingContext<&str, ZCode, false>>());
+    dbg!(size_of::<TrackingContext<&str, ZCode>>());
     // dbg!(size_of::<RefCell<TrackingData<ZCode, true>>>());
     // dbg!(size_of::<TrackingData<ZCode, true>>());
     // dbg!(size_of::<TrackingData<ZCode, false>>());

@@ -9,19 +9,17 @@ use std::marker::PhantomData;
 ///
 /// The parser impl must call the tracking functions via Context.
 ///
-pub struct TrackingContext<'s, T: AsBytes + Copy, C: Code, const TRACK: bool = false> {
-    span: T,
-    data: RefCell<TrackingData<'s, T, C, TRACK>>,
+pub struct TrackingContext<'s, T: AsBytes + Copy, C: Code> {
+    track: bool,
+    data: RefCell<TrackingData<'s, T, C>>,
 }
 
-struct TrackingData<'s, T: AsBytes + Copy, C: Code, const TRACK: bool = false> {
+struct TrackingData<'s, T: AsBytes + Copy, C: Code> {
     func: Vec<C>,
     track: Vec<Track<'s, T, C>>,
 }
 
-impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> Default
-    for TrackingData<'s, T, C, TRACK>
-{
+impl<'s, T: AsBytes + Copy + 's, C: Code> Default for TrackingData<'s, T, C> {
     fn default() -> Self {
         Self {
             func: Default::default(),
@@ -30,24 +28,22 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> Default
     }
 }
 
-impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s, T, C, TRACK> {
+impl<'s, T: AsBytes + Copy + 's, C: Code> TrackingContext<'s, T, C> {
     /// Creates a context for a given span.
-    pub fn new(span: T) -> Self {
+    pub fn new(track: bool) -> Self {
         Self {
-            span,
+            track,
             data: Default::default(),
         }
     }
 
     /// Create a new Span from this context using the original str.
-    pub fn span(&'s self) -> Span<'s, T, C> {
-        Span::new_extra(self.span, DynContext(Some(self)))
+    pub fn span(&'s self, text: T) -> Span<'s, T, C> {
+        Span::new_extra(text, DynContext(Some(self)))
     }
 }
 
-impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> ParseContext<'s, T, C>
-    for TrackingContext<'s, T, C, TRACK>
-{
+impl<'s, T: AsBytes + Copy + 's, C: Code> ParseContext<'s, T, C> for TrackingContext<'s, T, C> {
     fn enter(&self, func: C, span: &Span<'s, T, C>) {
         self.push_func(func);
         self.track_enter(span);
@@ -76,14 +72,14 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> ParseContext<'s, T,
     }
 }
 
-impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s, T, C, TRACK> {
+impl<'s, T: AsBytes + Copy + 's, C: Code> TrackingContext<'s, T, C> {
     /// Extract the tracking results.
     pub fn results(&self) -> Vec<Track<'s, T, C>> {
         self.data.replace(TrackingData::default()).track
     }
 }
 
-impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s, T, C, TRACK> {
+impl<'s, T: AsBytes + Copy + 's, C: Code> TrackingContext<'s, T, C> {
     // enter function
     fn push_func(&self, func: C) {
         self.data.borrow_mut().func.push(func);
@@ -109,9 +105,9 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s,
     }
 }
 
-impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s, T, C, TRACK> {
+impl<'s, T: AsBytes + Copy + 's, C: Code> TrackingContext<'s, T, C> {
     fn track_enter(&self, span: &Span<'s, T, C>) {
-        if TRACK {
+        if self.track {
             let parent = self.parent_vec();
             let func = self.func();
             self.data.borrow_mut().track.push(Track::Enter(EnterTrack {
@@ -123,7 +119,7 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s,
     }
 
     fn track_debug(&self, span: &Span<'s, T, C>, debug: String) {
-        if TRACK {
+        if self.track {
             let parent = self.parent_vec();
             let func = self.func();
             self.data.borrow_mut().track.push(Track::Debug(DebugTrack {
@@ -136,7 +132,7 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s,
     }
 
     fn track_info(&self, span: &Span<'s, T, C>, info: &'static str) {
-        if TRACK {
+        if self.track {
             let parent = self.parent_vec();
             let func = self.func();
             self.data.borrow_mut().track.push(Track::Info(InfoTrack {
@@ -149,7 +145,7 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s,
     }
 
     fn track_warn(&self, span: &Span<'s, T, C>, warn: &'static str) {
-        if TRACK {
+        if self.track {
             let parent = self.parent_vec();
             let func = self.func();
             self.data.borrow_mut().track.push(Track::Warn(WarnTrack {
@@ -162,7 +158,7 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s,
     }
 
     fn track_exit_ok(&self, span: &Span<'s, T, C>, parsed: &Span<'s, T, C>) {
-        if TRACK {
+        if self.track {
             let parent = self.parent_vec();
             let func = self.func();
             self.data.borrow_mut().track.push(Track::Ok(OkTrack {
@@ -180,7 +176,7 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s,
     }
 
     fn track_exit_err(&self, span: &Span<'s, T, C>, code: C, err: &dyn Error) {
-        if TRACK {
+        if self.track {
             let err_str = if let Some(cause) = err.source() {
                 cause.to_string()
             } else {

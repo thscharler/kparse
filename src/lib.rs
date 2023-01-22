@@ -46,7 +46,6 @@ pub mod debug;
 mod error;
 mod no_context;
 pub mod spans;
-mod str_context;
 pub mod test;
 mod tracker;
 mod tracking_context;
@@ -55,7 +54,6 @@ mod tracking_context;
 pub use conversion::*;
 pub use error::{AppendParserError, Hints, Nom, ParserError, SpanAndCode};
 pub use no_context::NoContext;
-pub use str_context::StrContext;
 #[allow(unreachable_pub)]
 pub use tracker::*;
 pub use tracking_context::{
@@ -68,7 +66,7 @@ pub use tracking_context::{
 pub mod prelude {
     pub use crate::{error_code, transform};
     pub use crate::{AppendParserError, ParserError, TrackParserError, WithCode, WithSpan};
-    pub use crate::{Code, NoContext, ParseContext, StrContext, TrackingContext};
+    pub use crate::{Code, NoContext, ParseContext, TrackingContext};
     pub use crate::{Context, ParserNomResult, ParserResult, Span};
 }
 

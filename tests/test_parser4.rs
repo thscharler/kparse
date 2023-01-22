@@ -6,7 +6,7 @@ use crate::planung4::tokens::{
     token_datum, token_menge, token_name, token_name_kurz, token_nummer,
 };
 use crate::planung4::APCode::*;
-use kparse::test::{noctx_parse, notrack_parse, str_parse, track_parse, CheckDump, Timing};
+use kparse::test::{noctx_parse, notrack_parse, track_parse, CheckDump, Timing};
 use std::fs::read_to_string;
 
 const R: ReportDiagnostics = ReportDiagnostics;
@@ -30,14 +30,6 @@ pub fn timing() {
     println!();
     println!("TRACK=false");
     notrack_parse(&mut None, s.as_str(), planung4::parser::parse)
-        .okok()
-        .rest("")
-        .q(Timing(1));
-
-    println!();
-    println!();
-    println!("STR");
-    str_parse(&mut None, s.as_str(), planung4::parser::parse)
         .okok()
         .rest("")
         .q(Timing(1));
@@ -445,10 +437,9 @@ mod planung4 {
         #[derive(Clone, Copy)]
         pub struct ReportDiagnostics;
 
-        impl<'s, C, O, const TRACK: bool>
-            Report<
-                Test<'s, TrackingContext<'s, &str, C, TRACK>, &str, C, O, ParserError<'_, &str, C>>,
-            > for ReportDiagnostics
+        impl<'s, C, O>
+            Report<Test<'s, TrackingContext<'s, &str, C>, &str, C, O, ParserError<'_, &str, C>>>
+            for ReportDiagnostics
         where
             C: Code,
             O: Debug,
@@ -456,14 +447,7 @@ mod planung4 {
             #[track_caller]
             fn report(
                 &self,
-                test: &Test<
-                    's,
-                    TrackingContext<'s, &str, C, TRACK>,
-                    &str,
-                    C,
-                    O,
-                    ParserError<'_, &str, C>,
-                >,
+                test: &Test<'s, TrackingContext<'s, &str, C>, &str, C, O, ParserError<'_, &str, C>>,
             ) {
                 if test.failed.get() {
                     let text = LocatedSpan::new(test.text);

@@ -3,7 +3,7 @@
 //!
 
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, NoContext, ParserError, Span, StrContext, TrackingContext};
+use crate::{Code, NoContext, ParserError, Span, TrackingContext};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::cell::Cell;
 use std::fmt::Debug;
@@ -45,14 +45,14 @@ pub trait Report<T> {
 /// Finish the test with q().
 #[must_use]
 pub fn track_parse<'s, T: AsBytes + Copy + 's, C: Code, O, E>(
-    buf: &'s mut Option<TrackingContext<'s, T, C, true>>,
+    buf: &'s mut Option<TrackingContext<'s, T, C>>,
     text: T,
     fn_test: impl Fn(Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E>>,
-) -> Test<'s, TrackingContext<'s, T, C, true>, T, C, O, E> {
-    buf.replace(TrackingContext::new(text));
+) -> Test<'s, TrackingContext<'s, T, C>, T, C, O, E> {
+    buf.replace(TrackingContext::new(true));
     let context = buf.as_ref().expect("yes");
 
-    let span = context.span();
+    let span = context.span(text);
 
     let now = Instant::now();
     let result = fn_test(span);
@@ -73,42 +73,14 @@ pub fn track_parse<'s, T: AsBytes + Copy + 's, C: Code, O, E>(
 /// Finish the test with q().
 #[must_use]
 pub fn notrack_parse<'s, T: AsBytes + Copy + 's, C: Code, O, E>(
-    buf: &'s mut Option<TrackingContext<'s, T, C, false>>,
+    buf: &'s mut Option<TrackingContext<'s, T, C>>,
     text: T,
     fn_test: impl Fn(Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E>>,
-) -> Test<'s, TrackingContext<'s, T, C, false>, T, C, O, E> {
-    buf.replace(TrackingContext::new(text));
+) -> Test<'s, TrackingContext<'s, T, C>, T, C, O, E> {
+    buf.replace(TrackingContext::new(false));
     let context = buf.as_ref().expect("yes");
 
-    let span = context.span();
-
-    let now = Instant::now();
-    let result = fn_test(span);
-    let elapsed = now.elapsed();
-
-    Test {
-        text,
-        context,
-        result,
-        duration: elapsed,
-        failed: Cell::new(false),
-    }
-}
-
-/// Runs the parser and records the results.
-/// Use ok(), err(), ... to check specifics.
-///
-/// Finish the test with q().
-#[must_use]
-pub fn str_parse<'s, T: AsBytes + Copy + 's, C: Code, O, E>(
-    buf: &'s mut Option<StrContext<'s, T>>,
-    text: T,
-    fn_test: impl Fn(Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E>>,
-) -> Test<'s, StrContext<'s, T>, T, C, O, E> {
-    buf.replace(StrContext::new(text));
-    let context = buf.as_ref().expect("yes");
-
-    let span = context.span();
+    let span = context.span(text);
 
     let now = Instant::now();
     let result = fn_test(span);
@@ -569,8 +541,7 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct CheckTrace;
 
-    impl<'s, T, C, O, E, const TRACK: bool>
-        Report<Test<'s, TrackingContext<'s, T, C, TRACK>, T, C, O, E>> for CheckTrace
+    impl<'s, T, C, O, E> Report<Test<'s, TrackingContext<'s, T, C>, T, C, O, E>> for CheckTrace
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -584,7 +555,7 @@ mod report {
         E: Debug,
     {
         #[track_caller]
-        fn report(&self, test: &Test<'s, TrackingContext<'s, T, C, TRACK>, T, C, O, E>) {
+        fn report(&self, test: &Test<'s, TrackingContext<'s, T, C>, T, C, O, E>) {
             if test.failed.get() {
                 trace(test);
                 panic!("test failed")
@@ -596,8 +567,7 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct Trace;
 
-    impl<'s, T, C, O, E, const TRACK: bool>
-        Report<Test<'s, TrackingContext<'s, T, C, TRACK>, T, C, O, E>> for Trace
+    impl<'s, T, C, O, E> Report<Test<'s, TrackingContext<'s, T, C>, T, C, O, E>> for Trace
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -610,14 +580,13 @@ mod report {
         O: Debug,
         E: Debug,
     {
-        fn report(&self, test: &Test<'s, TrackingContext<'s, T, C, TRACK>, T, C, O, E>) {
+        fn report(&self, test: &Test<'s, TrackingContext<'s, T, C>, T, C, O, E>) {
             trace(test);
         }
     }
 
-    fn trace<'s, T, C, O, E, const TRACK: bool>(
-        test: &Test<'s, TrackingContext<'s, T, C, TRACK>, T, C, O, E>,
-    ) where
+    fn trace<'s, T, C, O, E>(test: &Test<'s, TrackingContext<'s, T, C>, T, C, O, E>)
+    where
         T: AsBytes + Copy + Debug,
         T: Offset
             + InputTake

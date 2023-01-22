@@ -283,8 +283,8 @@ fn parse_non_terminal_3(rest: Span<'_>) -> IParserResult<'_, ()> {
 }
 
 fn run_parser() {
-    let ctx: TrackingContext<'_, &str, ICode, true> = TrackingContext::new("A");
-    let span = ctx.span();
+    let ctx: TrackingContext<'_, &str, ICode> = TrackingContext::new(true);
+    let span = ctx.span("A");
 
     let _r = parse_terminal_a(span);
 }
