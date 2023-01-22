@@ -427,8 +427,10 @@ mod planung4 {
         use kparse::debug::restrict_n;
         use kparse::debug::tracks::Tracks;
         use kparse::prelude::*;
+        use kparse::spans::SpanLines;
         use kparse::test::{Report, Test};
         use kparse::Track;
+        use nom_locate::LocatedSpan;
         use std::ffi::OsStr;
         use std::fmt::Debug;
         use std::path::{Path, PathBuf};
@@ -464,10 +466,11 @@ mod planung4 {
                 >,
             ) {
                 if test.failed.get() {
+                    let text = LocatedSpan::new(test.text);
                     match &test.result {
                         Ok(_v) => {}
                         Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                            dump_diagnostics(&PathBuf::from(""), e, "", true);
+                            dump_diagnostics(&PathBuf::from(""), text, e, "", true);
                             panic!("test failed");
                         }
                         Err(nom::Err::Incomplete(_e)) => {}
@@ -479,13 +482,14 @@ mod planung4 {
         /// Write some diagnostics.
         #[allow(clippy::collapsible_else_if)]
         #[allow(clippy::collapsible_if)]
-        pub fn dump_diagnostics<C: Code>(
+        pub fn dump_diagnostics<C: Code, X: Copy>(
             src: &Path,
+            orig: LocatedSpan<&str, X>,
             err: &ParserError<'_, &str, C>,
             msg: &str,
             is_err: bool,
         ) {
-            let txt = SpanLines::new(Context.original(&err.span));
+            let txt = SpanLines::new(orig);
 
             let text1 = txt.get_lines_around(&err.span, 3);
 

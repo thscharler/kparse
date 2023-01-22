@@ -123,56 +123,71 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         Self { sep: b'\n', buf }
     }
 
-    pub fn ascii_column(self, fragment: LocatedSpan<&str, X>, sep: u8) -> usize {
-        let prefix = self.frame_prefix(fragment, sep);
+    pub fn ascii_column(&self, fragment: &LocatedSpan<&str, X>, sep: u8) -> usize {
+        let prefix = Self::frame_prefix(&self.buf, fragment, sep);
         prefix.len()
     }
 
-    pub fn utf8_column(self, fragment: LocatedSpan<&str, X>, sep: u8) -> usize {
-        let prefix = self.frame_prefix(fragment, sep);
+    pub fn utf8_column(&self, fragment: &LocatedSpan<&str, X>, sep: u8) -> usize {
+        let prefix = Self::frame_prefix(&self.buf, fragment, sep);
         num_chars(prefix.as_bytes())
     }
 
-    pub fn naive_utf8_column(self, fragment: LocatedSpan<&str, X>, sep: u8) -> usize {
-        let prefix = self.frame_prefix(fragment, sep);
+    pub fn naive_utf8_column(&self, fragment: &LocatedSpan<&str, X>, sep: u8) -> usize {
+        let prefix = Self::frame_prefix(&self.buf, fragment, sep);
         naive_num_chars(prefix.as_bytes())
+    }
+
+    /// Return n lines before and after the fragment, and place the lines of the fragment
+    /// between them.
+    pub fn get_lines_around<'a>(
+        &self,
+        fragment: &LocatedSpan<&'a str, X>,
+        n: usize,
+    ) -> Vec<LocatedSpan<&'s str, X>> {
+        let mut buf: Vec<_> = self.backward_from(fragment).take(n).collect();
+        buf.reverse();
+        buf.extend(self.current(fragment));
+        buf.extend(self.forward_from(fragment).take(n));
+
+        buf
     }
 
     /// First full line for the fragment.
     pub fn start<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> LocatedSpan<&'s str, X> {
-        Self::start_frame(self, fragment, self.sep)
+        Self::start_frame(&self.buf, fragment, self.sep)
     }
 
     /// Last full line for the fragment.
     pub fn end<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> LocatedSpan<&'s str, X> {
-        Self::end_frame(self, fragment, self.sep)
+        Self::end_frame(&self.buf, fragment, self.sep)
     }
 
     /// Expand the fragment to cover full lines and return an Iterator for the lines.
-    pub fn current(&self, fragment: &LocatedSpan<&'s str, X>) -> Self::Iter {
-        let current = self.complete_fragment(fragment, self.sep);
+    pub fn current<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> SpanIter<'s, X> {
+        let current = Self::complete_fragment(&self.buf, fragment, self.sep);
 
         SpanIter {
-            delim: self.sep,
+            sep: self.sep,
             buf: current,
-            fragment: None,
+            fragment: Self::empty_frame(&self.buf, &current),
         }
     }
 
     /// Iterator for all lines of the buffer.
-    pub fn iter(&self) -> Self::Iter {
+    pub fn iter(&self) -> SpanIter<'s, X> {
         SpanIter {
-            delim: self.sep,
+            sep: self.sep,
             buf: self.buf,
-            fragment: None,
+            fragment: Self::empty_frame(&self.buf, &self.buf),
         }
     }
 
     /// Iterator over the lines following the last line of the fragment.
-    pub fn forward_from(&self, fragment: &LocatedSpan<&'s str, X>) -> Self::FwdIter {
-        let current = Self::end_frame(self, fragment, self.sep);
-        FSpanIter {
-            delim: self.sep,
+    pub fn forward_from<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> SpanIter<'s, X> {
+        let current = Self::end_frame(&self.buf, fragment, self.sep);
+        SpanIter {
+            sep: self.sep,
             buf: self.buf,
             fragment: current,
         }
@@ -180,10 +195,10 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
 
     /// Iterator over the lines preceeding the first line of the fragment.
     /// In descending order.
-    pub fn backward_from(&self, fragment: &LocatedSpan<&'s str, X>) -> Self::RevIter {
-        let current = Self::start_frame(self, fragment, self.sep);
+    pub fn backward_from<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> RSpanIter<'s, X> {
+        let current = Self::start_frame(&self.buf, fragment, self.sep);
         RSpanIter {
-            delim: self.sep,
+            sep: self.sep,
             buf: self.buf,
             fragment: current,
         }
@@ -192,8 +207,8 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     /// Returns the part of the frame from the last separator up to the start of the
     /// fragment.
     fn frame_prefix<'a>(
-        complete: LocatedSpan<&'s str, X>,
-        fragment: LocatedSpan<&'a str, X>,
+        complete: &LocatedSpan<&'s str, X>,
+        fragment: &LocatedSpan<&'a str, X>,
         sep: u8,
     ) -> &'s str {
         // assert!(sep <= 127);
@@ -210,24 +225,41 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         &complete[start..offset]
     }
 
+    /// Empty span at the beginning of the fragment.
+    fn empty_frame<'a>(
+        complete: &LocatedSpan<&'s str, X>,
+        fragment: &LocatedSpan<&'a str, X>,
+    ) -> LocatedSpan<&'s str, X> {
+        let offset = fragment.location_offset();
+        assert!(offset <= complete.len());
+
+        unsafe {
+            LocatedSpan::new_from_raw_offset(
+                offset,
+                fragment.location_line(),
+                &complete[offset..offset],
+                complete.extra,
+            )
+        }
+    }
+
     /// First full line for the fragment.
     fn start_frame<'a>(
         complete: &LocatedSpan<&'s str, X>,
         fragment: &LocatedSpan<&'a str, X>,
         sep: u8,
     ) -> LocatedSpan<&'s str, X> {
-        // assert!(sep <= 127);
         let offset = fragment.location_offset();
-        assert!(offset <= complete.buf.len());
+        assert!(offset <= complete.len());
 
-        let self_bytes = complete.buf.as_bytes();
+        let self_bytes = complete.as_bytes();
 
         let start = match memrchr(sep, &self_bytes[..offset]) {
             None => 0,
             Some(v) => v + 1,
         };
         let end = match memchr(sep, &self_bytes[offset..]) {
-            None => complete.buf.len(),
+            None => complete.len(),
             Some(v) => offset + v,
         };
 
@@ -235,8 +267,8 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
             LocatedSpan::new_from_raw_offset(
                 start,
                 fragment.location_line(),
-                &complete.buf[start..end],
-                complete.buf.extra,
+                &complete[start..end],
+                complete.extra,
             )
         }
     }
@@ -248,14 +280,12 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         complete: &LocatedSpan<&'s str, X>,
         fragment: &LocatedSpan<&'a str, X>,
         sep: u8,
-    ) -> Self::Frame {
-        // assert!(sep <= 127);
-
+    ) -> LocatedSpan<&'s str, X> {
         let offset = fragment.location_offset() + fragment.len();
         let lines = Self::count(fragment.fragment(), sep);
-        assert!(offset <= complete.buf.len());
+        assert!(offset <= complete.len());
 
-        let self_bytes = complete.buf.as_bytes();
+        let self_bytes = complete.as_bytes();
 
         let start = match memrchr(sep, &self_bytes[..offset]) {
             None => 0,
@@ -270,8 +300,8 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
             LocatedSpan::new_from_raw_offset(
                 start,
                 fragment.location_line() + lines,
-                &complete.buf[start..end],
-                complete.buf.extra,
+                &complete[start..end],
+                complete.extra,
             )
         }
     }
@@ -281,20 +311,18 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         fragment: &LocatedSpan<&'a str, X>,
         sep: u8,
     ) -> LocatedSpan<&'s str, X> {
-        // assert!(sep <= 127);
-
         let offset = fragment.location_offset();
         let len = fragment.len();
-        assert!(offset + len <= complete.buf.len());
+        assert!(offset + len <= complete.len());
 
-        let self_bytes = complete.buf.as_bytes();
+        let self_bytes = complete.as_bytes();
 
         let start = match memrchr(sep, &self_bytes[..offset]) {
             None => 0,
             Some(o) => o + 1,
         };
         let end = match memchr(sep, &self_bytes[offset + len..]) {
-            None => complete.buf.len(),
+            None => complete.len(),
             Some(o) => offset + len + o,
         };
 
@@ -302,27 +330,26 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
             LocatedSpan::new_from_raw_offset(
                 start,
                 fragment.location_line(),
-                &complete.buf[start..end],
-                complete.buf.extra,
+                &complete[start..end],
+                complete.extra,
             )
         }
     }
 
     fn next_fragment<'a>(
-        complete: LocatedSpan<&'s str, X>,
-        fragment: LocatedSpan<&'a str, X>,
+        complete: &LocatedSpan<&'s str, X>,
+        fragment: &LocatedSpan<&'a str, X>,
         sep: u8,
-    ) -> (LocatedSpan<&'s str, X>, bool) {
-        // assert!(sep <= 127);
+    ) -> (LocatedSpan<&'s str, X>, Option<LocatedSpan<&'s str, X>>) {
         let offset = fragment.location_offset();
         let len = fragment.len();
+        assert!(offset + len <= complete.len());
         let lines = Self::count(fragment.fragment(), sep);
-        assert!(offset + len <= complete.buf.len());
 
-        let self_bytes = complete.buf.as_bytes();
+        let self_bytes = complete.as_bytes();
 
         let start_0 = offset + len;
-        let (truncate_start, lines, start) = if start_0 == complete.buf.len() {
+        let (truncate_start, lines, start) = if start_0 == complete.len() {
             (true, lines, start_0)
         } else if self_bytes[start_0] == sep {
             // skip sep
@@ -332,40 +359,44 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         };
 
         let end = match memchr(sep, &self_bytes[start..]) {
-            None => complete.buf.len(),
+            None => complete.len(),
             Some(o) => start + o,
         };
 
-        unsafe {
-            (
-                LocatedSpan::new_from_raw_offset(
-                    start,
-                    fragment.location_line() + lines,
-                    &complete.buf[start..end],
-                    complete.buf.extra,
-                ),
-                !truncate_start,
+        let span = unsafe {
+            LocatedSpan::new_from_raw_offset(
+                start,
+                fragment.location_line() + lines,
+                &complete[start..end],
+                complete.extra,
             )
-        }
+        };
+
+        (span, if truncate_start { None } else { Some(span) })
     }
 
     fn prev_fragment<'a>(
-        complete: LocatedSpan<&'s str, X>,
-        fragment: LocatedSpan<&'a str, X>,
+        complete: &LocatedSpan<&'s str, X>,
+        fragment: &LocatedSpan<&'a str, X>,
         sep: u8,
-    ) -> (LocatedSpan<&'s str, X>, bool) {
-        // assert!(sep <= 127);
-
+    ) -> (LocatedSpan<&'s str, X>, Option<LocatedSpan<&'s str, X>>) {
         let offset = fragment.location_offset();
+        assert!(offset <= complete.len());
 
-        let self_bytes = complete.buf.as_bytes();
+        let offset = if offset > complete.len() {
+            complete.len()
+        } else {
+            offset
+        };
+
+        let self_bytes = complete.as_bytes();
 
         let end_0 = offset;
         let (trunc_end, lines, end) = if end_0 == 0 {
             (true, 0, end_0)
         } else if self_bytes[end_0 - 1] == sep {
             // skip sep
-            (false, -1, end_0 - 1)
+            (false, 1, end_0 - 1)
         } else {
             (false, 0, end_0)
         };
@@ -375,17 +406,16 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
             Some(n) => n + 1,
         };
 
-        unsafe {
-            (
-                LocatedSpan::new_from_raw_offset(
-                    start,
-                    fragment.location_line() + lines,
-                    &complete.buf[start..end],
-                    complete.buf.extra,
-                ),
-                !trunc_end,
+        let span = unsafe {
+            LocatedSpan::new_from_raw_offset(
+                start,
+                fragment.location_line() - lines,
+                &complete[start..end],
+                complete.extra,
             )
-        }
+        };
+
+        (span, if trunc_end { None } else { Some(span) })
     }
 
     fn count(fragment: &str, sep: u8) -> u32 {
@@ -404,5 +434,39 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         }
 
         count
+    }
+}
+
+/// Iterates all lines.
+pub struct SpanIter<'s, X> {
+    sep: u8,
+    buf: LocatedSpan<&'s str, X>,
+    fragment: LocatedSpan<&'s str, X>,
+}
+
+impl<'s, X: Copy + 's> Iterator for SpanIter<'s, X> {
+    type Item = LocatedSpan<&'s str, X>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (next, result) = SpanLines::next_fragment(&self.buf, &self.fragment, self.sep);
+        self.fragment = next;
+        result
+    }
+}
+
+/// Backward iterator.
+pub struct RSpanIter<'s, X> {
+    sep: u8,
+    buf: LocatedSpan<&'s str, X>,
+    fragment: LocatedSpan<&'s str, X>,
+}
+
+impl<'s, X: Copy + 's> Iterator for RSpanIter<'s, X> {
+    type Item = LocatedSpan<&'s str, X>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (next, result) = SpanLines::prev_fragment(&self.buf, &self.fragment, self.sep);
+        self.fragment = next;
+        result
     }
 }
