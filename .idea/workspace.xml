@@ -15,15 +15,9 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="make SpanLines compile.&#10;&#10;current tests run ok :-)">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="remove StrContext. makes no sense any longer.&#10;&#10;throw away const parameter for TrackingContext. replace with data flag.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/str_context.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_sizes.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_sizes.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -95,7 +89,7 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\test" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test">
+  <component name="RunManager" selected="Cargo.Test spans::tests::test_prev_fragment">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -130,8 +124,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test_current_prefix_2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_fragment test_current_prefix_2 -- --exact" />
+    <configuration name="Test spans::tests::test_count" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --lib spans::tests::test_count -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -147,8 +141,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test_current_prefix_3" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_fragment test_current_prefix_3 -- --exact" />
+    <configuration name="Test spans::tests::test_next_fragment" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --lib spans::tests::test_next_fragment -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -164,42 +158,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test_str_full" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_data_frame test_str_full -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test test_subslice_offset3" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_fragment test_subslice_offset3 -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test test_this_stack_2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_data_frame test_this_stack_2 -- --exact" />
+    <configuration name="Test spans::tests::test_prev_fragment" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --lib spans::tests::test_prev_fragment -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -236,19 +196,15 @@
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clean" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test test_current_prefix_2" />
-      <item itemvalue="Cargo.Test test_current_prefix_3" />
-      <item itemvalue="Cargo.Test test_str_full" />
-      <item itemvalue="Cargo.Test test_subslice_offset3" />
-      <item itemvalue="Cargo.Test test_this_stack_2" />
+      <item itemvalue="Cargo.Test spans::tests::test_next_fragment" />
+      <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
+      <item itemvalue="Cargo.Test spans::tests::test_count" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test test_this_stack_2" />
-        <item itemvalue="Cargo.Test test_current_prefix_3" />
-        <item itemvalue="Cargo.Test test_current_prefix_2" />
-        <item itemvalue="Cargo.Test test_str_full" />
-        <item itemvalue="Cargo.Test test_subslice_offset3" />
+        <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
+        <item itemvalue="Cargo.Test spans::tests::test_next_fragment" />
+        <item itemvalue="Cargo.Test spans::tests::test_count" />
       </list>
     </recent_temporary>
   </component>
@@ -591,7 +547,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674383678507</updated>
     </task>
-    <option name="localTasksCounter" value="47" />
+    <task id="LOCAL-00047" summary="remove StrContext. makes no sense any longer.&#10;&#10;throw away const parameter for TrackingContext. replace with data flag.">
+      <created>1674386302960</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1674386302960</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -625,7 +588,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;RawContext&#10;&#10;test runner" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;some f'ing around with ParseContext" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;span_union only in Context.&#10;no need to pass through everything." />
     <MESSAGE value="m4 shine&#10;&#10;new AddCode and Transform and company" />
@@ -650,10 +612,15 @@
     <MESSAGE value="remove original() from ParseContext.&#10;replace Context.span_union with SpanExt.span_union which can be implemented based on LocatedSpan and thus safer.&#10;&#10;New module spans:&#10;SpanExt - allow merging subspans of a span. Cuts off the result at the margins of the buffer instead of panicking.&#10;&#10; SpanLines: deconstructs the old DataFrame et al to a safer construct." />
     <MESSAGE value="make SpanLines compile." />
     <MESSAGE value="make SpanLines compile.&#10;&#10;current tests run ok :-)" />
-    <option name="LAST_COMMIT_MESSAGE" value="make SpanLines compile.&#10;&#10;current tests run ok :-)" />
+    <MESSAGE value="remove StrContext. makes no sense any longer.&#10;&#10;throw away const parameter for TrackingContext. replace with data flag." />
+    <option name="LAST_COMMIT_MESSAGE" value="remove StrContext. makes no sense any longer.&#10;&#10;throw away const parameter for TrackingContext. replace with data flag." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
     <select />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/kparse$Test_spans__tests__test_prev_fragment.info" NAME="Test spans::tests::test_prev_fragment Coverage Results" MODIFIED="1674398438992" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="RsCoverageRunner" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" CONTEXT_FILE_PATH="C:\Users\stommy\Documents\IdeaProjects\kparse" />
+    <SUITE FILE_PATH="coverage/kparse$Test_spans__tests__test_count.info" NAME="Test spans::tests::test_count Coverage Results" MODIFIED="1674398061676" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="RsCoverageRunner" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" CONTEXT_FILE_PATH="C:\Users\stommy\Documents\IdeaProjects\kparse" />
   </component>
 </project>

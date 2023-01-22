@@ -282,7 +282,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         sep: u8,
     ) -> LocatedSpan<&'s str, X> {
         let offset = fragment.location_offset() + fragment.len();
-        let lines = Self::count(fragment.fragment(), sep);
+        let lines = count_occurrence(fragment.fragment(), sep);
         assert!(offset <= complete.len());
 
         let self_bytes = complete.as_bytes();
@@ -343,36 +343,35 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     ) -> (LocatedSpan<&'s str, X>, Option<LocatedSpan<&'s str, X>>) {
         let offset = fragment.location_offset();
         let len = fragment.len();
-        assert!(offset + len <= complete.len());
-        let lines = Self::count(fragment.fragment(), sep);
 
-        let self_bytes = complete.as_bytes();
-
-        let start_0 = offset + len;
-        let (truncate_start, lines, start) = if start_0 == complete.len() {
-            (true, lines, start_0)
-        } else if self_bytes[start_0] == sep {
-            // skip sep
-            (false, lines + 1, start_0 + 1)
+        // trim start to our bounds.
+        let start = if offset + len > complete.len() {
+            complete.len()
         } else {
-            (false, lines, start_0)
+            offset + len
         };
 
+        let is_terminal = start == complete.len();
+
+        // real linecount
+        let skip_lines = count_occurrence(fragment.fragment(), sep);
+
+        let self_bytes = complete.as_bytes();
         let end = match memchr(sep, &self_bytes[start..]) {
             None => complete.len(),
-            Some(o) => start + o,
+            Some(o) => start + o + 1,
         };
 
         let span = unsafe {
             LocatedSpan::new_from_raw_offset(
                 start,
-                fragment.location_line() + lines,
+                fragment.location_line() + skip_lines,
                 &complete[start..end],
                 complete.extra,
             )
         };
 
-        (span, if truncate_start { None } else { Some(span) })
+        (span, if is_terminal { None } else { Some(span) })
     }
 
     fn prev_fragment<'a, Y>(
@@ -381,27 +380,27 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         sep: u8,
     ) -> (LocatedSpan<&'s str, X>, Option<LocatedSpan<&'s str, X>>) {
         let offset = fragment.location_offset();
-        assert!(offset <= complete.len());
 
-        let offset = if offset > complete.len() {
+        // trim end to our bounds.
+        let end = if offset > complete.len() {
             complete.len()
         } else {
             offset
         };
 
-        let self_bytes = complete.as_bytes();
+        // At the beginning?
+        let is_terminal = end == 0;
 
-        let end_0 = offset;
-        let (trunc_end, lines, end) = if end_0 == 0 {
-            (true, 0, end_0)
-        } else if self_bytes[end_0 - 1] == sep {
-            // skip sep
-            (false, 1, end_0 - 1)
+        // immediately preceeding separator.
+        let self_bytes = complete.as_bytes();
+        let skip_lines = if !is_terminal && self_bytes[end - 1] == sep {
+            1
         } else {
-            (false, 0, end_0)
+            0
         };
 
-        let start = match memrchr(sep, &self_bytes[..end]) {
+        // find separator
+        let start = match memrchr(sep, &self_bytes[..end - skip_lines]) {
             None => 0,
             Some(n) => n + 1,
         };
@@ -409,31 +408,13 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         let span = unsafe {
             LocatedSpan::new_from_raw_offset(
                 start,
-                fragment.location_line() - lines,
+                fragment.location_line() - skip_lines as u32,
                 &complete[start..end],
                 complete.extra,
             )
         };
 
-        (span, if trunc_end { None } else { Some(span) })
-    }
-
-    fn count(fragment: &str, sep: u8) -> u32 {
-        let mut count = 0;
-
-        let mut start = 0;
-        let bytes = fragment.as_bytes();
-        loop {
-            match memchr(sep, &bytes[start..]) {
-                None => break,
-                Some(o) => {
-                    count += 1;
-                    start = o + 1;
-                }
-            }
-        }
-
-        count
+        (span, if is_terminal { None } else { Some(span) })
     }
 }
 
@@ -468,5 +449,222 @@ impl<'s, X: Copy + 's> Iterator for RSpanIter<'s, X> {
         let (next, result) = SpanLines::prev_fragment(&self.buf, &self.fragment, self.sep);
         self.fragment = next;
         result
+    }
+}
+
+/// Counts the occurrences.
+fn count_occurrence(fragment: &str, sep: u8) -> u32 {
+    let mut count = 0;
+
+    let mut start = 0;
+    let bytes = fragment.as_bytes();
+    loop {
+        match memchr(sep, &bytes[start..]) {
+            None => break,
+            Some(o) => {
+                count += 1;
+                start = start + o + 1;
+            }
+        }
+    }
+
+    count
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::spans::{count_occurrence, SpanLines};
+    use nom_locate::LocatedSpan;
+
+    const SEP: u8 = b'\n';
+
+    fn mk_fragment<'a, X: Copy>(
+        span: &LocatedSpan<&'a str, X>,
+        start: usize,
+        end: usize,
+    ) -> LocatedSpan<&'a str, X> {
+        let line = count_occurrence(&span[..start], SEP) + 1;
+        unsafe { LocatedSpan::new_from_raw_offset(start, line, &span[start..end], span.extra) }
+    }
+
+    #[test]
+    fn test_next_fragment() {
+        fn test_bounds(txt: &str, occ: &[usize]) -> Vec<[usize; 2]> {
+            let mut bounds = Vec::new();
+
+            let mut st = 0usize;
+            for b in occ {
+                bounds.push([st, *b + 1]);
+                st = *b + 1;
+            }
+            bounds.push([st, txt.len()]);
+
+            for bb in &bounds {
+                println!("{:?} {:?}", bb, &txt[bb[0]..bb[1]]);
+            }
+            bounds
+        }
+
+        fn check_bounds(pos: usize, bounds: &Vec<[usize; 2]>) -> (usize, usize) {
+            for (idx, b) in bounds.iter().enumerate() {
+                if b[0] <= pos && pos < b[1] {
+                    return (pos, b[1]);
+                } else if b[0] <= pos && pos == b[1] {
+                    if idx + 1 < bounds.len() {
+                        let b1 = bounds[idx + 1];
+                        return (b1[0], b1[1]);
+                    } else {
+                        return (pos, pos);
+                    }
+                }
+            }
+            panic!();
+        }
+
+        fn run(txt: &str, occ: &[usize]) {
+            println!("--{:?}--", txt);
+            let bounds = test_bounds(txt, occ);
+
+            let txt = LocatedSpan::new(txt);
+
+            for i in 0..=txt.len() {
+                for j in i..=txt.len() {
+                    let cb = check_bounds(j, &bounds);
+                    println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
+                    let cmp = mk_fragment(&txt, cb.0, cb.1);
+
+                    let frag = mk_fragment(&txt, i, j);
+                    let (next, _rnext) = SpanLines::next_fragment(&txt, &frag, SEP);
+
+                    println!(
+                        "    {}:{}:{} -> {}:{} <> {}:{}",
+                        frag.location_offset(),
+                        frag.location_offset() + frag.len(),
+                        frag.fragment().escape_debug(),
+                        next.location_offset(),
+                        next.fragment().escape_debug(),
+                        cmp.location_offset(),
+                        cmp.fragment().escape_debug()
+                    );
+
+                    assert_eq!(next, cmp);
+                }
+            }
+        }
+
+        run("", &[]);
+        run("a", &[]);
+        run("aaaa", &[]);
+        run("\naaaa", &[0]);
+        run("aaaa\n", &[4]);
+        run("\naaaa\n", &[0, 5]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+    }
+
+    #[test]
+    fn test_prev_fragment() {
+        fn test_bounds(txt: &str, occ: &[usize]) -> Vec<[usize; 2]> {
+            let mut bounds = Vec::new();
+
+            let mut st = 0usize;
+            for b in occ {
+                bounds.push([st, *b + 1]);
+                st = *b + 1;
+            }
+            bounds.push([st, txt.len()]);
+
+            for bb in &bounds {
+                println!("{:?} {:?}", bb, &txt[bb[0]..bb[1]]);
+            }
+            bounds
+        }
+
+        fn check_bounds(txt: &str, pos: usize, bounds: &Vec<[usize; 2]>) -> (usize, usize) {
+            for b in bounds {
+                if b[0] <= pos && pos < b[1] {
+                    return (b[0], pos);
+                } else if b[0] <= pos && pos == b[1] && b[1] > 0 && txt.as_bytes()[b[1] - 1] == SEP
+                {
+                    return (b[0], b[1]);
+                } else if b[0] <= pos && pos == b[1] && pos == txt.len() {
+                    return (b[0], b[1]);
+                }
+            }
+
+            (pos, pos)
+        }
+
+        fn run(txt: &str, occ: &[usize]) {
+            println!("--{:?}--", txt);
+            let bounds = test_bounds(txt, occ);
+
+            let txt = LocatedSpan::new(txt);
+
+            for i in 0..=txt.len() {
+                for j in i..=txt.len() {
+                    let cb = check_bounds(*txt, i, &bounds);
+
+                    println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
+
+                    let cmp = mk_fragment(&txt, cb.0, cb.1);
+
+                    let frag = mk_fragment(&txt, i, j);
+                    let (prev, _rprev) = SpanLines::prev_fragment(&txt, &frag, SEP);
+
+                    println!(
+                        "    {}:{} -> {}:{} <> {}:{}",
+                        frag.location_offset(),
+                        frag.fragment().escape_debug(),
+                        prev.location_offset(),
+                        prev.fragment().escape_debug(),
+                        cmp.location_offset(),
+                        cmp.fragment().escape_debug()
+                    );
+
+                    assert_eq!(prev, cmp);
+                }
+            }
+        }
+
+        run("", &[]);
+        run("a", &[]);
+        run("aaaa", &[]);
+        run("\naaaa", &[0]);
+        run("aaaa\n", &[4]);
+        run("\naaaa\n", &[0, 5]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+    }
+
+    #[test]
+    fn test_count() {
+        fn run(txt: &str) {
+            println!("--{:?}--", txt);
+            for i in 0..=txt.len() {
+                for j in i..=txt.len() {
+                    let buf = &txt[i..j];
+                    let n = count_occurrence(buf, SEP);
+
+                    let mut cnt = 0;
+                    for c in buf.as_bytes() {
+                        if *c == b'\n' {
+                            cnt += 1;
+                        }
+                    }
+
+                    assert_eq!(n, cnt);
+                }
+            }
+        }
+
+        run("");
+        run("a");
+        run("asdf");
+        run("\n");
+        run("\n\n\n\n");
+        run("a\n");
     }
 }
