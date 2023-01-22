@@ -469,9 +469,9 @@ mod report {
     {
         fn report(&self, test: &Test<'_, P, T, C, O, E>) {
             println!(
-                "when parsing {:?} in {} =>",
+                "when parsing {:?} in {:?} =>",
                 restrict_str(DebugWidth::Medium, test.text),
-                humantime::format_duration(test.duration / self.0)
+                test.duration / self.0
             );
             match &test.result {
                 Ok(_) => {
@@ -521,9 +521,9 @@ mod report {
     {
         println!();
         println!(
-            "when parsing {:?} in {} =>",
+            "when parsing {:?} in {:?} =>",
             restrict_str(DebugWidth::Medium, test.text),
-            humantime::format_duration(test.duration)
+            test.duration
         );
         match &test.result {
             Ok((rest, token)) => {
@@ -600,9 +600,9 @@ mod report {
     {
         println!();
         println!(
-            "when parsing {:?} in {} =>",
+            "when parsing {:?} in {:?} =>",
             restrict_str(DebugWidth::Medium, test.text),
-            humantime::format_duration(test.duration)
+            test.duration
         );
 
         let tracks = test.context.results();

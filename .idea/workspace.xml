@@ -15,10 +15,12 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="make count a independent fn.&#10;&#10;excluding the separator char in next_fragment and prev_fragment makes this incredibly complicated. this is better left to a caller. i think it makes it also ambiguous when empty spans near the sep are used. &#10;&#10;now this is defined as: the separator at the end belongs to the fragment, the gap after the separator belongs to the next one.">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="docs, clean up tests.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_sizes.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_sizes.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,6 +92,12 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\test" />
     </key>
   </component>
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="cargo doc" />
+      <command value="cargo tree" />
+    </option>
+  </component>
   <component name="RunManager" selected="Cargo.Test">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
@@ -125,8 +133,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test spans::tests::test_count" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --lib spans::tests::test_count -- --exact" />
+    <configuration name="Doc" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="doc" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -176,8 +184,59 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test test_size2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_sizes test_size2 -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-      <option name="command" value="test" />
+      <option name="command" value="test --release" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="doc [kparse]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="doc" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tree [kparse]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="tree" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -197,15 +256,20 @@
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clean" />
       <item itemvalue="Cargo.Clippy" />
+      <item itemvalue="Cargo.Doc" />
+      <item itemvalue="Cargo.tree [kparse]" />
+      <item itemvalue="Cargo.doc [kparse]" />
       <item itemvalue="Cargo.Test spans::tests::test_next_fragment" />
+      <item itemvalue="Cargo.Test test_size2" />
       <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
-      <item itemvalue="Cargo.Test spans::tests::test_count" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.tree [kparse]" />
+        <item itemvalue="Cargo.doc [kparse]" />
+        <item itemvalue="Cargo.Test test_size2" />
         <item itemvalue="Cargo.Test spans::tests::test_next_fragment" />
         <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
-        <item itemvalue="Cargo.Test spans::tests::test_count" />
       </list>
     </recent_temporary>
   </component>
@@ -562,7 +626,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674421498871</updated>
     </task>
-    <option name="localTasksCounter" value="49" />
+    <task id="LOCAL-00049" summary="docs, clean up tests.">
+      <created>1674424322919</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1674424322919</updated>
+    </task>
+    <option name="localTasksCounter" value="50" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -596,7 +667,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;span_union only in Context.&#10;no need to pass through everything." />
     <MESSAGE value="m4 shine&#10;&#10;new AddCode and Transform and company" />
     <MESSAGE value="m4 shine&#10;&#10;a small razor applied." />
     <MESSAGE value="&#10;Adding X to the ParseContext is complete useless. Ends with a recursive type.&#10;&#10;Adding X to the DynContext ends up with complicated code in the usercode, with multiple typedefs for each context that don't interact too well.&#10;&#10;Not adding X to the DynContext but still having it not hidden by DynContext f's up with Context and type ascription (?). &#10;&#10;Using multiple lifetimes in a trait definition is plain hell. Turn the heat up if you use them in an associated type.&#10;&#10;Not having a definite order for your type variables, or having the same one in different places for different purposes leads to madness." />
@@ -621,7 +691,8 @@
     <MESSAGE value="make SpanLines compile.&#10;&#10;current tests run ok :-)" />
     <MESSAGE value="remove StrContext. makes no sense any longer.&#10;&#10;throw away const parameter for TrackingContext. replace with data flag." />
     <MESSAGE value="make count a independent fn.&#10;&#10;excluding the separator char in next_fragment and prev_fragment makes this incredibly complicated. this is better left to a caller. i think it makes it also ambiguous when empty spans near the sep are used. &#10;&#10;now this is defined as: the separator at the end belongs to the fragment, the gap after the separator belongs to the next one." />
-    <option name="LAST_COMMIT_MESSAGE" value="make count a independent fn.&#10;&#10;excluding the separator char in next_fragment and prev_fragment makes this incredibly complicated. this is better left to a caller. i think it makes it also ambiguous when empty spans near the sep are used. &#10;&#10;now this is defined as: the separator at the end belongs to the fragment, the gap after the separator belongs to the next one." />
+    <MESSAGE value="docs, clean up tests." />
+    <option name="LAST_COMMIT_MESSAGE" value="docs, clean up tests." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

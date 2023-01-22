@@ -16,8 +16,6 @@ exclude = [".idea/*", ".gitignore"]
 [dependencies]
 memchr = "2.5"
 bytecount = "^0.6"
-chrono = "0.4"
-humantime = "2.1"
 
 [dependencies.nom]
 version = "7.1"
@@ -28,3 +26,5 @@ version = "4.0"
 
 [dev-dependencies]
 glob = "0.3"
+chrono = "0.4"
+humantime = "2.1"

@@ -1796,6 +1796,7 @@ mod planung4 {
             }
         }
 
+        #[allow(dead_code)]
         pub fn token_datum2(rest: Span) -> APParserResult<APDatum> {
             let k = transform(
                 recognize(tuple((

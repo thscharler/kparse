@@ -2,7 +2,7 @@
 //! Additions to LocatedSpan.
 //!
 
-use bytecount::{naive_num_chars, num_chars};
+use bytecount::{count, naive_num_chars, num_chars};
 use memchr::{memchr, memrchr};
 use nom::{AsBytes, InputLength};
 use nom_locate::LocatedSpan;
@@ -312,7 +312,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         assert!(offset <= complete.len());
 
         // correcting lines.
-        let skip_lines = count_occurrence(fragment.fragment(), sep);
+        let skip_lines = count(fragment.as_bytes(), sep);
 
         let self_bytes = complete.as_bytes();
         let start = match memrchr(sep, &self_bytes[..offset]) {
@@ -327,7 +327,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         unsafe {
             LocatedSpan::new_from_raw_offset(
                 start,
-                fragment.location_line() + skip_lines,
+                fragment.location_line() + skip_lines as u32,
                 &complete[start..end],
                 complete.extra,
             )
@@ -392,7 +392,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         let is_terminal = start == complete.len();
 
         // real linecount
-        let skip_lines = count_occurrence(fragment.fragment(), sep);
+        let skip_lines = count(fragment.as_bytes(), sep);
 
         let self_bytes = complete.as_bytes();
         let end = match memchr(sep, &self_bytes[start..]) {
@@ -403,7 +403,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         let span = unsafe {
             LocatedSpan::new_from_raw_offset(
                 start,
-                fragment.location_line() + skip_lines,
+                fragment.location_line() + skip_lines as u32,
                 &complete[start..end],
                 complete.extra,
             )
@@ -493,28 +493,10 @@ impl<'s, X: Copy + 's> Iterator for RSpanIter<'s, X> {
     }
 }
 
-/// Counts the occurrences.
-fn count_occurrence(fragment: &str, sep: u8) -> u32 {
-    let mut count = 0;
-
-    let mut start = 0;
-    let bytes = fragment.as_bytes();
-    loop {
-        match memchr(sep, &bytes[start..]) {
-            None => break,
-            Some(o) => {
-                count += 1;
-                start = start + o + 1;
-            }
-        }
-    }
-
-    count
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::spans::{count_occurrence, SpanLines};
+    use crate::spans::SpanLines;
+    use bytecount::count;
     use nom_locate::LocatedSpan;
 
     const SEP: u8 = b'\n';
@@ -524,8 +506,10 @@ mod tests {
         start: usize,
         end: usize,
     ) -> LocatedSpan<&'a str, X> {
-        let line = count_occurrence(&span[..start], SEP) + 1;
-        unsafe { LocatedSpan::new_from_raw_offset(start, line, &span[start..end], span.extra) }
+        let line = count(&span.as_bytes()[..start], SEP) + 1;
+        unsafe {
+            LocatedSpan::new_from_raw_offset(start, line as u32, &span[start..end], span.extra)
+        }
     }
 
     #[test]
@@ -687,7 +671,7 @@ mod tests {
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
                     let buf = &txt[i..j];
-                    let n = count_occurrence(buf, SEP);
+                    let n = count(buf.as_bytes(), SEP);
 
                     let mut cnt = 0;
                     for c in buf.as_bytes() {
