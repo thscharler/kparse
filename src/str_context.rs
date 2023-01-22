@@ -26,10 +26,6 @@ impl<'s, T: AsBytes + Copy + 's> StrContext<'s, T> {
 }
 
 impl<'s, T: AsBytes + Copy + 's, C: Code> ParseContext<'s, T, C> for StrContext<'s, T> {
-    fn original(&self, span: &Span<'s, T, C>) -> Span<'s, T, C> {
-        Span::new_extra(self.span, span.extra)
-    }
-
     fn enter(&self, _: C, _: &Span<'s, T, C>) {}
 
     fn debug(&self, _: &Span<'s, T, C>, _: String) {}

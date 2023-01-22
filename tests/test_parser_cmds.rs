@@ -139,6 +139,7 @@ mod cmds_parser {
     use std::path::{Path, PathBuf};
     use std::{fs, io};
 
+    use kparse::spans::SpanExt;
     use kparse::{error_code, transform};
     use CCode::*;
 
@@ -656,8 +657,8 @@ mod cmds_parser {
         lah_command("set", span)
     }
 
-    fn parse_set(rest: Span<'_>) -> CParserResult<'_, BCommand> {
-        Context.enter(CSet, &rest);
+    fn parse_set(input: Span<'_>) -> CParserResult<'_, BCommand> {
+        Context.enter(CSet, &input);
 
         let (rest, (span_sub, sub_cmd)) = Parse2Layers {
             token: "set",
@@ -668,7 +669,7 @@ mod cmds_parser {
                 output: Set::ReDatum(Local::now().date_naive()),
             }],
         }
-        .parse(rest)
+        .parse(input)
         .track()?;
 
         let (rest, span_value, sub_cmd) = if !rest.is_empty() {
@@ -696,7 +697,7 @@ mod cmds_parser {
             return Context.err(ParserError::new(CSet, rest));
         }
 
-        let span = Context.span_union(&span_sub, &span_value);
+        let span = input.span_union(&span_sub, &span_value);
 
         Context.ok(rest, span, BCommand::Set(sub_cmd))
     }
@@ -705,8 +706,8 @@ mod cmds_parser {
         lah_command("new", span)
     }
 
-    fn parse_new(rest: Span<'_>) -> CParserResult<'_, BCommand> {
-        Context.enter(CEtik, &rest);
+    fn parse_new(input: Span<'_>) -> CParserResult<'_, BCommand> {
+        Context.enter(CEtik, &input);
 
         let (rest, (span_sub, sub)) = Parse2Layers {
             token: "new",
@@ -717,7 +718,7 @@ mod cmds_parser {
                 ("re", CRe, New::Re(None)).into(),
             ],
         }
-        .parse(rest)
+        .parse(input)
         .track()?;
 
         let (rest, nummer) = if !rest.is_empty() {
@@ -742,7 +743,7 @@ mod cmds_parser {
         }
 
         let span = if let Some(nummer) = nummer {
-            Context.span_union(&span_sub, &nummer.span)
+            input.span_union(&span_sub, &nummer.span)
         } else {
             span_sub
         };
@@ -784,8 +785,8 @@ mod cmds_parser {
         lah_command("etik", span)
     }
 
-    fn parse_etik(rest: Span<'_>) -> CParserResult<'_, BCommand> {
-        Context.enter(CEtik, &rest);
+    fn parse_etik(input: Span<'_>) -> CParserResult<'_, BCommand> {
+        Context.enter(CEtik, &input);
 
         let (rest, (span_sub, sub)) = Parse2Layers {
             token: "etik",
@@ -795,7 +796,7 @@ mod cmds_parser {
                 ("file", CFile, Etik::EtikFile).into(),
             ],
         }
-        .parse(rest)
+        .parse(input)
         .track()?;
 
         let (rest, nummer) = if let Etik::EtikBs(_) = sub {
@@ -824,7 +825,7 @@ mod cmds_parser {
         }
 
         let span = if let Some(nummer) = nummer {
-            Context.span_union(&span_sub, &nummer.span)
+            input.span_union(&span_sub, &nummer.span)
         } else {
             span_sub
         };
@@ -843,8 +844,8 @@ mod cmds_parser {
         lah_command("report", span)
     }
 
-    fn parse_report(rest: Span<'_>) -> CParserResult<'_, BCommand> {
-        Context.enter(CReport, &rest);
+    fn parse_report(input: Span<'_>) -> CParserResult<'_, BCommand> {
+        Context.enter(CReport, &input);
 
         let (rest, (span_sub, sub)) = Parse2Layers {
             code: CReport,
@@ -859,7 +860,7 @@ mod cmds_parser {
                 ("statistik", CStatistik, Report::Statistik).into(),
             ],
         }
-        .parse(rest)
+        .parse(input)
         .track()?;
 
         let (rest, span_datum, sub) = if !rest.is_empty() {
@@ -888,7 +889,7 @@ mod cmds_parser {
             return Context.err(ParserError::new(CReport, rest));
         }
 
-        let span = Context.span_union(&span_sub, &span_datum);
+        let span = input.span_union(&span_sub, &span_datum);
         Context.ok(rest, span, BCommand::Report(sub))
     }
 
@@ -1130,10 +1131,10 @@ mod cmds_parser {
     }
 
     impl<O: Copy, const N: usize> Parse2Layers<O, N> {
-        fn parse<'s>(&self, rest: Span<'s>) -> CParserResult<'s, (Span<'s>, O)> {
-            Context.enter(self.code, &rest);
+        fn parse<'s>(&self, input: Span<'s>) -> CParserResult<'s, (Span<'s>, O)> {
+            Context.enter(self.code, &input);
 
-            let (rest, token) = token_command(self.token, self.code, rest).track()?;
+            let (rest, token) = token_command(self.token, self.code, input).track()?;
             Context.debug(&token, format!("found {}", token));
 
             let (rest, _) = nom_ws1(rest).track()?;
@@ -1170,7 +1171,7 @@ mod cmds_parser {
                 };
             };
 
-            let span = Context.span_union(&token, &span_sub);
+            let span = input.span_union(&token, &span_sub);
             Context.ok(rest, span, (span_sub, sub.output))
         }
     }

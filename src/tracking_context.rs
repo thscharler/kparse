@@ -48,10 +48,6 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> TrackingContext<'s,
 impl<'s, T: AsBytes + Copy + 's, C: Code, const TRACK: bool> ParseContext<'s, T, C>
     for TrackingContext<'s, T, C, TRACK>
 {
-    fn original(&self, span: &Span<'s, T, C>) -> Span<'s, T, C> {
-        Span::new_extra(self.span, span.extra)
-    }
-
     fn enter(&self, func: C, span: &Span<'s, T, C>) {
         self.push_func(func);
         self.track_enter(span);

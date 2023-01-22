@@ -2,6 +2,7 @@
 
 use crate::ICode::*;
 use kparse::prelude::*;
+use kparse::spans::SpanExt;
 use kparse::test::{track_parse, Trace};
 use nom::bytes::complete::{tag, tag_no_case};
 use nom::character::complete::{char as nchar, digit1};
@@ -202,25 +203,25 @@ fn parse_terminal_c(rest: Span<'_>) -> IParserResult<'_, TerminalC<'_>> {
     Context.ok(rest, tok, TerminalC { term: v, span: tok })
 }
 
-fn parse_terminal_d(rest: Span<'_>) -> IParserResult<'_, TerminalD<'_>> {
-    Context.enter(ICTerminalD, &rest);
+fn parse_terminal_d(input: Span<'_>) -> IParserResult<'_, TerminalD<'_>> {
+    Context.enter(ICTerminalD, &input);
 
-    let (rest, _) = opt(nom_star_star)(rest).track()?;
+    let (rest, _) = opt(nom_star_star)(input).track()?;
     let (rest, tag) = nom_tag_kdnr(rest).track()?;
     let (rest, term) = token_nummer(rest).track()?;
     let (rest, _) = opt(nom_star_star)(rest).track()?;
 
-    let span = Context.span_union(&tag, &term.span);
+    let span = input.span_union(&tag, &term.span);
     Context.ok(rest, span, TerminalD { term, span })
 }
 
-fn parse_non_terminal1(rest: Span<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
-    Context.enter(ICNonTerminal1, &rest);
+fn parse_non_terminal1(input: Span<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
+    Context.enter(ICNonTerminal1, &input);
 
-    let (rest, a) = parse_terminal_a(rest).track()?;
+    let (rest, a) = parse_terminal_a(input).track()?;
     let (rest, b) = parse_terminal_b(rest).track()?;
 
-    let span = Context.span_union(&a.span, &b.span);
+    let span = input.span_union(&a.span, &b.span);
 
     Context.ok(rest, span, NonTerminal1 { a, b, span })
 }
@@ -234,15 +235,15 @@ fn parse_non_terminal1_1(rest: Span<'_>) -> IParserResult<'_, NonTerminal1<'_>> 
     Context.ok(rest, token, NonTerminal1 { a, b, span: token })
 }
 
-fn parse_non_terminal_2(rest: Span<'_>) -> IParserResult<'_, NonTerminal2<'_>> {
-    Context.enter(ICNonTerminal1, &rest);
+fn parse_non_terminal_2(input: Span<'_>) -> IParserResult<'_, NonTerminal2<'_>> {
+    Context.enter(ICNonTerminal1, &input);
 
-    let (rest, a) = opt(parse_terminal_a)(rest).track()?;
+    let (rest, a) = opt(parse_terminal_a)(input).track()?;
     let (rest, b) = parse_terminal_b(rest).track()?;
     let (rest, c) = parse_terminal_c(rest).track()?;
 
     let span = if let Some(a) = &a {
-        Context.span_union(&a.span, &c.span)
+        input.span_union(&a.span, &c.span)
     } else {
         c.span
     };

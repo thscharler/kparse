@@ -15,12 +15,20 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="Pack the free functions from data_frame in the two new traits Fragment and BufferFragments. Makes them a bit nicer to use. Especially the str one eliminates a lot from_ut8_unchecked. &#10;&#10;Context uses this now. NoContext too.&#10;&#10;Dataframe got rid of the unsafe fn. Move delim from const type parameter to field. makes more sense. Use the new traits.">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="new impl for&#10;&#10;next_fragment, prev_fragment, subslice_offset.&#10;&#10;still not completely clear where the safe/unsafe boundary lies. &#10;&#10;need more tests &amp; reading.">
+      <change afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data_frame.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_frame.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fragments.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/fragments.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_frame.rs" beforeDir="false" afterPath="$PROJECT_DIR$/scratch/data_frame.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/fragments.rs" beforeDir="false" afterPath="$PROJECT_DIR$/scratch/fragments.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/no_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/no_context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/str_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/str_context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_data_frame.rs" beforeDir="false" afterPath="$PROJECT_DIR$/scratch/test_data_frame.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_fragment.rs" beforeDir="false" afterPath="$PROJECT_DIR$/scratch/test_fragment.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,6 +54,7 @@
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/bytecount-0.6.3/src/lib.rs" root0="FORCE_HIGHLIGHTING" />
@@ -86,6 +95,7 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\scratch" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\debug" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\test" />
     </key>
@@ -125,8 +135,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Run example1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="run --package kparse --example example1" />
+    <configuration name="Test test_current_prefix_2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_fragment test_current_prefix_2 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -142,8 +152,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_fragment test2 -- --exact" />
+    <configuration name="Test test_current_prefix_3" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_fragment test_current_prefix_3 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -159,8 +169,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test_current" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_data_frame test_current -- --exact" />
+    <configuration name="Test test_str_full" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_data_frame test_str_full -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -176,8 +186,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test_parser4" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_parser4 &quot;&quot;" />
+    <configuration name="Test test_subslice_offset3" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_fragment test_subslice_offset3 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -193,8 +203,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test timing" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --release --package kparse --test test_parser4 timing -- --exact" />
+    <configuration name="Test test_this_stack_2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_data_frame test_this_stack_2 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -231,19 +241,19 @@
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clean" />
       <item itemvalue="Cargo.Clippy" />
-      <item itemvalue="Cargo.Test test2" />
-      <item itemvalue="Cargo.Test test_current" />
-      <item itemvalue="Cargo.Run example1" />
-      <item itemvalue="Cargo.Test test_parser4" />
-      <item itemvalue="Cargo.Test timing" />
+      <item itemvalue="Cargo.Test test_current_prefix_2" />
+      <item itemvalue="Cargo.Test test_current_prefix_3" />
+      <item itemvalue="Cargo.Test test_str_full" />
+      <item itemvalue="Cargo.Test test_subslice_offset3" />
+      <item itemvalue="Cargo.Test test_this_stack_2" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test test_current" />
-        <item itemvalue="Cargo.Test test2" />
-        <item itemvalue="Cargo.Run example1" />
-        <item itemvalue="Cargo.Test test_parser4" />
-        <item itemvalue="Cargo.Test timing" />
+        <item itemvalue="Cargo.Test test_this_stack_2" />
+        <item itemvalue="Cargo.Test test_current_prefix_3" />
+        <item itemvalue="Cargo.Test test_current_prefix_2" />
+        <item itemvalue="Cargo.Test test_str_full" />
+        <item itemvalue="Cargo.Test test_subslice_offset3" />
       </list>
     </recent_temporary>
   </component>
@@ -551,7 +561,21 @@
       <option name="project" value="LOCAL" />
       <updated>1674159954304</updated>
     </task>
-    <option name="localTasksCounter" value="42" />
+    <task id="LOCAL-00042" summary="Pack the free functions from data_frame in the two new traits Fragment and BufferFragments. Makes them a bit nicer to use. Especially the str one eliminates a lot from_ut8_unchecked. &#10;&#10;Context uses this now. NoContext too.&#10;&#10;Dataframe got rid of the unsafe fn. Move delim from const type parameter to field. makes more sense. Use the new traits.">
+      <created>1674160096197</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1674160096197</updated>
+    </task>
+    <task id="LOCAL-00043" summary="new impl for&#10;&#10;next_fragment, prev_fragment, subslice_offset.&#10;&#10;still not completely clear where the safe/unsafe boundary lies. &#10;&#10;need more tests &amp; reading.">
+      <created>1674248200930</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1674248200930</updated>
+    </task>
+    <option name="localTasksCounter" value="44" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -565,7 +589,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="master" />
+                        <option value="replace_str_with_T" />
                       </list>
                     </value>
                   </entry>
@@ -585,7 +609,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context." />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;adapted our first test case. partly.&#10;&#10;Context comes in nicely.&#10;The conversion traits now seem to be matching." />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;Add CombineParserError.&#10;&#10;Make TrackingContext usable.&#10;&#10;complete test_parser_cmds." />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;test mod" />
@@ -610,7 +633,8 @@
     <MESSAGE value="DataFrame impl can be repr(transparent)" />
     <MESSAGE value="Replace the fixed &amp;str with T." />
     <MESSAGE value="Pack the free functions from data_frame in the two new traits Fragment and BufferFragments. Makes them a bit nicer to use. Especially the str one eliminates a lot from_ut8_unchecked. &#10;&#10;Context uses this now. NoContext too.&#10;&#10;Dataframe got rid of the unsafe fn. Move delim from const type parameter to field. makes more sense. Use the new traits." />
-    <option name="LAST_COMMIT_MESSAGE" value="Pack the free functions from data_frame in the two new traits Fragment and BufferFragments. Makes them a bit nicer to use. Especially the str one eliminates a lot from_ut8_unchecked. &#10;&#10;Context uses this now. NoContext too.&#10;&#10;Dataframe got rid of the unsafe fn. Move delim from const type parameter to field. makes more sense. Use the new traits." />
+    <MESSAGE value="new impl for&#10;&#10;next_fragment, prev_fragment, subslice_offset.&#10;&#10;still not completely clear where the safe/unsafe boundary lies. &#10;&#10;need more tests &amp; reading." />
+    <option name="LAST_COMMIT_MESSAGE" value="new impl for&#10;&#10;next_fragment, prev_fragment, subslice_offset.&#10;&#10;still not completely clear where the safe/unsafe boundary lies. &#10;&#10;need more tests &amp; reading." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

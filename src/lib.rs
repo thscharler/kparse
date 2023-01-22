@@ -42,20 +42,17 @@ use std::marker::PhantomData;
 use std::ops::{RangeFrom, RangeTo};
 
 mod conversion;
-pub mod data_frame;
 pub mod debug;
 mod error;
-mod fragments;
 mod no_context;
+pub mod spans;
 mod str_context;
 pub mod test;
 mod tracker;
 mod tracking_context;
 
-pub use crate::fragments::{BufferFragments, Fragment};
 #[allow(unreachable_pub)]
 pub use conversion::*;
-pub use data_frame::{SpanIter, SpanLines, StrIter, StrLines};
 pub use error::{AppendParserError, Hints, Nom, ParserError, SpanAndCode};
 pub use no_context::NoContext;
 pub use str_context::StrContext;
@@ -101,9 +98,6 @@ pub trait Code: Copy + Display + Debug + Eq {
 /// Context and tracking for a parser.
 ///
 pub trait ParseContext<'s, T, C: Code> {
-    /// Returns a span that encloses all of the current parser.
-    fn original(&self, span: &Span<'s, T, C>) -> Span<'s, T, C>;
-
     /// Tracks entering a parser function.
     fn enter(&self, func: C, span: &Span<'s, T, C>);
 
@@ -181,56 +175,6 @@ impl Context {
             nom::Err::Failure(e) => Context.exit_err(&e.span, e.code, &e),
         }
         Err(err)
-    }
-
-    /// Returns the union of the two Spans
-    ///
-    /// # Safety
-    /// There are assertions that the offsets for the result are within the
-    /// bounds of the original().
-    ///
-    /// But it can't be assured that first and second are derived from it,
-    /// so UB cannot be ruled out.
-    ///
-    /// So the prerequisite is that both first and second are derived from original().
-    pub fn span_union<
-        'a,
-        'b,
-        T: AsBytes + Copy + Fragment + BufferFragments<'b, T, u8>,
-        C: Code,
-    >(
-        &self,
-        first: &Span<'a, T, C>,
-        second: &Span<'b, T, C>,
-    ) -> Span<'b, T, C> {
-        // take the second argument. both should return the same original
-
-        // but if we use ()-Context the original might be truncated before the second fragment.
-        // it's not possible to extend the buffer towards the end, but with LocatedSpan it's
-        // always possible to extend to the very beginning. so if we take the second span here
-        // it will always include the first span too.
-        let original = Context.original(second);
-        let str = original.union_of(*first.fragment(), *second.fragment());
-
-        unsafe {
-            Span::new_from_raw_offset(
-                first.location_offset(),
-                first.location_line(),
-                str,
-                second.extra,
-            )
-        }
-    }
-
-    /// Returns the original string for the parser.
-    pub fn original<'s, T: AsBytes + Copy + Fragment, C: Code>(
-        &self,
-        span: &Span<'s, T, C>,
-    ) -> Span<'s, T, C> {
-        match span.extra.0 {
-            Some(ctx) => ctx.original(span),
-            None => NoContext.original(span),
-        }
     }
 
     /// Enter a parser function. For tracking.
