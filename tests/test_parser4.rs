@@ -117,7 +117,7 @@ pub fn test_kultur() {
 
     //todo: should eventually fail. gives Name="" now.
     track_parse(&mut None, " : 1 GKH\n", parse_kultur)
-        .errerr()
+        .okok()
         .q(R);
 }
 
@@ -471,10 +471,10 @@ mod planung4 {
                         Ok(_v) => {}
                         Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
                             dump_diagnostics(&PathBuf::from(""), text, e, "", true);
-                            panic!("test failed");
                         }
                         Err(nom::Err::Incomplete(_e)) => {}
                     }
+                    panic!("test failed");
                 }
             }
         }
@@ -559,8 +559,13 @@ mod planung4 {
 
         /// Write some diagnostics.
         #[allow(dead_code)]
-        pub fn dump_diagnostics_info(src: &Path, err: &ParserError<'_, &str, APCode>, msg: &str) {
-            let txt = SpanLines::new(Context.original(&err.span));
+        pub fn dump_diagnostics_info<X: Copy>(
+            src: &Path,
+            orig: LocatedSpan<&str, X>,
+            err: &ParserError<'_, &str, APCode>,
+            msg: &str,
+        ) {
+            let txt = SpanLines::new(orig);
 
             let text1 = txt.get_lines_around(&err.span, 0);
 

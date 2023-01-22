@@ -292,7 +292,7 @@ where
 {
     /// Test for a nom error that occurred.
     #[must_use]
-    pub fn err(&self, kind: nom::error::ErrorKind) -> &Self {
+    pub fn nom_err(&self, kind: nom::error::ErrorKind) -> &Self {
         match &self.result {
             Ok(_) => {
                 println!("FAIL: Expected error, but was ok!");

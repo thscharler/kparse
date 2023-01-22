@@ -15,7 +15,7 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="remove original() from ParseContext.&#10;replace Context.span_union with SpanExt.span_union which can be implemented based on LocatedSpan and thus safer.&#10;&#10;New module spans:&#10;SpanExt - allow merging subspans of a span. Cuts off the result at the margins of the buffer instead of panicking.&#10;&#10; SpanLines: deconstructs the old DataFrame et al to a safer construct.">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="make SpanLines compile.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
@@ -572,7 +572,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674377897606</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="make SpanLines compile.">
+      <created>1674382946964</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1674382946964</updated>
+    </task>
+    <option name="localTasksCounter" value="46" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -606,7 +613,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;Add CombineParserError.&#10;&#10;Make TrackingContext usable.&#10;&#10;complete test_parser_cmds." />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;test mod" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;RawContext&#10;&#10;test runner" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;some f'ing around with ParseContext" />
@@ -631,7 +637,8 @@
     <MESSAGE value="Pack the free functions from data_frame in the two new traits Fragment and BufferFragments. Makes them a bit nicer to use. Especially the str one eliminates a lot from_ut8_unchecked. &#10;&#10;Context uses this now. NoContext too.&#10;&#10;Dataframe got rid of the unsafe fn. Move delim from const type parameter to field. makes more sense. Use the new traits." />
     <MESSAGE value="new impl for&#10;&#10;next_fragment, prev_fragment, subslice_offset.&#10;&#10;still not completely clear where the safe/unsafe boundary lies. &#10;&#10;need more tests &amp; reading." />
     <MESSAGE value="remove original() from ParseContext.&#10;replace Context.span_union with SpanExt.span_union which can be implemented based on LocatedSpan and thus safer.&#10;&#10;New module spans:&#10;SpanExt - allow merging subspans of a span. Cuts off the result at the margins of the buffer instead of panicking.&#10;&#10; SpanLines: deconstructs the old DataFrame et al to a safer construct." />
-    <option name="LAST_COMMIT_MESSAGE" value="remove original() from ParseContext.&#10;replace Context.span_union with SpanExt.span_union which can be implemented based on LocatedSpan and thus safer.&#10;&#10;New module spans:&#10;SpanExt - allow merging subspans of a span. Cuts off the result at the margins of the buffer instead of panicking.&#10;&#10; SpanLines: deconstructs the old DataFrame et al to a safer construct." />
+    <MESSAGE value="make SpanLines compile." />
+    <option name="LAST_COMMIT_MESSAGE" value="make SpanLines compile." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

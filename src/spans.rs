@@ -123,26 +123,26 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         Self { sep: b'\n', buf }
     }
 
-    pub fn ascii_column(&self, fragment: &LocatedSpan<&str, X>, sep: u8) -> usize {
+    pub fn ascii_column<Y>(&self, fragment: &LocatedSpan<&str, Y>, sep: u8) -> usize {
         let prefix = Self::frame_prefix(&self.buf, fragment, sep);
         prefix.len()
     }
 
-    pub fn utf8_column(&self, fragment: &LocatedSpan<&str, X>, sep: u8) -> usize {
+    pub fn utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>, sep: u8) -> usize {
         let prefix = Self::frame_prefix(&self.buf, fragment, sep);
         num_chars(prefix.as_bytes())
     }
 
-    pub fn naive_utf8_column(&self, fragment: &LocatedSpan<&str, X>, sep: u8) -> usize {
+    pub fn naive_utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>, sep: u8) -> usize {
         let prefix = Self::frame_prefix(&self.buf, fragment, sep);
         naive_num_chars(prefix.as_bytes())
     }
 
     /// Return n lines before and after the fragment, and place the lines of the fragment
     /// between them.
-    pub fn get_lines_around<'a>(
+    pub fn get_lines_around<'a, Y>(
         &self,
-        fragment: &LocatedSpan<&'a str, X>,
+        fragment: &LocatedSpan<&'a str, Y>,
         n: usize,
     ) -> Vec<LocatedSpan<&'s str, X>> {
         let mut buf: Vec<_> = self.backward_from(fragment).take(n).collect();
@@ -154,17 +154,17 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     }
 
     /// First full line for the fragment.
-    pub fn start<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> LocatedSpan<&'s str, X> {
+    pub fn start<'a, Y>(&self, fragment: &LocatedSpan<&'a str, Y>) -> LocatedSpan<&'s str, X> {
         Self::start_frame(&self.buf, fragment, self.sep)
     }
 
     /// Last full line for the fragment.
-    pub fn end<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> LocatedSpan<&'s str, X> {
+    pub fn end<'a, Y>(&self, fragment: &LocatedSpan<&'a str, Y>) -> LocatedSpan<&'s str, X> {
         Self::end_frame(&self.buf, fragment, self.sep)
     }
 
     /// Expand the fragment to cover full lines and return an Iterator for the lines.
-    pub fn current<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> SpanIter<'s, X> {
+    pub fn current<'a, Y>(&self, fragment: &LocatedSpan<&'a str, Y>) -> SpanIter<'s, X> {
         let current = Self::complete_fragment(&self.buf, fragment, self.sep);
 
         SpanIter {
@@ -184,7 +184,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     }
 
     /// Iterator over the lines following the last line of the fragment.
-    pub fn forward_from<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> SpanIter<'s, X> {
+    pub fn forward_from<'a, Y>(&self, fragment: &LocatedSpan<&'a str, Y>) -> SpanIter<'s, X> {
         let current = Self::end_frame(&self.buf, fragment, self.sep);
         SpanIter {
             sep: self.sep,
@@ -195,7 +195,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
 
     /// Iterator over the lines preceeding the first line of the fragment.
     /// In descending order.
-    pub fn backward_from<'a>(&self, fragment: &LocatedSpan<&'a str, X>) -> RSpanIter<'s, X> {
+    pub fn backward_from<'a, Y>(&self, fragment: &LocatedSpan<&'a str, Y>) -> RSpanIter<'s, X> {
         let current = Self::start_frame(&self.buf, fragment, self.sep);
         RSpanIter {
             sep: self.sep,
@@ -206,9 +206,9 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
 
     /// Returns the part of the frame from the last separator up to the start of the
     /// fragment.
-    fn frame_prefix<'a>(
+    fn frame_prefix<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
-        fragment: &LocatedSpan<&'a str, X>,
+        fragment: &LocatedSpan<&'a str, Y>,
         sep: u8,
     ) -> &'s str {
         // assert!(sep <= 127);
@@ -226,9 +226,9 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     }
 
     /// Empty span at the beginning of the fragment.
-    fn empty_frame<'a>(
+    fn empty_frame<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
-        fragment: &LocatedSpan<&'a str, X>,
+        fragment: &LocatedSpan<&'a str, Y>,
     ) -> LocatedSpan<&'s str, X> {
         let offset = fragment.location_offset();
         assert!(offset <= complete.len());
@@ -244,9 +244,9 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     }
 
     /// First full line for the fragment.
-    fn start_frame<'a>(
+    fn start_frame<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
-        fragment: &LocatedSpan<&'a str, X>,
+        fragment: &LocatedSpan<&'a str, Y>,
         sep: u8,
     ) -> LocatedSpan<&'s str, X> {
         let offset = fragment.location_offset();
@@ -276,9 +276,9 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     /// Last full line for the fragment.
     ///
     /// # Safety The fragment really has to be a fragment of buf.
-    fn end_frame<'a>(
+    fn end_frame<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
-        fragment: &LocatedSpan<&'a str, X>,
+        fragment: &LocatedSpan<&'a str, Y>,
         sep: u8,
     ) -> LocatedSpan<&'s str, X> {
         let offset = fragment.location_offset() + fragment.len();
@@ -306,9 +306,9 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         }
     }
 
-    fn complete_fragment<'a>(
+    fn complete_fragment<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
-        fragment: &LocatedSpan<&'a str, X>,
+        fragment: &LocatedSpan<&'a str, Y>,
         sep: u8,
     ) -> LocatedSpan<&'s str, X> {
         let offset = fragment.location_offset();
@@ -336,9 +336,9 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         }
     }
 
-    fn next_fragment<'a>(
+    fn next_fragment<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
-        fragment: &LocatedSpan<&'a str, X>,
+        fragment: &LocatedSpan<&'a str, Y>,
         sep: u8,
     ) -> (LocatedSpan<&'s str, X>, Option<LocatedSpan<&'s str, X>>) {
         let offset = fragment.location_offset();
@@ -375,9 +375,9 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         (span, if truncate_start { None } else { Some(span) })
     }
 
-    fn prev_fragment<'a>(
+    fn prev_fragment<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
-        fragment: &LocatedSpan<&'a str, X>,
+        fragment: &LocatedSpan<&'a str, Y>,
         sep: u8,
     ) -> (LocatedSpan<&'s str, X>, Option<LocatedSpan<&'s str, X>>) {
         let offset = fragment.location_offset();
