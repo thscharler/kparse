@@ -1,9 +1,19 @@
+//!
+//! Additions to LocatedSpan.
+//!
+
 use bytecount::{naive_num_chars, num_chars};
 use memchr::{memchr, memrchr};
 use nom::{AsBytes, InputLength};
 use nom_locate::LocatedSpan;
 
+/// Extension trait for LocatedSpan.
 pub trait SpanExt<A, T, X> {
+    /// Return a new Span that encompasses both parameters.
+    ///
+    /// # Safety
+    /// Uses the offset from both spans and corrects order and bounds. So the result might
+    /// be nonsensical but safe.
     fn span_union(&self, first: &A, second: &A) -> Self;
 }
 
@@ -111,6 +121,9 @@ where
     }
 }
 
+/// Operations on 'lines' of text.
+///
+/// Can use any other ASCII value besides \n.
 #[derive(Debug)]
 pub struct SpanLines<'s, X> {
     sep: u8,
@@ -123,16 +136,28 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         Self { sep: b'\n', buf }
     }
 
+    /// Create a new SpanLines buffer.
+    ///
+    /// # Panics
+    /// The separator must be an ASCII value (<128).
+    pub fn with_separator(buf: LocatedSpan<&'s str, X>, sep: u8) -> Self {
+        assert!(sep < 128);
+        Self { sep, buf }
+    }
+
+    /// Assumes ASCII text and gives a column.
     pub fn ascii_column<Y>(&self, fragment: &LocatedSpan<&str, Y>, sep: u8) -> usize {
         let prefix = Self::frame_prefix(&self.buf, fragment, sep);
         prefix.len()
     }
 
+    /// Gives a column for UTF8 text.
     pub fn utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>, sep: u8) -> usize {
         let prefix = Self::frame_prefix(&self.buf, fragment, sep);
         num_chars(prefix.as_bytes())
     }
 
+    /// Gives a column for UTF8 text.
     pub fn naive_utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>, sep: u8) -> usize {
         let prefix = Self::frame_prefix(&self.buf, fragment, sep);
         naive_num_chars(prefix.as_bytes())
@@ -211,7 +236,6 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         fragment: &LocatedSpan<&'a str, Y>,
         sep: u8,
     ) -> &'s str {
-        // assert!(sep <= 127);
         let offset = fragment.location_offset();
         assert!(offset <= complete.len());
 
@@ -243,17 +267,20 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         }
     }
 
-    /// First full line for the fragment.
+    /// Return the first full line for the fragment.
     fn start_frame<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
         fragment: &LocatedSpan<&'a str, Y>,
         sep: u8,
     ) -> LocatedSpan<&'s str, X> {
         let offset = fragment.location_offset();
+
+        // trim the offset to our bounds.
         assert!(offset <= complete.len());
 
-        let self_bytes = complete.as_bytes();
+        // no skip_lines, already correct.
 
+        let self_bytes = complete.as_bytes();
         let start = match memrchr(sep, &self_bytes[..offset]) {
             None => 0,
             Some(v) => v + 1,
@@ -273,39 +300,41 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         }
     }
 
-    /// Last full line for the fragment.
-    ///
-    /// # Safety The fragment really has to be a fragment of buf.
+    /// Returns the last full frame of the fragment.
     fn end_frame<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
         fragment: &LocatedSpan<&'a str, Y>,
         sep: u8,
     ) -> LocatedSpan<&'s str, X> {
         let offset = fragment.location_offset() + fragment.len();
-        let lines = count_occurrence(fragment.fragment(), sep);
+
+        // trim the offset to our bounds.
         assert!(offset <= complete.len());
 
-        let self_bytes = complete.as_bytes();
+        // correcting lines.
+        let skip_lines = count_occurrence(fragment.fragment(), sep);
 
+        let self_bytes = complete.as_bytes();
         let start = match memrchr(sep, &self_bytes[..offset]) {
             None => 0,
             Some(v) => v + 1,
         };
         let end = match memchr(sep, &self_bytes[offset..]) {
-            None => 0,
+            None => complete.len(),
             Some(v) => v + 1,
         };
 
         unsafe {
             LocatedSpan::new_from_raw_offset(
                 start,
-                fragment.location_line() + lines,
+                fragment.location_line() + skip_lines,
                 &complete[start..end],
                 complete.extra,
             )
         }
     }
 
+    /// Completes the fragment to a full frame.
     fn complete_fragment<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
         fragment: &LocatedSpan<&'a str, Y>,
@@ -313,17 +342,21 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     ) -> LocatedSpan<&'s str, X> {
         let offset = fragment.location_offset();
         let len = fragment.len();
+
+        // trim start and end to our bounds.
+        assert!(offset <= complete.len());
         assert!(offset + len <= complete.len());
+        let (start, end) = (offset, offset + len);
 
+        // fill up front and back
         let self_bytes = complete.as_bytes();
-
-        let start = match memrchr(sep, &self_bytes[..offset]) {
+        let start = match memrchr(sep, &self_bytes[..start]) {
             None => 0,
             Some(o) => o + 1,
         };
-        let end = match memchr(sep, &self_bytes[offset + len..]) {
+        let end = match memchr(sep, &self_bytes[end..]) {
             None => complete.len(),
-            Some(o) => offset + len + o,
+            Some(o) => end + o,
         };
 
         unsafe {
@@ -336,6 +369,14 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         }
     }
 
+    /// Return the following frame..
+    ///
+    /// If the fragment doesn't end with a separator, the result is the rest up to the
+    /// following separator.
+    ///
+    /// The separator is included at the end of the frame.
+    ///
+    /// The line-count is corrected.
     fn next_fragment<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
         fragment: &LocatedSpan<&'a str, Y>,
@@ -345,11 +386,8 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         let len = fragment.len();
 
         // trim start to our bounds.
-        let start = if offset + len > complete.len() {
-            complete.len()
-        } else {
-            offset + len
-        };
+        assert!(offset + len <= complete.len());
+        let start = offset + len;
 
         let is_terminal = start == complete.len();
 
@@ -374,6 +412,12 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         (span, if is_terminal { None } else { Some(span) })
     }
 
+    /// Return the preceding frame.
+    ///
+    /// If the byte immediately preceding the start of the fragment is not the separator,
+    /// just a truncated fragment is returned.
+    ///
+    /// The separator is included at the end of a frame.
     fn prev_fragment<'a, Y>(
         complete: &LocatedSpan<&'s str, X>,
         fragment: &LocatedSpan<&'a str, Y>,
@@ -381,12 +425,9 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     ) -> (LocatedSpan<&'s str, X>, Option<LocatedSpan<&'s str, X>>) {
         let offset = fragment.location_offset();
 
-        // trim end to our bounds.
-        let end = if offset > complete.len() {
-            complete.len()
-        } else {
-            offset
-        };
+        // assert our bounds.
+        assert!(offset <= complete.len());
+        let end = offset;
 
         // At the beginning?
         let is_terminal = end == 0;
@@ -499,9 +540,9 @@ mod tests {
             }
             bounds.push([st, txt.len()]);
 
-            for bb in &bounds {
-                println!("{:?} {:?}", bb, &txt[bb[0]..bb[1]]);
-            }
+            // for bb in &bounds {
+            //     println!("{:?} {:?}", bb, &txt[bb[0]..bb[1]]);
+            // }
             bounds
         }
 
@@ -522,7 +563,7 @@ mod tests {
         }
 
         fn run(txt: &str, occ: &[usize]) {
-            println!("--{:?}--", txt);
+            // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
 
             let txt = LocatedSpan::new(txt);
@@ -530,22 +571,22 @@ mod tests {
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
                     let cb = check_bounds(j, &bounds);
-                    println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
+                    // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
                     let cmp = mk_fragment(&txt, cb.0, cb.1);
 
                     let frag = mk_fragment(&txt, i, j);
                     let (next, _rnext) = SpanLines::next_fragment(&txt, &frag, SEP);
 
-                    println!(
-                        "    {}:{}:{} -> {}:{} <> {}:{}",
-                        frag.location_offset(),
-                        frag.location_offset() + frag.len(),
-                        frag.fragment().escape_debug(),
-                        next.location_offset(),
-                        next.fragment().escape_debug(),
-                        cmp.location_offset(),
-                        cmp.fragment().escape_debug()
-                    );
+                    // println!(
+                    //     "    {}:{}:{} -> {}:{} <> {}:{}",
+                    //     frag.location_offset(),
+                    //     frag.location_offset() + frag.len(),
+                    //     frag.fragment().escape_debug(),
+                    //     next.location_offset(),
+                    //     next.fragment().escape_debug(),
+                    //     cmp.location_offset(),
+                    //     cmp.fragment().escape_debug()
+                    // );
 
                     assert_eq!(next, cmp);
                 }
@@ -575,9 +616,9 @@ mod tests {
             }
             bounds.push([st, txt.len()]);
 
-            for bb in &bounds {
-                println!("{:?} {:?}", bb, &txt[bb[0]..bb[1]]);
-            }
+            // for bb in &bounds {
+            //     println!("{:?} {:?}", bb, &txt[bb[0]..bb[1]]);
+            // }
             bounds
         }
 
@@ -597,7 +638,7 @@ mod tests {
         }
 
         fn run(txt: &str, occ: &[usize]) {
-            println!("--{:?}--", txt);
+            // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
 
             let txt = LocatedSpan::new(txt);
@@ -606,22 +647,22 @@ mod tests {
                 for j in i..=txt.len() {
                     let cb = check_bounds(*txt, i, &bounds);
 
-                    println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
+                    // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
 
                     let cmp = mk_fragment(&txt, cb.0, cb.1);
 
                     let frag = mk_fragment(&txt, i, j);
                     let (prev, _rprev) = SpanLines::prev_fragment(&txt, &frag, SEP);
 
-                    println!(
-                        "    {}:{} -> {}:{} <> {}:{}",
-                        frag.location_offset(),
-                        frag.fragment().escape_debug(),
-                        prev.location_offset(),
-                        prev.fragment().escape_debug(),
-                        cmp.location_offset(),
-                        cmp.fragment().escape_debug()
-                    );
+                    // println!(
+                    //     "    {}:{} -> {}:{} <> {}:{}",
+                    //     frag.location_offset(),
+                    //     frag.fragment().escape_debug(),
+                    //     prev.location_offset(),
+                    //     prev.fragment().escape_debug(),
+                    //     cmp.location_offset(),
+                    //     cmp.fragment().escape_debug()
+                    // );
 
                     assert_eq!(prev, cmp);
                 }
@@ -642,7 +683,7 @@ mod tests {
     #[test]
     fn test_count() {
         fn run(txt: &str) {
-            println!("--{:?}--", txt);
+            // println!("--{:?}--", txt);
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
                     let buf = &txt[i..j];

@@ -15,9 +15,10 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="remove StrContext. makes no sense any longer.&#10;&#10;throw away const parameter for TrackingContext. replace with data flag.">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="make count a independent fn.&#10;&#10;excluding the separator char in next_fragment and prev_fragment makes this incredibly complicated. this is better left to a caller. i think it makes it also ambiguous when empty spans near the sep are used. &#10;&#10;now this is defined as: the separator at the end belongs to the fragment, the gap after the separator belongs to the next one.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_sizes.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_sizes.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,7 +90,7 @@
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\test" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo.Test spans::tests::test_prev_fragment">
+  <component name="RunManager" selected="Cargo.Test">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -202,8 +203,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
         <item itemvalue="Cargo.Test spans::tests::test_next_fragment" />
+        <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
         <item itemvalue="Cargo.Test spans::tests::test_count" />
       </list>
     </recent_temporary>
@@ -554,7 +555,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674386302960</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="make count a independent fn.&#10;&#10;excluding the separator char in next_fragment and prev_fragment makes this incredibly complicated. this is better left to a caller. i think it makes it also ambiguous when empty spans near the sep are used. &#10;&#10;now this is defined as: the separator at the end belongs to the fragment, the gap after the separator belongs to the next one.">
+      <created>1674421498871</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1674421498871</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -588,7 +596,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;some f'ing around with ParseContext" />
     <MESSAGE value="m2 for throw_away_everything__again&#10;&#10;span_union only in Context.&#10;no need to pass through everything." />
     <MESSAGE value="m4 shine&#10;&#10;new AddCode and Transform and company" />
     <MESSAGE value="m4 shine&#10;&#10;a small razor applied." />
@@ -613,7 +620,8 @@
     <MESSAGE value="make SpanLines compile." />
     <MESSAGE value="make SpanLines compile.&#10;&#10;current tests run ok :-)" />
     <MESSAGE value="remove StrContext. makes no sense any longer.&#10;&#10;throw away const parameter for TrackingContext. replace with data flag." />
-    <option name="LAST_COMMIT_MESSAGE" value="remove StrContext. makes no sense any longer.&#10;&#10;throw away const parameter for TrackingContext. replace with data flag." />
+    <MESSAGE value="make count a independent fn.&#10;&#10;excluding the separator char in next_fragment and prev_fragment makes this incredibly complicated. this is better left to a caller. i think it makes it also ambiguous when empty spans near the sep are used. &#10;&#10;now this is defined as: the separator at the end belongs to the fragment, the gap after the separator belongs to the next one." />
+    <option name="LAST_COMMIT_MESSAGE" value="make count a independent fn.&#10;&#10;excluding the separator char in next_fragment and prev_fragment makes this incredibly complicated. this is better left to a caller. i think it makes it also ambiguous when empty spans near the sep are used. &#10;&#10;now this is defined as: the separator at the end belongs to the fragment, the gap after the separator belongs to the next one." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
