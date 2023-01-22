@@ -2,6 +2,7 @@
 
 use kparse::prelude::*;
 use kparse::{DynContext, Hints, Track};
+use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Display, Formatter};
 use std::mem::size_of;
 
@@ -65,6 +66,7 @@ fn test_size2() {
     dbg!(size_of::<ParserResult<(), &str, ZCode, ()>>());
     dbg!(size_of::<ParserResult<Nummer<'_>, &str, ZCode, ()>>());
     dbg!(size_of::<Span<&str, ZCode>>());
+    dbg!(size_of::<LocatedSpan<&str>>());
 
     dbg!(size_of::<DynContext<&str, ZCode>>());
 

@@ -21,7 +21,7 @@ const RT: CheckDump = CheckDump;
 pub fn timing() {
     let s = read_to_string("tests/2022_Anbauplan.txt").unwrap();
     println!("TRACK=true");
-    track_parse(&mut None, s.as_str(), planung4::parser::parse)
+    track_parse(&mut None, s.as_str(), parse)
         .okok()
         .rest("")
         .q(Timing(1));
@@ -29,7 +29,7 @@ pub fn timing() {
     println!();
     println!();
     println!("TRACK=false");
-    notrack_parse(&mut None, s.as_str(), planung4::parser::parse)
+    notrack_parse(&mut None, s.as_str(), parse)
         .okok()
         .rest("")
         .q(Timing(1));
@@ -37,7 +37,7 @@ pub fn timing() {
     println!();
     println!();
     println!("NOCTX");
-    noctx_parse(&mut None, s.as_str(), planung4::parser::parse)
+    noctx_parse(&mut None, s.as_str(), parse)
         .okok()
         .rest("")
         .q(Timing(1));
@@ -62,13 +62,13 @@ pub fn test_pflanzort() {
 
 #[test]
 pub fn test_kunde() {
-    track_parse(&mut None, "** Kunde Vom Hügel **", parse_kunde)
+    track_parse(&mut None, "** Kunde Test Kunde **", parse_kunde)
         .okok()
         .q(R);
-    track_parse(&mut None, " ** Kunde Vom Hügel ** ", parse_kunde)
+    track_parse(&mut None, " ** Kunde Test Kunde ** ", parse_kunde)
         .errerr()
         .q(R);
-    track_parse(&mut None, "Kunde Vom Hügel ", parse_kunde)
+    track_parse(&mut None, "Kunde Test Kunde ", parse_kunde)
         .okok()
         .rest("")
         .q(R);
@@ -76,13 +76,13 @@ pub fn test_kunde() {
 
 #[test]
 pub fn test_markt() {
-    track_parse(&mut None, "** Markt Gleisdorf **", parse_markt)
+    track_parse(&mut None, "** Markt Graz **", parse_markt)
         .okok()
         .q(R);
-    track_parse(&mut None, " ** Markt Gleisdorf ** ", parse_markt)
+    track_parse(&mut None, " ** Markt Graz ** ", parse_markt)
         .errerr()
         .q(R);
-    track_parse(&mut None, "Markt Gleisdorf ", parse_markt)
+    track_parse(&mut None, "Markt Graz ", parse_markt)
         .okok()
         .rest("")
         .q(R);
@@ -1826,7 +1826,7 @@ mod planung4 {
             let iyear = (*year).parse::<i32>().with_span(APCYear, year)?;
 
             let span = input.span_union(&day, &year);
-            let datum = chrono::NaiveDate::from_ymd_opt(iyear, imonth, iday);
+            let datum = NaiveDate::from_ymd_opt(iyear, imonth, iday);
 
             if let Some(datum) = datum {
                 Ok((rest, APDatum { datum, span }))
