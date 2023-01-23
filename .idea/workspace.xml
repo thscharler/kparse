@@ -15,10 +15,7 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="clean up tests.">
-      <change beforePath="$PROJECT_DIR$/../iparse/iparse.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/iparse.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="test_complete_fragment">
       <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -100,7 +97,7 @@
       <command value="cargo tree" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Test spans::tests::test_complete_fragment">
+  <component name="RunManager" selected="Cargo.Test spans::tests::test_end_frame">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -169,8 +166,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test spans::tests::test_prev_fragment" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --lib spans::tests::test_prev_fragment -- --exact" />
+    <configuration name="Test spans::tests::test_end_frame" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --lib spans::tests::test_end_frame -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -186,8 +183,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test_size2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_sizes test_size2 -- --exact" />
+    <configuration name="Test spans::tests::test_prev_fragment" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --lib spans::tests::test_prev_fragment -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -260,18 +257,18 @@
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Doc" />
       <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
+      <item itemvalue="Cargo.Test spans::tests::test_end_frame" />
       <item itemvalue="Cargo.tree [kparse]" />
       <item itemvalue="Cargo.doc [kparse]" />
-      <item itemvalue="Cargo.Test test_size2" />
       <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test spans::tests::test_end_frame" />
         <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
         <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
         <item itemvalue="Cargo.tree [kparse]" />
         <item itemvalue="Cargo.doc [kparse]" />
-        <item itemvalue="Cargo.Test test_size2" />
       </list>
     </recent_temporary>
   </component>
@@ -291,13 +288,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00003" summary="put up all the safety flags I could think of.">
-      <created>1673247261654</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1673247261654</updated>
     </task>
     <task id="LOCAL-00004" summary="add errors">
       <created>1673263699578</created>
@@ -635,7 +625,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674426200944</updated>
     </task>
-    <option name="localTasksCounter" value="52" />
+    <task id="LOCAL-00052" summary="test_complete_fragment">
+      <created>1674457124613</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1674457124613</updated>
+    </task>
+    <option name="localTasksCounter" value="53" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -669,7 +666,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="&#10;Adding X to the ParseContext is complete useless. Ends with a recursive type.&#10;&#10;Adding X to the DynContext ends up with complicated code in the usercode, with multiple typedefs for each context that don't interact too well.&#10;&#10;Not adding X to the DynContext but still having it not hidden by DynContext f's up with Context and type ascription (?). &#10;&#10;Using multiple lifetimes in a trait definition is plain hell. Turn the heat up if you use them in an associated type.&#10;&#10;Not having a definite order for your type variables, or having the same one in different places for different purposes leads to madness." />
     <MESSAGE value="No need to impl ParseContext on DynContext. Muddies the water.&#10;&#10;The same for Context. &#10;Both are positively not a ParseContext. They are small  gears in the machine." />
     <MESSAGE value="test for sizes" />
     <MESSAGE value="can't stop trying to optimize this Context." />
@@ -694,7 +690,8 @@
     <MESSAGE value="docs, clean up tests." />
     <MESSAGE value="use bytecount::count&#10;&#10;remove humantime dep" />
     <MESSAGE value="clean up tests." />
-    <option name="LAST_COMMIT_MESSAGE" value="clean up tests." />
+    <MESSAGE value="test_complete_fragment" />
+    <option name="LAST_COMMIT_MESSAGE" value="test_complete_fragment" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
