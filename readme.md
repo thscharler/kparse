@@ -188,6 +188,31 @@ pub fn test_terminal_a() {
 }
  ```
 
+The output of a trace looks like this (this is from [examples/parser4.rs])
+
+```txt
+when parsing "Content-Type: text/x-zim-wiki\r\nWiki-Form" in 9.4558ms =>
+trace
+  Anbauplan: enter with "Content-Type: text/x"
+    Plan: enter with "====== Plan 2022 ==="
+    Plan: ok -> [ "====== Plan 2022 ===", "\r\n\r\n===== Monat Janu" ]
+    KdNr: enter with "===== Monat January "
+    KdNr: err NomError expects  for span 82 "===== Monat January " 
+    Monat: enter with "===== Monat January "
+    Monat: ok -> [ "===== Monat January ", "\r\n\r\n==== Woche 03.01" ]
+    Woche: enter with "==== Woche 03.01.202"
+    Woche: ok -> [ "==== Woche 03.01.202", "\r\n\r\n\r\n=> Überwintern" ]
+    Aktion: enter with "=> Überwintern\r\n    "
+    Aktion: ok -> [ "=> Überwintern", "\r\n        @ W2 Karot" ]
+    Parzelle: enter with "@ W2 Karotten (+12w)"
+      Wochen: enter with "+12w)\r\nKarotten\r\n   "
+      Wochen: err Nummer expects NomError:"+12w)\r\nKarotten\r\n   " for span 191 "+12w)\r\nKarotten\r\n   " 
+      Plus_Wochen: enter with "+12w)\r\nKarotten\r\n   "
+      Plus_Wochen: ok -> [ "12w", ")\r\nKarotten\r\n       " ]
+    Parzelle: ok -> [ "@ W2 Karotten (+12w)", "\r\nKarotten\r\n        " ]
+    Kultur: enter with "Karotten\r\n        @ "
+    ...
+```
 
 # Appendix A
 

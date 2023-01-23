@@ -158,12 +158,9 @@ pub mod tracking_context;
 
 mod conversion;
 mod debug;
-mod tracker;
 
 #[allow(unreachable_pub)]
 pub use conversion::*;
-#[allow(unreachable_pub)]
-pub use tracker::*;
 
 pub use error::ParserError;
 pub use no_context::NoContext;
@@ -172,7 +169,7 @@ pub use tracking_context::TrackingContext;
 /// Prelude, imports the traits.
 pub mod prelude {
     pub use crate::error::AppendParserError;
-    pub use crate::{TrackParserError, WithCode, WithSpan};
+    pub use crate::{ResultWithSpan, TrackParserError, WithCode, WithSpan};
 }
 
 /// Standard input type.
@@ -236,8 +233,8 @@ impl<'s, T, C: Code> Debug for DynContext<'s, T, C> {
     }
 }
 
-/// Each produced span contains a reference to the context.
-/// This struct makes this more accessible.
+/// Each produced span contains a reference to a [ParseContext] in the extra field.
+/// This struct makes using it more accessible.
 ///
 /// ```rust ignore
 /// use kparse::{Context, Span};
@@ -336,7 +333,18 @@ impl Context {
     }
 }
 
-/// Tracks the error path with the context.
+/// This trait is used for error tracking.
+///
+/// The methods can be squeezed between a parser fn call and the ?.
+/// This is equivalent to a Context.err() call.
+/// There is one wide implementation, no need to implement this.
+///
+/// ```rust ignore
+/// let (rest, h0) = nom_header(input).track_as(APCHeader)?;
+/// let (rest, _) = nom_tag_plan(rest).track_as(APCPlan)?;
+/// let (rest, plan) = token_name(rest).track()?;
+/// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
+/// ```
 pub trait TrackParserError<'s, 't, T, C: Code, Y: Copy> {
     /// Result type of the track fn.
     type Result;
@@ -352,11 +360,16 @@ pub trait TrackParserError<'s, 't, T, C: Code, Y: Copy> {
 }
 
 /// Convert an external error into a ParserError and add an error code and a span.
-/// This is implemented for Result<O,E> where E is a WithSpan. No need to unwrap.
-///
-/// This trait is very generic, use a ```nom::Err<ParserError<'s, T, C, Y>>``` as
-/// the R type.
-pub trait WithSpan<'s, T, C: Code, R> {
+pub trait WithSpan<'s, T, C: Code, Y: Copy> {
+    /// Convert an external error into a ParserError.
+    /// Usually uses nom::Err::Failure to indicate the finality of the error.
+    fn with_span(self, code: C, span: Span<'s, T, C>) -> nom::Err<ParserError<'s, T, C, Y>>;
+}
+
+/// Convert an external error into a ParserError and add an error code and a span.
+/// This trait is used internally and works in conjunction with WithSpan.
+/// Rather use [WithSpan]
+pub trait ResultWithSpan<'s, T, C: Code, R> {
     /// Convert an external error into a ParserError.
     /// Usually uses nom::Err::Failure to indicate the finality of the error.
     fn with_span(self, code: C, span: Span<'s, T, C>) -> R;
@@ -371,34 +384,14 @@ pub trait WithCode<C: Code, R> {
     fn with_code(self, code: C) -> R;
 }
 
-/// Convert an external error into a ParserError and add an error code and a span.
-/// This is implemented for Result<O,E> where E is a WithSpan. No need to unwrap.
-///
-/// This trait is very generic, use a ```nom::Err<ParserError<'s, T, C, Y>>``` as
-/// the R type.
-pub trait ResultWithSpan<'s, T, C: Code, O, E> {
-    /// Convert an external error into a ParserError.
-    /// Usually uses nom::Err::Failure to indicate the finality of the error.
-    fn with_span(self, code: C, span: Span<'s, T, C>) -> Result<O, E>;
-}
-
-/// Translate the error code to a new one.
-/// This is implemented for Result<O, E> where E is a WithCode. No need to unwrap.
-///
-/// To convert an external error to a ParserError rather use [WithSpan] or [std::convert::From].
-pub trait ResultWithCode<C: Code, O, E> {
-    /// Translate the error code to a new one.
-    fn with_code(self, code: C) -> Result<O, E>;
-}
-
 /// Make the trait WithCode work as a parser.
-struct ErrorCode<C: Code, PA, E1, E2> {
+struct ErrorCode<C: Code, Y, PA, E1> {
     code: C,
     parser: PA,
-    _phantom: PhantomData<(E1, E2)>,
+    _phantom: PhantomData<(Y, E1)>,
 }
 
-impl<C: Code, PA, E1, E2> ErrorCode<C, PA, E1, E2> {
+impl<C: Code, Y, PA, E1> ErrorCode<C, Y, PA, E1> {
     fn new(parser: PA, code: C) -> Self {
         Self {
             code,
@@ -409,28 +402,34 @@ impl<C: Code, PA, E1, E2> ErrorCode<C, PA, E1, E2> {
 }
 
 /// Takes a parser and converts the error via the WithCode trait.
-pub fn error_code<'s, O, T, C, PA, E1, E2>(
+pub fn error_code<'s, O, T, C, Y, PA, E1>(
     parser: PA,
     code: C,
-) -> impl FnMut(Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E2>>
+) -> impl FnMut(Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<ParserError<'s, T, C, Y>>>
 where
     T: AsBytes + Copy + 's,
     C: Code + 's,
-    E1: WithCode<C, E2>,
+    Y: Copy + 's,
+    E1: WithCode<C, ParserError<'s, T, C, Y>>,
     PA: Parser<Span<'s, T, C>, O, E1>,
 {
     let mut a = ErrorCode::new(parser, code);
     move |s: Span<'s, T, C>| a.parse(s)
 }
 
-impl<'s, O, T, C, PA, E1, E2> Parser<Span<'s, T, C>, O, E2> for ErrorCode<C, PA, E1, E2>
+impl<'s, O, T, C, Y, PA, E1> Parser<Span<'s, T, C>, O, ParserError<'s, T, C, Y>>
+    for ErrorCode<C, Y, PA, E1>
 where
     T: AsBytes + Copy + 's,
-    C: Code,
-    E1: WithCode<C, E2>,
+    C: Code + 's,
+    Y: Copy + 's,
+    E1: WithCode<C, ParserError<'s, T, C, Y>>,
     PA: Parser<Span<'s, T, C>, O, E1>,
 {
-    fn parse(&mut self, input: Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E2>> {
+    fn parse(
+        &mut self,
+        input: Span<'s, T, C>,
+    ) -> Result<(Span<'s, T, C>, O), nom::Err<ParserError<'s, T, C, Y>>> {
         let r = self.parser.parse(input);
         match r {
             Ok(v) => Ok(v),
@@ -441,21 +440,21 @@ where
     }
 }
 
-struct Transform<'s, O, T, C, PA, TRFn, E0, E1, E2> {
+struct Transform<'s, O, T, C, Y, PA, TRFn, E0, E1> {
     code: C,
     parser: PA,
     transform: TRFn,
-    _phantom: PhantomData<&'s (O, T, E0, E1, E2)>,
+    _phantom: PhantomData<&'s (O, T, Y, E0, E1)>,
 }
 
-impl<'s, O, T, C, PA, TRFn, E0, E1, E2> Transform<'s, O, T, C, PA, TRFn, E0, E1, E2>
+impl<'s, O, T, C, Y, PA, TRFn, E0, E1> Transform<'s, O, T, C, Y, PA, TRFn, E0, E1>
 where
     O: 's,
     T: AsBytes + Copy + 's,
     C: Code + 's,
-    E0: WithCode<C, E2> + 's,
-    E1: WithSpan<'s, T, C, nom::Err<E2>> + 's,
-    E2: 's,
+    Y: Copy + 's,
+    E0: WithCode<C, ParserError<'s, T, C, Y>> + 's,
+    E1: WithSpan<'s, T, C, Y> + 's,
     PA: Parser<Span<'s, T, C>, Span<'s, T, C>, E0>,
     TRFn: Fn(Span<'s, T, C>) -> Result<O, E1>,
 {
@@ -480,36 +479,42 @@ where
 /// let (rest, (tok, val)) =
 ///         consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
 /// ```
-pub fn transform<'s, O, T, C, PA, TRFn, E0, E1, E2>(
+pub fn transform<'s, O, T, C, Y, PA, TRFn, E0, E1>(
     parser: PA,
     transform: TRFn,
     code: C,
-) -> impl FnMut(Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E2>>
+) -> impl FnMut(Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<ParserError<'s, T, C, Y>>>
 where
     O: 's,
     T: AsBytes + Copy + 's,
     C: Code + 's,
-    E0: WithCode<C, E2> + 's,
-    E1: WithSpan<'s, T, C, nom::Err<E2>> + 's,
-    E2: 's,
+    Y: Copy + 's,
+    E0: WithCode<C, ParserError<'s, T, C, Y>> + 's,
+    E1: WithSpan<'s, T, C, Y> + 's,
     PA: Parser<Span<'s, T, C>, Span<'s, T, C>, E0>,
     TRFn: Fn(Span<'s, T, C>) -> Result<O, E1>,
 {
     let mut t = Transform::new(parser, transform, code);
-    move |s: Span<'s, T, C>| -> Result<(Span<'s, T, C>, O), nom::Err<E2>> { t.parse(s) }
+    move |s: Span<'s, T, C>| -> Result<(Span<'s, T, C>, O), nom::Err<ParserError<'s, T, C, Y>>> {
+        t.parse(s)
+    }
 }
 
-impl<'s, O, T, C, PA, TRFn, E0, E1, E2> Parser<Span<'s, T, C>, O, E2>
-    for Transform<'s, O, T, C, PA, TRFn, E0, E1, E2>
+impl<'s, O, T, C, Y, PA, TRFn, E0, E1> Parser<Span<'s, T, C>, O, ParserError<'s, T, C, Y>>
+    for Transform<'s, O, T, C, Y, PA, TRFn, E0, E1>
 where
     T: AsBytes + Copy + 's,
     C: Code + 's,
-    E0: WithCode<C, E2>,
-    E1: WithSpan<'s, T, C, nom::Err<E2>>,
+    Y: Copy + 's,
+    E0: WithCode<C, ParserError<'s, T, C, Y>>,
+    E1: WithSpan<'s, T, C, Y>,
     PA: Parser<Span<'s, T, C>, Span<'s, T, C>, E0>,
     TRFn: Fn(Span<'s, T, C>) -> Result<O, E1>,
 {
-    fn parse(&mut self, input: Span<'s, T, C>) -> Result<(Span<'s, T, C>, O), nom::Err<E2>> {
+    fn parse(
+        &mut self,
+        input: Span<'s, T, C>,
+    ) -> Result<(Span<'s, T, C>, O), nom::Err<ParserError<'s, T, C, Y>>> {
         let r = self.parser.parse(input);
         match r {
             Ok((rest, token)) => {

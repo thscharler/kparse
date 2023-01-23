@@ -13,21 +13,14 @@
     <cargoProject FILE="$PROJECT_DIR$/../spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="move to kparse">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="docs &#10;bits&amp;pieces">
+      <change afterPath="$PROJECT_DIR$/examples/parser4.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/tracks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/tracks.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/no_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/no_context.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_sizes.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_sizes.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,6 +53,10 @@
     <setting file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/memchr-2.5.0/src/memchr/mod.rs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$USER_HOME$/.cargo/registry/src/github.com-1ecc6299db9ec823/nom-7.1.2/src/sequence/mod.rs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/../iparse/src/lib.rs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/readme.md" root0="FORCE_HIGHLIGHTING" root1="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/src/conversion.rs" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/src/debug/mod.rs" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/src/lib.rs" root0="SKIP_INSPECTION" />
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="diy3gi17" />
@@ -75,26 +72,26 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;TODO_SCOPE&quot;: &quot;Module 'kparse'&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/stommy/Documents/StableProjects/kparse&quot;,
-    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;language.rust.cargo&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "TODO_SCOPE": "Module 'kparse'",
+    "last_opened_file_path": "C:/Users/stommy/Documents/StableProjects/kparse/examples",
+    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "language.rust.cargo"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\stommy\Documents\StableProjects\kparse\examples" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\examples" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\tests" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\debug" />
-      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\scratch" />
@@ -108,7 +105,7 @@
       <command value="cargo tree" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Doc">
+  <component name="RunManager" selected="Cargo.Test timing">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -177,23 +174,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test spans::tests::test_complete_fragment" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --lib spans::tests::test_complete_fragment -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Test spans::tests::test_frame_prefix" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package kparse --lib spans::tests::test_frame_prefix -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -245,6 +225,23 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test timing" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_parser4 timing -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test --release" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -268,18 +265,18 @@
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Doc" />
       <item itemvalue="Cargo.Test test_menge" />
+      <item itemvalue="Cargo.Test timing" />
       <item itemvalue="Cargo.Test anbauplan" />
-      <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
       <item itemvalue="Cargo.Test spans::tests::test_frame_prefix" />
       <item itemvalue="Cargo.Test spans::tests::test_start_frame" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test timing" />
         <item itemvalue="Cargo.Test test_menge" />
         <item itemvalue="Cargo.Test anbauplan" />
         <item itemvalue="Cargo.Test spans::tests::test_frame_prefix" />
         <item itemvalue="Cargo.Test spans::tests::test_start_frame" />
-        <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
       </list>
     </recent_temporary>
   </component>
@@ -299,13 +296,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00013" summary="m2 for throw_away_everything__again&#10;&#10;Display + Debug for ParserError">
-      <created>1673332335364</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1673332335364</updated>
     </task>
     <task id="LOCAL-00014" summary="m2 for throw_away_everything__again&#10;&#10;starting to make it run again.">
       <created>1673368694614</created>
@@ -643,7 +633,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674494852601</updated>
     </task>
-    <option name="localTasksCounter" value="62" />
+    <task id="LOCAL-00062" summary="docs &#10;bits&amp;pieces">
+      <created>1674509070422</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1674509070422</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -677,7 +674,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Rename CombineParserError to AppendParserError to have a concise naming scheme for this.&#10;&#10;Transform now returns the parsed Span too.&#10;&#10;Add readme" />
     <MESSAGE value="Activate more lints.&#10;&#10;doc, cleanup pub's, minor tweaking." />
     <MESSAGE value="Kundenadresse PLZ spinnt mit auto complete.&#10;&#10;Row-header in kunden db." />
     <MESSAGE value="doc url corrected" />
@@ -702,7 +698,8 @@
     <MESSAGE value="remove stuff" />
     <MESSAGE value="reorganize pub items.&#10;&#10;include only the traits in the prelude." />
     <MESSAGE value="move to kparse" />
-    <option name="LAST_COMMIT_MESSAGE" value="move to kparse" />
+    <MESSAGE value="docs &#10;bits&amp;pieces" />
+    <option name="LAST_COMMIT_MESSAGE" value="docs &#10;bits&amp;pieces" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
