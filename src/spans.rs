@@ -435,6 +435,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
 
         // immediately preceeding separator.
         let self_bytes = complete.as_bytes();
+        #[allow(clippy::bool_to_int_with_if)]
         let skip_lines = if !is_terminal && self_bytes[end - 1] == sep {
             1
         } else {
@@ -520,19 +521,19 @@ impl<'s> SpanBytes<'s> {
 
     /// Assumes ASCII text and gives a column.
     pub fn ascii_column<Y>(&self, fragment: &[u8], sep: u8) -> usize {
-        let prefix = Self::frame_prefix(&self.buf, fragment, sep);
+        let prefix = Self::frame_prefix(self.buf, fragment, sep);
         prefix.len()
     }
 
     /// Gives a column for UTF8 text.
     pub fn utf8_column<Y>(&self, fragment: &[u8], sep: u8) -> usize {
-        let prefix = Self::frame_prefix(&self.buf, fragment, sep);
+        let prefix = Self::frame_prefix(self.buf, fragment, sep);
         num_chars(prefix.as_bytes())
     }
 
     /// Gives a column for UTF8 text.
     pub fn naive_utf8_column<Y>(&self, fragment: &[u8], sep: u8) -> usize {
-        let prefix = Self::frame_prefix(&self.buf, fragment, sep);
+        let prefix = Self::frame_prefix(self.buf, fragment, sep);
         naive_num_chars(prefix.as_bytes())
     }
 
@@ -549,22 +550,22 @@ impl<'s> SpanBytes<'s> {
 
     /// First full line for the fragment.
     pub fn start<'a>(&self, fragment: &'a [u8]) -> &'s [u8] {
-        Self::start_frame(&self.buf, fragment, self.sep)
+        Self::start_frame(self.buf, fragment, self.sep)
     }
 
     /// Last full line for the fragment.
     pub fn end<'a>(&self, fragment: &'a [u8]) -> &'s [u8] {
-        Self::end_frame(&self.buf, fragment, self.sep)
+        Self::end_frame(self.buf, fragment, self.sep)
     }
 
     /// Expand the fragment to cover full lines and return an Iterator for the lines.
     pub fn current<'a>(&self, fragment: &'a [u8]) -> BytesIter<'s> {
-        let current = Self::complete_fragment(&self.buf, fragment, self.sep);
+        let current = Self::complete_fragment(self.buf, fragment, self.sep);
 
         BytesIter {
             sep: self.sep,
             buf: current,
-            fragment: Self::empty_frame(&self.buf, &current),
+            fragment: Self::empty_frame(self.buf, current),
         }
     }
 
@@ -573,13 +574,13 @@ impl<'s> SpanBytes<'s> {
         BytesIter {
             sep: self.sep,
             buf: self.buf,
-            fragment: Self::empty_frame(&self.buf, &self.buf),
+            fragment: Self::empty_frame(self.buf, self.buf),
         }
     }
 
     /// Iterator over the lines following the last line of the fragment.
     pub fn forward_from<'a>(&self, fragment: &'a [u8]) -> BytesIter<'s> {
-        let current = Self::end_frame(&self.buf, fragment, self.sep);
+        let current = Self::end_frame(self.buf, fragment, self.sep);
         BytesIter {
             sep: self.sep,
             buf: self.buf,
@@ -590,7 +591,7 @@ impl<'s> SpanBytes<'s> {
     /// Iterator over the lines preceeding the first line of the fragment.
     /// In descending order.
     pub fn backward_from<'a>(&self, fragment: &'a [u8]) -> RBytesIter<'s> {
-        let current = Self::start_frame(&self.buf, fragment, self.sep);
+        let current = Self::start_frame(self.buf, fragment, self.sep);
         RBytesIter {
             sep: self.sep,
             buf: self.buf,
@@ -744,6 +745,7 @@ impl<'s> SpanBytes<'s> {
 
         // immediately preceeding separator.
         let self_bytes = complete.as_bytes();
+        #[allow(clippy::bool_to_int_with_if)]
         let skip_lines = if !is_terminal && self_bytes[end - 1] == sep {
             1
         } else {
@@ -779,7 +781,7 @@ impl<'s> Iterator for BytesIter<'s> {
     type Item = &'s [u8];
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (next, result) = SpanBytes::next_fragment(&self.buf, &self.fragment, self.sep);
+        let (next, result) = SpanBytes::next_fragment(self.buf, self.fragment, self.sep);
         self.fragment = next;
         result
     }
@@ -796,7 +798,7 @@ impl<'s> Iterator for RBytesIter<'s> {
     type Item = &'s [u8];
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (next, result) = SpanBytes::prev_fragment(&self.buf, &self.fragment, self.sep);
+        let (next, result) = SpanBytes::prev_fragment(self.buf, self.fragment, self.sep);
         self.fragment = next;
         result
     }

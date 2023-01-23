@@ -264,7 +264,7 @@ Or you can use consumed().
 
 ```rust
 fn sample() {
-   let span = input.span_union(&a.span, &b.span);
+   let _span = input.span_union(&a.span, &b.span);
 }
 ```
 
