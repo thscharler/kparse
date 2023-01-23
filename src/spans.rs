@@ -1223,25 +1223,17 @@ mod tests_spanlines {
 
 #[cfg(test)]
 mod tests_spanbytes {
-    use crate::spans::SpanLines;
+    use crate::spans::SpanBytes;
     use bytecount::count;
-    use nom_locate::LocatedSpan;
 
     const SEP: u8 = b'\n';
 
-    fn mk_fragment<'a, X: Copy>(
-        span: &LocatedSpan<&'a str, X>,
-        start: usize,
-        end: usize,
-    ) -> LocatedSpan<&'a str, X> {
-        let line = count(&span.as_bytes()[..start], SEP) + 1;
-        unsafe {
-            LocatedSpan::new_from_raw_offset(start, line as u32, &span[start..end], span.extra)
-        }
+    fn mk_fragment(span: &[u8], start: usize, end: usize) -> &[u8] {
+        &span[start..end]
     }
 
     // take the list with the sep positions and turn into line bounds.
-    fn test_bounds(txt: &str, occ: &[usize]) -> Vec<[usize; 2]> {
+    fn test_bounds(txt: &[u8], occ: &[usize]) -> Vec<[usize; 2]> {
         let mut bounds = Vec::new();
 
         let mut st = 0usize;
@@ -1259,76 +1251,73 @@ mod tests_spanbytes {
 
     #[test]
     fn test_frame_prefix() {
-        fn run(txt: &str, occ: &[usize]) {
+        fn run(txt: &[u8], occ: &[usize]) {
             // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
 
-            let txt = LocatedSpan::new(txt);
-
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
-                    let mut cb = check_bounds_complete_fragment(*txt, i, i, &bounds);
+                    let mut cb = check_bounds_complete_fragment(txt, i, i, &bounds);
                     // always override end.
                     cb.1 = i;
                     // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
-                    let cmp = mk_fragment(&txt, cb.0, cb.1);
+                    let cmp = mk_fragment(txt, cb.0, cb.1);
 
-                    let frag = mk_fragment(&txt, i, j);
-                    let prefix = SpanLines::frame_prefix(&txt, &frag, SEP);
+                    let frag = mk_fragment(txt, i, j);
+                    let prefix = SpanBytes::frame_prefix(&txt, &frag, SEP);
 
                     // println!(
-                    //     "    {}:{}:{} -> {}:{} <> {}",
-                    //     frag.location_offset(),
-                    //     frag.location_offset() + frag.len(),
-                    //     frag.fragment().escape_debug(),
-                    //     prefix.escape_debug(),
-                    //     cmp.location_offset(),
-                    //     cmp.fragment().escape_debug()
+                    //     "    {}:{}:{:?} -> {}:{:?} <> {}:{:?}",
+                    //     SpanBytes::offset_from(txt, frag),
+                    //     SpanBytes::offset_from(txt, frag) + frag.len(),
+                    //     frag,
+                    //     SpanBytes::offset_from(txt, prefix),
+                    //     prefix,
+                    //     SpanBytes::offset_from(txt, cmp),
+                    //     cmp
                     // );
 
-                    assert_eq!(prefix, *cmp);
+                    assert_eq!(prefix, cmp);
                 }
             }
         }
 
-        run("", &[]);
-        run("a", &[]);
-        run("aaaa", &[]);
-        run("\naaaa", &[0]);
-        run("aaaa\n", &[4]);
-        run("\naaaa\n", &[0, 5]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
+        run(b"", &[]);
+        run(b"a", &[]);
+        run(b"aaaa", &[]);
+        run(b"\naaaa", &[0]);
+        run(b"aaaa\n", &[4]);
+        run(b"\naaaa\n", &[0, 5]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
     }
 
     #[test]
     fn test_start_frame() {
-        fn run(txt: &str, occ: &[usize]) {
+        fn run(txt: &[u8], occ: &[usize]) {
             // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
 
-            let txt = LocatedSpan::new(txt);
-
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
-                    let cb = check_bounds_complete_fragment(*txt, i, i, &bounds);
+                    let cb = check_bounds_complete_fragment(txt, i, i, &bounds);
                     // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
                     let cmp = mk_fragment(&txt, cb.0, cb.1);
 
                     let frag = mk_fragment(&txt, i, j);
-                    let next = SpanLines::start_frame(&txt, &frag, SEP);
+                    let next = SpanBytes::start_frame(&txt, &frag, SEP);
 
                     // println!(
-                    //     "    {}:{}:{} -> {}:{} <> {}:{}",
-                    //     frag.location_offset(),
-                    //     frag.location_offset() + frag.len(),
-                    //     frag.fragment().escape_debug(),
-                    //     next.location_offset(),
-                    //     next.fragment().escape_debug(),
-                    //     cmp.location_offset(),
-                    //     cmp.fragment().escape_debug()
+                    //     "    {}:{}:{:?} -> {}:{:?} <> {}:{:?}",
+                    //     SpanBytes::offset_from(txt, frag),
+                    //     SpanBytes::offset_from(txt, frag) + frag.len(),
+                    //     frag,
+                    //     SpanBytes::offset_from(txt, next),
+                    //     next,
+                    //     SpanBytes::offset_from(txt, cmp),
+                    //     cmp
                     // );
 
                     assert_eq!(next, cmp);
@@ -1336,44 +1325,42 @@ mod tests_spanbytes {
             }
         }
 
-        run("", &[]);
-        run("a", &[]);
-        run("aaaa", &[]);
-        run("\naaaa", &[0]);
-        run("aaaa\n", &[4]);
-        run("\naaaa\n", &[0, 5]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
+        run(b"", &[]);
+        run(b"a", &[]);
+        run(b"aaaa", &[]);
+        run(b"\naaaa", &[0]);
+        run(b"aaaa\n", &[4]);
+        run(b"\naaaa\n", &[0, 5]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
     }
 
     #[test]
     fn test_end_frame() {
-        fn run(txt: &str, occ: &[usize]) {
+        fn run(txt: &[u8], occ: &[usize]) {
             // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
 
-            let txt = LocatedSpan::new(txt);
-
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
-                    let cb = check_bounds_complete_fragment(*txt, j, j, &bounds);
+                    let cb = check_bounds_complete_fragment(txt, j, j, &bounds);
                     // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
                     let cmp = mk_fragment(&txt, cb.0, cb.1);
 
                     let frag = mk_fragment(&txt, i, j);
-                    let next = SpanLines::end_frame(&txt, &frag, SEP);
+                    let next = SpanBytes::end_frame(&txt, &frag, SEP);
 
                     // println!(
-                    //     "    {}:{}:{} -> {}:{} <> {}:{}",
-                    //     frag.location_offset(),
-                    //     frag.location_offset() + frag.len(),
-                    //     frag.fragment().escape_debug(),
-                    //     next.location_offset(),
-                    //     next.fragment().escape_debug(),
-                    //     cmp.location_offset(),
-                    //     cmp.fragment().escape_debug()
+                    //     "    {}:{}:{:?} -> {}:{:?} <> {}:{:?}",
+                    //     SpanBytes::offset_from(txt, frag),
+                    //     SpanBytes::offset_from(txt, frag) + frag.len(),
+                    //     frag,
+                    //     SpanBytes::offset_from(txt, next),
+                    //     next,
+                    //     SpanBytes::offset_from(txt, cmp),
+                    //     cmp
                     // );
 
                     assert_eq!(next, cmp);
@@ -1381,25 +1368,25 @@ mod tests_spanbytes {
             }
         }
 
-        run("", &[]);
-        run("a", &[]);
-        run("aaaa", &[]);
-        run("\naaaa", &[0]);
-        run("aaaa\n", &[4]);
-        run("\naaaa\n", &[0, 5]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
+        run(b"", &[]);
+        run(b"a", &[]);
+        run(b"aaaa", &[]);
+        run(b"\naaaa", &[0]);
+        run(b"aaaa\n", &[4]);
+        run(b"\naaaa\n", &[0, 5]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
     }
 
     fn check_bounds_complete_fragment(
-        txt: &str,
+        txt: &[u8],
         start: usize,
         end: usize,
         bounds: &Vec<[usize; 2]>,
     ) -> (usize, usize) {
-        let btxt = txt.as_bytes();
+        let btxt = txt;
 
         let start_0 = 'loop_val: {
             for (_idx, b) in bounds.iter().enumerate() {
@@ -1436,30 +1423,28 @@ mod tests_spanbytes {
 
     #[test]
     fn test_complete_fragment() {
-        fn run(txt: &str, occ: &[usize]) {
+        fn run(txt: &[u8], occ: &[usize]) {
             // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
 
-            let txt = LocatedSpan::new(txt);
-
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
-                    let cb = check_bounds_complete_fragment(*txt, i, j, &bounds);
+                    let cb = check_bounds_complete_fragment(txt, i, j, &bounds);
                     // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
                     let cmp = mk_fragment(&txt, cb.0, cb.1);
 
                     let frag = mk_fragment(&txt, i, j);
-                    let next = SpanLines::complete_fragment(&txt, &frag, SEP);
+                    let next = SpanBytes::complete_fragment(&txt, &frag, SEP);
 
                     // println!(
-                    //     "    {}:{}:{} -> {}:{} <> {}:{}",
-                    //     frag.location_offset(),
-                    //     frag.location_offset() + frag.len(),
-                    //     frag.fragment().escape_debug(),
-                    //     next.location_offset(),
-                    //     next.fragment().escape_debug(),
-                    //     cmp.location_offset(),
-                    //     cmp.fragment().escape_debug()
+                    //     "    {}:{}:{:?} -> {}:{:?} <> {}:{:?}",
+                    //     SpanBytes::offset_from(txt, frag),
+                    //     SpanBytes::offset_from(txt, frag) + frag.len(),
+                    //     frag,
+                    //     SpanBytes::offset_from(txt, next),
+                    //     next,
+                    //     SpanBytes::offset_from(txt, cmp),
+                    //     cmp
                     // );
 
                     assert_eq!(next, cmp);
@@ -1467,16 +1452,16 @@ mod tests_spanbytes {
             }
         }
 
-        run("", &[]);
-        run("a", &[]);
-        run("aaaa", &[]);
-        run("\naaaa", &[0]);
-        run("aaaa\n", &[4]);
-        run("\naaaa\n", &[0, 5]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
+        run(b"", &[]);
+        run(b"a", &[]);
+        run(b"aaaa", &[]);
+        run(b"\naaaa", &[0]);
+        run(b"aaaa\n", &[4]);
+        run(b"\naaaa\n", &[0, 5]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
     }
 
     fn check_bounds_next_fragment(pos: usize, bounds: &Vec<[usize; 2]>) -> (usize, usize) {
@@ -1497,11 +1482,9 @@ mod tests_spanbytes {
 
     #[test]
     fn test_next_fragment() {
-        fn run(txt: &str, occ: &[usize]) {
+        fn run(txt: &[u8], occ: &[usize]) {
             // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
-
-            let txt = LocatedSpan::new(txt);
 
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
@@ -1510,17 +1493,17 @@ mod tests_spanbytes {
                     let cmp = mk_fragment(&txt, cb.0, cb.1);
 
                     let frag = mk_fragment(&txt, i, j);
-                    let (next, _rnext) = SpanLines::next_fragment(&txt, &frag, SEP);
+                    let (next, _rnext) = SpanBytes::next_fragment(&txt, &frag, SEP);
 
                     // println!(
-                    //     "    {}:{}:{} -> {}:{} <> {}:{}",
-                    //     frag.location_offset(),
-                    //     frag.location_offset() + frag.len(),
-                    //     frag.fragment().escape_debug(),
-                    //     next.location_offset(),
-                    //     next.fragment().escape_debug(),
-                    //     cmp.location_offset(),
-                    //     cmp.fragment().escape_debug()
+                    //     "    {}:{}:{:?} -> {}:{:?} <> {}:{:?}",
+                    //     SpanBytes::offset_from(txt, frag),
+                    //     SpanBytes::offset_from(txt, frag) + frag.len(),
+                    //     frag,
+                    //     SpanBytes::offset_from(txt, next),
+                    //     next,
+                    //     SpanBytes::offset_from(txt, cmp),
+                    //     cmp
                     // );
 
                     assert_eq!(next, cmp);
@@ -1528,24 +1511,24 @@ mod tests_spanbytes {
             }
         }
 
-        run("", &[]);
-        run("a", &[]);
-        run("aaaa", &[]);
-        run("\naaaa", &[0]);
-        run("aaaa\n", &[4]);
-        run("\naaaa\n", &[0, 5]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
+        run(b"", &[]);
+        run(b"a", &[]);
+        run(b"aaaa", &[]);
+        run(b"\naaaa", &[0]);
+        run(b"aaaa\n", &[4]);
+        run(b"\naaaa\n", &[0, 5]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
     }
 
     fn check_bounds_prev_fragment(
-        txt: &str,
+        txt: &[u8],
         pos: usize,
         bounds: &Vec<[usize; 2]>,
     ) -> (usize, usize) {
-        let btxt = txt.as_bytes();
+        let btxt = txt;
 
         for b in bounds {
             if b[0] <= pos && pos < b[1] {
@@ -1563,29 +1546,30 @@ mod tests_spanbytes {
 
     #[test]
     fn test_prev_fragment() {
-        fn run(txt: &str, occ: &[usize]) {
+        fn run(txt: &[u8], occ: &[usize]) {
             // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
 
-            let txt = LocatedSpan::new(txt);
+            let txt = txt;
 
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
-                    let cb = check_bounds_prev_fragment(*txt, i, &bounds);
+                    let cb = check_bounds_prev_fragment(txt, i, &bounds);
                     // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
                     let cmp = mk_fragment(&txt, cb.0, cb.1);
 
                     let frag = mk_fragment(&txt, i, j);
-                    let (prev, _rprev) = SpanLines::prev_fragment(&txt, &frag, SEP);
+                    let (prev, _rprev) = SpanBytes::prev_fragment(&txt, &frag, SEP);
 
                     // println!(
-                    //     "    {}:{} -> {}:{} <> {}:{}",
-                    //     frag.location_offset(),
-                    //     frag.fragment().escape_debug(),
-                    //     prev.location_offset(),
-                    //     prev.fragment().escape_debug(),
-                    //     cmp.location_offset(),
-                    //     cmp.fragment().escape_debug()
+                    //     "    {}:{}:{:?} -> {}:{:?} <> {}:{:?}",
+                    //     SpanBytes::offset_from(txt, frag),
+                    //     SpanBytes::offset_from(txt, frag) + frag.len(),
+                    //     frag,
+                    //     SpanBytes::offset_from(txt, prev),
+                    //     prev,
+                    //     SpanBytes::offset_from(txt, cmp),
+                    //     cmp
                     // );
 
                     assert_eq!(prev, cmp);
@@ -1593,29 +1577,29 @@ mod tests_spanbytes {
             }
         }
 
-        run("", &[]);
-        run("a", &[]);
-        run("aaaa", &[]);
-        run("\naaaa", &[0]);
-        run("aaaa\n", &[4]);
-        run("\naaaa\n", &[0, 5]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
+        run(b"", &[]);
+        run(b"a", &[]);
+        run(b"aaaa", &[]);
+        run(b"\naaaa", &[0]);
+        run(b"aaaa\n", &[4]);
+        run(b"\naaaa\n", &[0, 5]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run(b"aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run(b"\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
     }
 
     #[test]
     fn test_count() {
-        fn run(txt: &str) {
+        fn run(txt: &[u8]) {
             // println!("--{:?}--", txt);
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
                     let buf = &txt[i..j];
-                    let n = count(buf.as_bytes(), SEP);
+                    let n = count(buf, SEP);
 
                     let mut cnt = 0;
-                    for c in buf.as_bytes() {
+                    for c in buf {
                         if *c == b'\n' {
                             cnt += 1;
                         }
@@ -1626,16 +1610,16 @@ mod tests_spanbytes {
             }
         }
 
-        run("");
-        run("a");
-        run("aaaa");
-        run("aaaa\n");
-        run("\naaaa");
-        run("\naaaa\n");
-        run("\n");
-        run("\n\n");
-        run("\n\n\n");
-        run("\n\n\n\n");
-        run("\n\n\n\n\n");
+        run(b"");
+        run(b"a");
+        run(b"aaaa");
+        run(b"aaaa\n");
+        run(b"\naaaa");
+        run(b"\naaaa\n");
+        run(b"\n");
+        run(b"\n\n");
+        run(b"\n\n\n");
+        run(b"\n\n\n\n");
+        run(b"\n\n\n\n\n");
     }
 }
