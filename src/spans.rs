@@ -287,7 +287,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         };
         let end = match memchr(sep, &self_bytes[offset..]) {
             None => complete.len(),
-            Some(v) => offset + v,
+            Some(v) => offset + v + 1,
         };
 
         unsafe {
@@ -569,6 +569,51 @@ mod tests {
         };
 
         (start_0, end_0)
+    }
+
+    #[test]
+    fn test_start_frame() {
+        fn run(txt: &str, occ: &[usize]) {
+            println!("--{:?}--", txt);
+            let bounds = test_bounds(txt, occ);
+
+            let txt = LocatedSpan::new(txt);
+
+            for i in 0..=txt.len() {
+                for j in i..=txt.len() {
+                    let cb = check_bounds_complete_fragment(*txt, i, i, &bounds);
+                    println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
+                    let cmp = mk_fragment(&txt, cb.0, cb.1);
+
+                    let frag = mk_fragment(&txt, i, j);
+                    let next = SpanLines::start_frame(&txt, &frag, SEP);
+
+                    println!(
+                        "    {}:{}:{} -> {}:{} <> {}:{}",
+                        frag.location_offset(),
+                        frag.location_offset() + frag.len(),
+                        frag.fragment().escape_debug(),
+                        next.location_offset(),
+                        next.fragment().escape_debug(),
+                        cmp.location_offset(),
+                        cmp.fragment().escape_debug()
+                    );
+
+                    assert_eq!(next, cmp);
+                }
+            }
+        }
+
+        run("", &[]);
+        run("a", &[]);
+        run("aaaa", &[]);
+        run("\naaaa", &[0]);
+        run("aaaa\n", &[4]);
+        run("\naaaa\n", &[0, 5]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
     }
 
     #[test]
