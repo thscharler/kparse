@@ -9,32 +9,15 @@ use crate::tracking_context::{
 use crate::Code;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::fmt;
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 use std::ops::{RangeFrom, RangeTo};
-
-/// Implementation of Debug for a Vec<Track>
-pub struct Tracks<'a, 's, T, C: Code>(pub &'a Vec<Track<'s, T, C>>);
-
-impl<'a, 's, T: AsBytes + Copy + Debug, C: Code> Debug for Tracks<'a, 's, T, C>
-where
-    T: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        debug_tracks(f, DebugWidth::Medium, self.0)
-    }
-}
 
 fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
     write!(f, "{}", " ".repeat(ind * 2))?;
     Ok(())
 }
 
-fn debug_tracks<T: AsBytes + Copy + Debug, C: Code>(
+pub(crate) fn debug_tracks<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     tracks: &Vec<Track<'_, T, C>>,

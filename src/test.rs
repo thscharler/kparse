@@ -1,8 +1,18 @@
 //!
 //! Test framework for parsers.
 //!
+//! ```rust ignore
+//! use kparse::test::{CheckDump, track_parse};
+//!
+//! // run the parser and expect Ok(). Otherwise dump & panic.
+//! track_parse(&mut None, "sample", parser_fn).okok().q(CheckDump);
+//!
+//! ```
+//! Runs the parser and works like a builder to evaluate the results.
+//! The final function is q() which runs the given report.
+//!
+//! Note: The &mut None is because lifetimes.
 
-use crate::debug::{restrict, DebugWidth};
 use crate::{Code, NoContext, ParserError, Span, TrackingContext};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::cell::Cell;
@@ -10,13 +20,16 @@ use std::fmt::Debug;
 use std::ops::{RangeFrom, RangeTo};
 use std::time::{Duration, Instant};
 
+use crate::debug::{restrict, DebugWidth};
 pub use report::*;
 pub use span::*;
 
 /// Value comparison.
-pub type CompareFn<O, V> = for<'a> fn(&'a O, V) -> bool;
+pub type CompareFn<O, V> = for<'a> fn(parsed: &'a O, test: V) -> bool;
 
-/// Test Results.
+/// Collected data of the test run.
+///
+/// Call any of the test functions and finish with q().
 pub struct Test<'s, P, T, C, O, E>
 where
     C: Code,
@@ -199,8 +212,10 @@ where
     O: Debug,
     E: Debug,
 {
-    /// Checks for ok.
-    /// Uses an extraction function to get the relevant result.
+    /// Checks for ok results.
+    ///
+    /// This takes a CompareFn to convert the parser result to a type which can be compared
+    /// with the test value.
     ///
     /// Finish the test with q()
     #[must_use]
@@ -361,7 +376,8 @@ mod span {
     use crate::{Code, Span};
     use nom::AsBytes;
 
-    /// Compare with an Ok(Span<'s>)
+    /// Compares a Span with a tuple (offset, str).
+    /// To be used with Test::ok().
     #[allow(clippy::needless_lifetimes)]
     pub fn span<'a, 's, T: AsBytes + Copy + PartialEq, C: Code>(
         span: &'a Span<'s, T, C>,
@@ -370,7 +386,8 @@ mod span {
         **span == value.1 && span.location_offset() == value.0
     }
 
-    /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the first span, fail on None.
+    /// Compares a tuple (Option<Span<'s>>, Span<'s>) with the test tuple (offset, str).
+    /// Compares only the first tuple element. Fails if it is None.
     #[allow(clippy::needless_lifetimes)]
     pub fn span_0<'a, 's, T: AsBytes + Copy + PartialEq, C: Code>(
         span: &'a (Option<Span<'s, T, C>>, Span<'s, T, C>),
@@ -383,7 +400,7 @@ mod span {
         }
     }
 
-    /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the first span, fail on Some.
+    /// Check that the first element of a tuple (Option<Span<'s>>, Span<'s>) is None.
     #[allow(clippy::needless_lifetimes)]
     pub fn span_0_isnone<'a, 's, T: AsBytes + Copy + PartialEq, C: Code>(
         span: &'a (Option<Span<'s, T, C>>, Span<'s, T, C>),
@@ -392,7 +409,8 @@ mod span {
         span.0.is_none()
     }
 
-    /// Compare with an Ok(Option<Span<'s>>, Span<'s>). Use the second span.
+    /// Compare a tuple (Option<Span<'s>>, Span<'s>) with the test tuple (offset, str).
+    /// Compares the second element.
     #[allow(clippy::needless_lifetimes)]
     pub fn span_1<'a, 's, T: AsBytes + Copy + PartialEq, C: Code>(
         span: &'a (Option<Span<'s, T, C>>, Span<'s, T, C>),
@@ -403,7 +421,7 @@ mod span {
 }
 
 mod report {
-    use crate::debug::{restrict, restrict_str, DebugWidth, Tracks};
+    use crate::debug::{restrict, restrict_str, DebugWidth};
     use crate::test::{Report, Test};
     use crate::{Code, TrackingContext};
     use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
@@ -605,7 +623,7 @@ mod report {
         );
 
         let tracks = test.context.results();
-        println!("{:?}", Tracks(&tracks));
+        println!("{:?}", tracks);
 
         match &test.result {
             Ok((rest, token)) => {

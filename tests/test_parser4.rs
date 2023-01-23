@@ -1,4 +1,4 @@
-use crate::planung4::ast::APName;
+use crate::planung4::ast::{APMenge, APName};
 use crate::planung4::diagnostics::ReportDiagnostics;
 use crate::planung4::nom_tokens::nom_metadata;
 use crate::planung4::parser::*;
@@ -256,6 +256,9 @@ pub fn test_nummer() {
 #[test]
 pub fn test_menge() {
     track_parse(&mut None, "1234", token_menge).okok().q(RT);
+    track_parse(&mut None, "1234", token_menge)
+        .ok(|v: &APMenge<'_>, w: i32| v.menge == w, 1234i32)
+        .q(RT);
     track_parse(&mut None, " 1234 ", token_menge)
         .err(APCMenge)
         .q(RT);
@@ -416,12 +419,10 @@ mod planung4 {
 
     pub mod diagnostics {
         use crate::planung4::APCode;
-        use kparse::debug::{restrict_n, Tracks};
-        use kparse::prelude::*;
         use kparse::spans::SpanLines;
         use kparse::test::{Report, Test};
-        use kparse::tracking_context::Track;
-        use kparse::{ParserError, TrackingContext};
+        use kparse::tracking_context::Tracks;
+        use kparse::{Code, ParserError, TrackingContext};
         use nom_locate::LocatedSpan;
         use std::ffi::OsStr;
         use std::fmt::Debug;
@@ -429,8 +430,8 @@ mod planung4 {
 
         /// Write out the Tracer.
         #[allow(dead_code)]
-        pub fn dump_trace(tracks: &Vec<Track<'_, &str, APCode>>) {
-            println!("{:?}", Tracks(tracks));
+        pub fn dump_trace(tracks: &Tracks<'_, &str, APCode>) {
+            println!("{:?}", tracks);
         }
 
         /// Dumps the full parser trace if any test failed.
@@ -532,11 +533,11 @@ mod planung4 {
 
             for n in err.nom() {
                 println!(
-                    "Parser-Details: {:?} {}:{}:\"{}\"",
+                    "Parser-Details: {:?} {}:{}:{:?}",
                     n.kind,
                     n.span.location_line(),
                     n.span.get_utf8_column(),
-                    restrict_n(60, n.span)
+                    n.span.escape_debug().take(40).collect::<String>()
                 );
             }
         }

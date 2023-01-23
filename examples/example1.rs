@@ -4,7 +4,7 @@ use crate::ICode::*;
 use kparse::prelude::*;
 use kparse::spans::SpanExt;
 use kparse::test::{track_parse, Trace};
-use kparse::{transform, Context, NoContext, ParserError, TrackingContext};
+use kparse::{transform, Code, Context, NoContext, ParserError, TrackingContext};
 use nom::bytes::complete::{tag, tag_no_case};
 use nom::character::complete::{char as nchar, digit1};
 use nom::combinator::{consumed, opt, recognize};

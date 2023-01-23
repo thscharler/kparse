@@ -1,18 +1,38 @@
 //!
-//! Tracking Context
+//! Tracking context for a parser.
 //!
+//! ```rust ignore
+//! use kparse::TrackingContext;
+//!
+//! let txt = "1234";
+//!
+//! let ctx = TrackingContext::new(true);
+//! let span = ctx.span(txt);
+//!
+//! // ... run parser with span.
+//! ```
 
+use crate::debug::tracks::debug_tracks;
 use crate::{Code, DynContext, ParseContext, Span};
-use nom::AsBytes;
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::cell::RefCell;
 use std::error::Error;
+use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
+use std::ops::{RangeFrom, RangeTo};
 
-///
 /// Context that can track the execution of a parser.
 ///
-/// The parser impl must call the tracking functions via Context.
+/// ```rust ignore
+/// use kparse::TrackingContext;
 ///
+/// let txt = "1234";
+///
+/// let ctx = TrackingContext::new(true);
+/// let span = ctx.span(txt);
+///
+/// // ... run parser with span.
+/// ```
 pub struct TrackingContext<'s, T: AsBytes + Copy, C: Code> {
     track: bool,
     data: RefCell<TrackingData<'s, T, C>>,
@@ -22,6 +42,12 @@ struct TrackingData<'s, T: AsBytes + Copy, C: Code> {
     func: Vec<C>,
     track: Vec<Track<'s, T, C>>,
 }
+
+/// New-type around a Vec<Track>, holds the tracking data of the parser.
+///
+/// Has a simple debug implementation to dump the tracks.
+/// Hint: You can use "{:0?}", "{:1?}" and "{:2?}" to cut back the parse text.
+pub struct Tracks<'s, T, C: Code>(pub Vec<Track<'s, T, C>>);
 
 impl<'s, T: AsBytes + Copy + 's, C: Code> Default for TrackingData<'s, T, C> {
     fn default() -> Self {
@@ -44,6 +70,27 @@ impl<'s, T: AsBytes + Copy + 's, C: Code> TrackingContext<'s, T, C> {
     /// Create a new Span from this context using the original str.
     pub fn span(&'s self, text: T) -> Span<'s, T, C> {
         Span::new_extra(text, DynContext(Some(self)))
+    }
+
+    /// Extract the tracking results.
+    ///
+    /// Removes the result from the context.
+    pub fn results(&self) -> Tracks<'s, T, C> {
+        Tracks(self.data.replace(TrackingData::default()).track)
+    }
+}
+
+impl<'s, T: AsBytes + Copy + Debug, C: Code> Debug for Tracks<'s, T, C>
+where
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        debug_tracks(f, f.width().into(), &self.0)
     }
 }
 
@@ -73,13 +120,6 @@ impl<'s, T: AsBytes + Copy + 's, C: Code> ParseContext<'s, T, C> for TrackingCon
     fn exit_err(&self, span: &Span<'s, T, C>, code: C, err: &dyn Error) {
         self.track_exit_err(span, code, err);
         self.pop_func()
-    }
-}
-
-impl<'s, T: AsBytes + Copy + 's, C: Code> TrackingContext<'s, T, C> {
-    /// Extract the tracking results.
-    pub fn results(&self) -> Vec<Track<'s, T, C>> {
-        self.data.replace(TrackingData::default()).track
     }
 }
 

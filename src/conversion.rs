@@ -1,12 +1,11 @@
 use crate::{Code, ParserError, ParserResult, Span, WithCode, WithSpan};
 use nom::error::ParseError;
-use nom::AsBytes;
+use nom::{AsBytes, Parser};
 
 //
 // std::num::ParseIntError
 //
 
-// todo: this can't be replicated in user code. switch to result and watch go bang.
 // from the std::wilds
 impl<'s, T: AsBytes + Copy, C: Code, Y: Copy> WithSpan<'s, T, C, nom::Err<ParserError<'s, T, C, Y>>>
     for std::num::ParseIntError

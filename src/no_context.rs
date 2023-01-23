@@ -1,8 +1,33 @@
-// use crate::fragments::Fragment;
+//! No tracking context. Does nothing but producing a suitable Span.
+//!
+//! ```rust ignore
+//! use kparse::NoContext;
+//!
+//! let txt = "asdf";
+//!
+//! let span = NoContext.span(txt);
+//!
+//! // ... run the parser
+//!
+//! ```
+//!
+
 use crate::{Code, DynContext, Span};
 use nom::AsBytes;
 
-/// Null Context.
+/// No tracking context. Does nothing but producing a suitable Span.
+///
+/// ```rust ignore
+/// use kparse::NoContext;
+///
+/// let txt = "asdf";
+///
+/// let span = NoContext.span(txt);
+///
+/// // ... run the parser
+///
+/// ```
+///
 pub struct NoContext;
 
 impl NoContext {

@@ -3,18 +3,16 @@
 //!
 
 pub(crate) mod error;
-mod tracks;
+pub(crate) mod tracks;
 
 use crate::{Code, Span};
 use nom::bytes::complete::take_while_m_n;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::ops::{RangeFrom, RangeTo};
 
-pub use tracks::Tracks;
-
 /// Maps a width value from the formatstring to a variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DebugWidth {
+pub(crate) enum DebugWidth {
     /// Debug flag, can be set with width=0.
     Short,
     /// Debug flag, can be set with width=1.
@@ -35,7 +33,7 @@ impl From<Option<usize>> for DebugWidth {
 }
 
 /// Cuts off the text at 20/40/60 characters.
-pub fn restrict_str<T: AsBytes + Copy>(w: DebugWidth, text: T) -> T
+pub(crate) fn restrict_str<T: AsBytes + Copy>(w: DebugWidth, text: T) -> T
 where
     T: Offset
         + InputTake
@@ -52,7 +50,7 @@ where
 }
 
 /// Cuts off the text at max_len characters.
-pub fn restrict_str_n<T: AsBytes + Copy>(max_len: usize, text: T) -> T
+pub(crate) fn restrict_str_n<T: AsBytes + Copy>(max_len: usize, text: T) -> T
 where
     T: Offset
         + InputTake
@@ -68,7 +66,10 @@ where
 }
 
 /// Cuts off the text at 20/40/60 characters.
-pub fn restrict<T: AsBytes + Copy, C: Code>(w: DebugWidth, span: Span<'_, T, C>) -> Span<'_, T, C>
+pub(crate) fn restrict<T: AsBytes + Copy, C: Code>(
+    w: DebugWidth,
+    span: Span<'_, T, C>,
+) -> Span<'_, T, C>
 where
     T: Offset
         + InputTake
@@ -85,7 +86,7 @@ where
 }
 
 /// Cuts off the text at max_len characters.
-pub fn restrict_n<T: AsBytes + Copy, C: Code>(
+pub(crate) fn restrict_n<T: AsBytes + Copy, C: Code>(
     max_len: usize,
     span: Span<'_, T, C>,
 ) -> Span<'_, T, C>

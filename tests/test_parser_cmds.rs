@@ -140,7 +140,7 @@ mod cmds_parser {
     use std::{fs, io};
 
     use kparse::spans::SpanExt;
-    use kparse::{error_code, transform, Context, ParserError};
+    use kparse::{error_code, transform, Code, Context, ParserError};
     use CCode::*;
 
     pub type Span<'s> = kparse::Span<'s, &'s str, CCode>;

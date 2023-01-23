@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
-use kparse::prelude::*;
+use kparse::error::Hints;
 use kparse::tracking_context::Track;
 use kparse::{
-    Context, DynContext, Hints, NoContext, ParserError, ParserNomResult, ParserResult, Span,
+    Code, Context, DynContext, NoContext, ParserError, ParserNomResult, ParserResult, Span,
     TrackingContext,
 };
 use nom_locate::LocatedSpan;

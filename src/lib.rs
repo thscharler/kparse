@@ -1,5 +1,114 @@
 //!
-//! Additional functionality surrounding nom.
+//! Adds tracking functions to a nom parser.
+//!
+//!
+//! ```rust no_run
+//! use std::fmt::{Display, Formatter};
+//! use nom::bytes::complete::{tag_no_case, take_while1};
+//! use nom::combinator::recognize;
+//! use nom::{AsChar, InputTakeAtPosition};
+//! use nom::character::complete::{char as nchar};
+//! use nom::multi::many_m_n;
+//! use nom::sequence::terminated;
+//! use kparse::prelude::*;
+//! use kparse::{Code, Context, TrackingContext, TrackParserError};
+//! use kparse::spans::SpanExt;
+//!
+//! fn run_parser() {
+//!     let src = "...".to_string();
+//!
+//!     let ctx = TrackingContext::new(true);
+//!     let span = ctx.span(src.as_ref());
+//!
+//!     match parse_plan(span) {
+//!         Ok(v) => {
+//!             // ...
+//!         }
+//!         Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+//!             println!("{:?}", ctx.results());
+//!         }
+//!         _ => {}
+//!     }
+//! }
+//!
+//! pub fn parse_plan(input: APSpan<'_>) -> APParserResult<'_, APPlan<'_>> {
+//!     Context.enter(APCPlan, &input);
+//!
+//!     let (rest, h0) = nom_header(input).track_as(APCHeader)?;
+//!     let (rest, _) = nom_tag_plan(rest).track_as(APCPlan)?;
+//!     let (rest, plan) = token_name(rest).track()?;
+//!     let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
+//!
+//!     let span = input.span_union(&h0, &h1);
+//!     
+//!     Context.ok(rest, span, APPlan { name: plan, span })
+//! }
+//!
+//! #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+//! pub enum APCode {
+//!     APCNomError,
+//!
+//!     APCHeader,
+//!     APCPlan,
+//!     APCName,
+//! }
+//!
+//! use APCode::*;
+//!
+//! impl Code for APCode {
+//!     const NOM_ERROR: Self = Self::APCNomError;
+//! }
+//!
+//! pub type APSpan<'s> = kparse::Span<'s, &'s str, APCode>;
+//! pub type APParserResult<'s, O> = kparse::ParserResult<'s, O, &'s str, APCode, ()>;
+//! pub type APNomResult<'s> = kparse::ParserNomResult<'s, &'s str, APCode, ()>;
+//!
+//!
+//! pub struct APPlan<'s> {
+//!     pub name: APName<'s>,
+//!     pub span: APSpan<'s>,
+//! }
+//!
+//! pub struct APName<'s> {
+//!     pub span: APSpan<'s>,
+//! }
+//!
+//! pub fn nom_header(i: APSpan<'_>) -> APNomResult<'_> {
+//!     terminated(recognize(many_m_n(0, 6, nchar('='))), nom_ws)(i)
+//! }
+//!
+//! pub fn nom_tag_plan(i: APSpan<'_>) -> APNomResult<'_> {
+//!     terminated(recognize(tag_no_case("plan")), nom_ws)(i)
+//! }
+//!
+//! pub fn token_name(rest: APSpan<'_>) -> APParserResult<'_, APName<'_>> {
+//!     match nom_name(rest) {
+//!         Ok((rest, tok)) => Ok((rest, APName { span: tok })),
+//!         Err(e) => Err(e.with_code(APCName)),
+//!     }
+//! }
+//!
+//! pub fn nom_name(i: APSpan<'_>) -> APNomResult<'_> {
+//!     terminated(
+//!         recognize(take_while1(|c: char| {
+//!             c.is_alphanumeric() || "\'+-²/_.".contains(c)
+//!         })),
+//!         nom_ws,
+//!     )(i)
+//! }
+//!
+//! pub fn nom_ws(i: APSpan<'_>) -> APNomResult<'_> {
+//!     i.split_at_position_complete(|item| {
+//!         let c = item.as_char();
+//!         !(c == ' ' || c == '\t')
+//!     })
+//! }
+//!
+//! impl Display for APCode {
+//!     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { Ok(()) }
+//! }
+//!
+//! ```
 //!
 
 #![doc(html_root_url = "https://docs.rs/kparse")]
@@ -41,14 +150,14 @@ use std::fmt::{Debug, Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::{RangeFrom, RangeTo};
 
-pub mod debug;
+pub mod error;
+pub mod no_context;
 pub mod spans;
 pub mod test;
 pub mod tracking_context;
 
 mod conversion;
-mod error;
-mod no_context;
+mod debug;
 mod tracker;
 
 #[allow(unreachable_pub)]
@@ -56,18 +165,15 @@ pub use conversion::*;
 #[allow(unreachable_pub)]
 pub use tracker::*;
 
-pub use error::{AppendParserError, Hints, Nom, ParserError, SpanAndCode};
+pub use error::ParserError;
 pub use no_context::NoContext;
 pub use tracking_context::TrackingContext;
 
-/// Prelude.
-/// There are a lot of traits ...
+/// Prelude, imports the traits.
 pub mod prelude {
-    pub use crate::{AppendParserError, TrackParserError, WithCode, WithSpan};
-    pub use crate::{Code, ParseContext};
+    pub use crate::error::AppendParserError;
+    pub use crate::{TrackParserError, WithCode, WithSpan};
 }
-
-// sneaky comment
 
 /// Standard input type.
 pub type Span<'s, T, C> = LocatedSpan<T, DynContext<'s, T, C>>;
@@ -89,8 +195,12 @@ pub trait Code: Copy + Display + Debug + Eq {
     const NOM_ERROR: Self;
 }
 
+/// This trait defines the tracking functions.
 ///
-/// Context and tracking for a parser.
+/// Create an [TrackingContext] or a [NoContext] before starting the
+/// first parser function.
+///
+/// This trait is not used directly, use the functions of [Context].
 ///
 pub trait ParseContext<'s, T, C: Code> {
     /// Tracks entering a parser function.
@@ -112,8 +222,10 @@ pub trait ParseContext<'s, T, C: Code> {
     fn exit_err(&self, span: &Span<'s, T, C>, code: C, err: &dyn Error);
 }
 
-/// Hold the context.
-/// Needed to block the debug implementation for LocatedSpan.
+/// An instance of this struct ist kept in the extra field of LocatedSpan.
+/// This way it's propagated all the way through the parser.
+///
+/// Access the tracking functions via [Context].
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct DynContext<'s, T, C: Code>(Option<&'s dyn ParseContext<'s, T, C>>);
@@ -124,9 +236,18 @@ impl<'s, T, C: Code> Debug for DynContext<'s, T, C> {
     }
 }
 
+/// Each produced span contains a reference to the context.
+/// This struct makes this more accessible.
 ///
-/// Makes the Context hidden in the Span more accessible.
+/// ```rust ignore
+/// use kparse::{Context, Span};
 ///
+/// fn parse_xyz(span: APSpan<'_>) -> APParserResult<'_, u32> {
+///     Context.enter(APCode::APCHeader, &span);
+///     // ...
+///     Context.ok(span, parsed, v32)
+/// }
+/// ```
 pub struct Context;
 
 impl Context {
@@ -230,7 +351,11 @@ pub trait TrackParserError<'s, 't, T, C: Code, Y: Copy> {
     fn track_ok(self, parsed: Span<'s, T, C>) -> Self::Result;
 }
 
-/// Convert an external error into a ParserError.
+/// Convert an external error into a ParserError and add an error code and a span.
+/// This is implemented for Result<O,E> where E is a WithSpan. No need to unwrap.
+///
+/// This trait is very generic, use a ```nom::Err<ParserError<'s, T, C, Y>>``` as
+/// the R type.
 pub trait WithSpan<'s, T, C: Code, R> {
     /// Convert an external error into a ParserError.
     /// Usually uses nom::Err::Failure to indicate the finality of the error.
@@ -238,9 +363,32 @@ pub trait WithSpan<'s, T, C: Code, R> {
 }
 
 /// Translate the error code to a new one.
+/// This is implemented for Result<O, E> where E is a WithCode. No need to unwrap.
+///
+/// To convert an external error to a ParserError rather use [WithSpan] or [std::convert::From].
 pub trait WithCode<C: Code, R> {
     /// Translate the error code to a new one.
     fn with_code(self, code: C) -> R;
+}
+
+/// Convert an external error into a ParserError and add an error code and a span.
+/// This is implemented for Result<O,E> where E is a WithSpan. No need to unwrap.
+///
+/// This trait is very generic, use a ```nom::Err<ParserError<'s, T, C, Y>>``` as
+/// the R type.
+pub trait ResultWithSpan<'s, T, C: Code, O, E> {
+    /// Convert an external error into a ParserError.
+    /// Usually uses nom::Err::Failure to indicate the finality of the error.
+    fn with_span(self, code: C, span: Span<'s, T, C>) -> Result<O, E>;
+}
+
+/// Translate the error code to a new one.
+/// This is implemented for Result<O, E> where E is a WithCode. No need to unwrap.
+///
+/// To convert an external error to a ParserError rather use [WithSpan] or [std::convert::From].
+pub trait ResultWithCode<C: Code, O, E> {
+    /// Translate the error code to a new one.
+    fn with_code(self, code: C) -> Result<O, E>;
 }
 
 /// Make the trait WithCode work as a parser.
@@ -323,7 +471,15 @@ where
 
 /// Takes a parser and a transformation of the parser result.
 /// Maps any error to the given error code.
-/// Same as Transform but only returns the converted output.
+///
+/// ```rust ignore
+/// use nom::combinator::consumed;
+/// use nom::Parser;
+/// use kparse::{TrackParserError, transform};
+///
+/// let (rest, (tok, val)) =
+///         consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
+/// ```
 pub fn transform<'s, O, T, C, PA, TRFn, E0, E1, E2>(
     parser: PA,
     transform: TRFn,

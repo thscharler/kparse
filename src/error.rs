@@ -1,3 +1,23 @@
+//!
+//! Error type, nom::error::Error replacement.
+//!
+//! It's main content is an error code and a span.
+//! Additionally
+//! * nom error codes
+//! * extra codes indicating expected input
+//! * extra codes for suggestions
+//! * cause
+//! * other user data.
+//!
+//! To change the error code during parse use with_code(). This keeps the
+//! old error code as expected value. with_code() also exists for Result's
+//! that contain a ParserError.
+//!
+//! To convert some error to a ParserError the trait WithSpan can be used.
+//! A From conversion works fine too.
+//!
+//!
+
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::{Code, Span};
@@ -296,6 +316,18 @@ impl<'s, T: AsBytes + Copy, C: Code, Y: Copy> ParserError<'s, T, C, Y> {
             span,
             hints: vec![Hints::Suggest(SpanAndCode { code, span })],
         }
+    }
+
+    /// With a cause.
+    pub fn with_cause(mut self, err: Box<dyn Error>) -> Self {
+        self.hints.push(Hints::Cause(err));
+        self
+    }
+
+    /// With user data.
+    pub fn with_user_data(mut self, user_data: Y) -> Self {
+        self.hints.push(Hints::UserData(user_data));
+        self
     }
 
     /// Finds the first (single) cause.

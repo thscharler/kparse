@@ -1,5 +1,6 @@
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, ParserError, SpanAndCode};
+use crate::error::SpanAndCode;
+use crate::{Code, ParserError};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::fmt;
 use std::fmt::Debug;
