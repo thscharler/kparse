@@ -1,9 +1,12 @@
 
-# IParse
+# KParse
 
 Outline for a handwritten parser.
 
 _The code can be found as example1.rs._
+
+_tests contains two test runs test_parser4 and test_parser_cmds that
+ contain a parser impl._
 
 1. Define your function/error codes. They are used interchangeably.
    Add a variant for nom::error::Error to work with nom.
@@ -81,8 +84,8 @@ pub fn parse_a(rest: Span<'_>) -> IParserResult<'_, TerminalA> {
             span: token,
          },
       )),
-      Err(nom::Err::Error(e)) if e.is_kind(nom::error::ErrorKind::Tag) => {
-         Err(e.into_code(ICTerminalA))
+      Err(nom::Err::Error(e)) if e.is_error_kind(nom::error::ErrorKind::Tag) => {
+         Err(nom::Err::Error(e.with_code(ICTerminalA)))
       }
       Err(e) => Err(e.into()),
    }
@@ -113,7 +116,7 @@ fn parse_terminal_a(rest: Span<'_>) -> IParserResult<'_, TerminalA<'_>> {
 There is TrackParserError::track() to make everything a bit easier. 
 This tracks the error case with the Context and let's you work with ?.
 
-There is another one track_as() that let's you change the errorcode in 
+There is another one track_as() that let's you change the error-code in 
 passing.
 
 ```rust
@@ -133,11 +136,9 @@ The const type argument states whether the actual tracking will be done or not.
 
 ```rust
 fn run_parser() -> IParserResult<'static, TerminalA<'static>> {
-   let ctx: TrackingContext<'_, ICode, true> = TrackingContext::new("A");
-   let span = ctx.span();
-   
-   let mut trace: CTracer<_, true> = CTracer::new();
-   ParseTerminalA::parse(&mut trace, Span::new("A"))
+   let ctx: TrackingContext<'_, &str, ICode> = TrackingContext::new(true);
+   let span = ctx.span("A");
+   let _r = parse_terminal_a(span);
 }
 ```
 
@@ -146,7 +147,7 @@ The other interesting one is NoContext which does almost nothing.
 ```rust
 fn run_parser() -> IParserResult<'static, TerminalA<'static>> {
    let span = NoContext.span("A");
-   parse_terminal_a(span)
+   let _r = parse_terminal_a(span);
 }
 ```
 
@@ -155,8 +156,19 @@ This is the reason why the span has to created this way.
 
 6. Testing
 
-Use kparse::test::Test. It has functions to test a single parser and 
-check on the results.
+Use kparse::test::Test. 
+
+It has functions to test a single parser and check the results.
+
+* ok() - Compare the Ok() result with a test fn().
+* err() - Check for a specific error-code.
+* expect() - Check for an additional error-code stored as expected result.
+* rest() - Compare the rest after parse.
+* okok() - Result should be any Ok() value.
+* errerr() - Result should be any Err() value.
+* fail() - Always fail.
+* nom_err() - Result contains this nom error-code.
+* 
 
 The last fn is q() which collects the checks and creates a report.
 There are some reports available
@@ -201,15 +213,16 @@ applies the closure to the result and converts the error via with_span().
 fn parse_terminal_c(rest: Span<'_>) -> IParserResult<'_, TerminalC<'_>> {
    Context.enter(ICTerminalC, &rest);
 
-   let (rest, tok) = transform(nom_parse_c, |v| (*tok).parse::<u32>(), ICInteger)(i).track()?;
+   let (rest, (tok, v)) =
+           consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
 
-   Context.ok(rest, tok.span, tok)
+   Context.ok(rest, tok, TerminalC { term: v, span: tok })
 }
 ```
 
 ## Note 2
 
-The trait iparse::tracer::TrackParseResult make the composition of parser 
+The trait kparse::TrackParseResult make the composition of parser 
 easier. It provides a track() function for the parser result, that notes a 
 potential error and returns the result. This in turn can be used for the ? 
 operator. 
@@ -218,12 +231,12 @@ It has a second method track_as() that allows to change the error code.
 
 ```rust
 fn parse_non_terminal1(rest: Span<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
-   Context.enter(ICNonTerminal1, &rest);
+   Context.enter(ICNonTerminal1, &input);
 
-   let (rest, a) = parse_terminal_a(rest).track()?;
+   let (rest, a) = parse_terminal_a(input).track()?;
    let (rest, b) = parse_terminal_b(rest).track()?;
 
-   let span = unsafe { Context.span_union(&a.span, &b.span) };
+   let span = input.span_union(&a.span, &b.span);
 
    Context.ok(rest, span, NonTerminal1 { a, b, span })
 }
@@ -244,16 +257,14 @@ fn parse_non_terminal1_1(rest: Span<'_>) -> IParserResult<'_, NonTerminal1<'_>> 
 
 ## Note 3
 
-It is good to have the full span for non-terminals in the parser. There is no
-way to glue the spans together via nom, so there is span_union(). 
-It is unsafe as is, as it relies on the fact that both spans are 
-part of the original span and are in order.
+It is often useful to keep the parsed span. With SpanExt::span_union() you
+can glue together two fragments of the original span.
 
-Or you can use consumed as above. Maybe do that. This is a relic.
+Or you can use consumed().
 
 ```rust
 fn sample() {
-   let span = unsafe { Context.span_union(&a.span, &b.span) };
+   let span = input.span_union(&a.span, &b.span);
 }
 ```
 
@@ -263,14 +274,14 @@ Handling optional terms is using opt() from nom.
 
 ```rust
 fn parse_non_terminal_2(rest: Span<'_>) -> IParserResult<'_, NonTerminal2<'_>> {
-   Context.enter(ICNonTerminal1, &rest);
+   Context.enter(ICNonTerminal1, &input);
 
-   let (rest, a) = opt(parse_terminal_a)(rest).track()?;
+   let (rest, a) = opt(parse_terminal_a)(input).track()?;
    let (rest, b) = parse_terminal_b(rest).track()?;
    let (rest, c) = parse_terminal_c(rest).track()?;
 
    let span = if let Some(a) = &a {
-      unsafe { Context.span_union(&a.span, &c.span) }
+      input.span_union(&a.span, &c.span)
    } else {
       c.span
    };
@@ -284,7 +295,7 @@ fn parse_non_terminal_2(rest: Span<'_>) -> IParserResult<'_, NonTerminal2<'_>> {
 Some example for a loop. 
 Looks solid to use a mut loop-variable but only modify it at the border.
 
-Note ```err.add(e)``` as a way to collect multiple errors.
+Note ```err.append(e)``` as a way to collect multiple errors.
 
 ```rust
 fn parse_non_terminal_3(rest: Span<'_>) -> IParserResult<'_, ()> {
@@ -298,7 +309,7 @@ fn parse_non_terminal_3(rest: Span<'_>) -> IParserResult<'_, ()> {
       let (rest2, _b) = match parse_terminal_b(rest2) {
          Ok((rest3, b)) => (rest3, Some(b)),
          Err(e) => {
-            err.add(e)?;
+            err.append(e)?;
             (rest2, None)
          }
       };
@@ -321,20 +332,14 @@ fn parse_non_terminal_3(rest: Span<'_>) -> IParserResult<'_, ()> {
 
 ## Note 5
 
-There is the trait DataFrames and it's implementations ByteFrames, StrLines
-and SpanLines.
+There is SpanLines and SpanBytes that make the diagnostics easier.
 
-They work with the original buffer and can give back
+Both start with the original buffer and accept a parsed fragment for
 
-* get_lines_around()
-* current() // line
-* start() and end() lines of a fragment.
-* iterate forward_from() and backward_from()
-* calculate the offset()
-
-These are all unsafe and UB if you call them with a fragment not derived
-from the original buffer. 
-
+* ascii_column(), utf8_column() similar to LocatedSpan.
+* current() - Extract the full text line for a fragment.
+* forward_from(), backward_from() - Iterate surrounding text lines.
+* get_lines_around() - retrieve context lines for a fragment.
 
 # Appendix B
 
@@ -347,6 +352,9 @@ These are the conversion traits.
 
 The std::convert::From is implemented for nom types to do a 
 default conversion into ParserError.
+
+WithCode and WithSpan for conversion of external errors and adding 
+context.
 
 ## Noteworthy 2
 

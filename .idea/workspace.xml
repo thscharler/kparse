@@ -15,9 +15,10 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="spanbytes">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="remove stuff">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -289,20 +290,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00008" summary="m0 for throw_away_everything__again">
-      <created>1673318974441</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1673318974441</updated>
-    </task>
-    <task id="LOCAL-00009" summary="m1 for throw_away_everything__again&#10;&#10;now have a dyn ParseContext, which is fine.&#10;some things still marked as todo or &#10;commented out ...">
-      <created>1673321196493</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1673321196493</updated>
     </task>
     <task id="LOCAL-00010" summary="m2 for throw_away_everything__again&#10;&#10;clean up the todo's">
       <created>1673324082976</created>
@@ -633,7 +620,21 @@
       <option name="project" value="LOCAL" />
       <updated>1674460248885</updated>
     </task>
-    <option name="localTasksCounter" value="57" />
+    <task id="LOCAL-00057" summary="spanbytes">
+      <created>1674461333415</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1674461333415</updated>
+    </task>
+    <task id="LOCAL-00058" summary="remove stuff">
+      <created>1674461363570</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1674461363570</updated>
+    </task>
+    <option name="localTasksCounter" value="59" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -667,7 +668,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now." />
     <MESSAGE value="clippy" />
     <MESSAGE value="check todos" />
     <MESSAGE value="Rename CombineParserError to AppendParserError to have a concise naming scheme for this.&#10;&#10;Transform now returns the parsed Span too.&#10;&#10;Add readme" />
@@ -692,7 +692,8 @@
     <MESSAGE value="test_start_frame" />
     <MESSAGE value="finish tests for spans" />
     <MESSAGE value="spanbytes" />
-    <option name="LAST_COMMIT_MESSAGE" value="spanbytes" />
+    <MESSAGE value="remove stuff" />
+    <option name="LAST_COMMIT_MESSAGE" value="remove stuff" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

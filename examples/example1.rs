@@ -192,8 +192,6 @@ fn parse_terminal_b(rest: Span<'_>) -> IParserResult<'_, TerminalB<'_>> {
     )
 }
 
-pub struct ParseTerminalC;
-
 fn parse_terminal_c(rest: Span<'_>) -> IParserResult<'_, TerminalC<'_>> {
     Context.enter(ICTerminalC, &rest);
 
