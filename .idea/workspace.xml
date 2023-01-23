@@ -13,17 +13,13 @@
     <cargoProject FILE="$PROJECT_DIR$/../spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="remove stuff">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="reorganize pub items.&#10;&#10;include only the traits in the prelude.">
       <change beforePath="$PROJECT_DIR$/../core2/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/../core2/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../core2/src/planung/anbauplan.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../core2/src/planung/anbauplan.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../core2/src/planung/io/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../core2/src/planung/io/parser4.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../core2/tests/anbauplan.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../core2/tests/anbauplan.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/tracks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/tracks.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -104,7 +100,7 @@
       <command value="cargo tree" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Test">
+  <component name="RunManager" selected="Cargo.Test anbauplan">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -142,6 +138,23 @@
     <configuration name="Doc" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="doc" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test anbauplan" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package core2 --test anbauplan &quot;&quot;" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/../core2" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
@@ -207,23 +220,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test spans::tests::test_prev_fragment" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --lib spans::tests::test_prev_fragment -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Test spans::tests::test_start_frame" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package kparse --lib spans::tests::test_start_frame -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -263,19 +259,19 @@
       <item itemvalue="Cargo.Clean" />
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Doc" />
+      <item itemvalue="Cargo.Test anbauplan" />
       <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
       <item itemvalue="Cargo.Test spans::tests::test_end_frame" />
       <item itemvalue="Cargo.Test spans::tests::test_frame_prefix" />
       <item itemvalue="Cargo.Test spans::tests::test_start_frame" />
-      <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test anbauplan" />
         <item itemvalue="Cargo.Test spans::tests::test_frame_prefix" />
         <item itemvalue="Cargo.Test spans::tests::test_start_frame" />
         <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
         <item itemvalue="Cargo.Test spans::tests::test_end_frame" />
-        <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
       </list>
     </recent_temporary>
   </component>
@@ -295,13 +291,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00010" summary="m2 for throw_away_everything__again&#10;&#10;clean up the todo's">
-      <created>1673324082976</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1673324082976</updated>
     </task>
     <task id="LOCAL-00011" summary="m2 for throw_away_everything__again&#10;&#10;easier access to parsercontext">
       <created>1673326008750</created>
@@ -639,7 +628,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674461363570</updated>
     </task>
-    <option name="localTasksCounter" value="59" />
+    <task id="LOCAL-00059" summary="reorganize pub items.&#10;&#10;include only the traits in the prelude.">
+      <created>1674492910329</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1674492910330</updated>
+    </task>
+    <option name="localTasksCounter" value="60" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -673,7 +669,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="clippy" />
     <MESSAGE value="check todos" />
     <MESSAGE value="Rename CombineParserError to AppendParserError to have a concise naming scheme for this.&#10;&#10;Transform now returns the parsed Span too.&#10;&#10;Add readme" />
     <MESSAGE value="Activate more lints.&#10;&#10;doc, cleanup pub's, minor tweaking." />
@@ -698,7 +693,8 @@
     <MESSAGE value="finish tests for spans" />
     <MESSAGE value="spanbytes" />
     <MESSAGE value="remove stuff" />
-    <option name="LAST_COMMIT_MESSAGE" value="remove stuff" />
+    <MESSAGE value="reorganize pub items.&#10;&#10;include only the traits in the prelude." />
+    <option name="LAST_COMMIT_MESSAGE" value="reorganize pub items.&#10;&#10;include only the traits in the prelude." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
