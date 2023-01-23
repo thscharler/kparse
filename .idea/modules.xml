@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../../StableProjects/core2/core2.iml" filepath="$PROJECT_DIR$/../../StableProjects/core2/core2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../iparse/iparse.iml" filepath="$PROJECT_DIR$/../iparse/iparse.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/kparse.iml" filepath="$PROJECT_DIR$/.idea/kparse.iml" />
       <module fileurl="file://$PROJECT_DIR$/../openformula/openformula.iml" filepath="$PROJECT_DIR$/../openformula/openformula.iml" />
       <module fileurl="file://$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/spreadsheet-ods.iml" filepath="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/spreadsheet-ods.iml" />
