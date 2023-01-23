@@ -15,7 +15,8 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="test_complete_fragment">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="test_start_frame">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -97,7 +98,7 @@
       <command value="cargo tree" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Test spans::tests::test_end_frame">
+  <component name="RunManager" selected="Cargo.Test">
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -183,8 +184,42 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test spans::tests::test_frame_prefix" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --lib spans::tests::test_frame_prefix -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test spans::tests::test_prev_fragment" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package kparse --lib spans::tests::test_prev_fragment -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test spans::tests::test_start_frame" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --lib spans::tests::test_start_frame -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -217,40 +252,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="doc [kparse]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="doc" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="tree [kparse]" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="tree" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <list>
       <item itemvalue="Cargo.Test" />
       <item itemvalue="Cargo.Clean" />
@@ -258,17 +259,17 @@
       <item itemvalue="Cargo.Doc" />
       <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
       <item itemvalue="Cargo.Test spans::tests::test_end_frame" />
-      <item itemvalue="Cargo.tree [kparse]" />
-      <item itemvalue="Cargo.doc [kparse]" />
+      <item itemvalue="Cargo.Test spans::tests::test_frame_prefix" />
+      <item itemvalue="Cargo.Test spans::tests::test_start_frame" />
       <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test spans::tests::test_end_frame" />
+        <item itemvalue="Cargo.Test spans::tests::test_frame_prefix" />
+        <item itemvalue="Cargo.Test spans::tests::test_start_frame" />
         <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
+        <item itemvalue="Cargo.Test spans::tests::test_end_frame" />
         <item itemvalue="Cargo.Test spans::tests::test_prev_fragment" />
-        <item itemvalue="Cargo.tree [kparse]" />
-        <item itemvalue="Cargo.doc [kparse]" />
       </list>
     </recent_temporary>
   </component>
@@ -288,20 +289,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00004" summary="add errors">
-      <created>1673263699578</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1673263699578</updated>
-    </task>
-    <task id="LOCAL-00005" summary="add errors">
-      <created>1673263713442</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1673263713442</updated>
     </task>
     <task id="LOCAL-00006" summary="add tracker">
       <created>1673312596245</created>
@@ -632,7 +619,21 @@
       <option name="project" value="LOCAL" />
       <updated>1674457124613</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="test_end_frame">
+      <created>1674457694092</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1674457694092</updated>
+    </task>
+    <task id="LOCAL-00054" summary="test_start_frame">
+      <created>1674458078048</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1674458078048</updated>
+    </task>
+    <option name="localTasksCounter" value="55" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -666,8 +667,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="No need to impl ParseContext on DynContext. Muddies the water.&#10;&#10;The same for Context. &#10;Both are positively not a ParseContext. They are small  gears in the machine." />
-    <MESSAGE value="test for sizes" />
     <MESSAGE value="can't stop trying to optimize this Context." />
     <MESSAGE value="ParserError wants Y, X is for LocatedSpan" />
     <MESSAGE value="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now." />
@@ -691,7 +690,9 @@
     <MESSAGE value="use bytecount::count&#10;&#10;remove humantime dep" />
     <MESSAGE value="clean up tests." />
     <MESSAGE value="test_complete_fragment" />
-    <option name="LAST_COMMIT_MESSAGE" value="test_complete_fragment" />
+    <MESSAGE value="test_end_frame" />
+    <MESSAGE value="test_start_frame" />
+    <option name="LAST_COMMIT_MESSAGE" value="test_start_frame" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

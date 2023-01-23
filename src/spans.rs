@@ -524,10 +524,146 @@ mod tests {
         }
         bounds.push([st, txt.len()]);
 
-        for bb in &bounds {
-            println!("{:?} {:?}", bb, &txt[bb[0]..bb[1]]);
-        }
+        // for bb in &bounds {
+        //     println!("{:?} {:?}", bb, &txt[bb[0]..bb[1]]);
+        // }
         bounds
+    }
+
+    #[test]
+    fn test_frame_prefix() {
+        fn run(txt: &str, occ: &[usize]) {
+            // println!("--{:?}--", txt);
+            let bounds = test_bounds(txt, occ);
+
+            let txt = LocatedSpan::new(txt);
+
+            for i in 0..=txt.len() {
+                for j in i..=txt.len() {
+                    let mut cb = check_bounds_complete_fragment(*txt, i, i, &bounds);
+                    // always override end.
+                    cb.1 = i;
+                    // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
+                    let cmp = mk_fragment(&txt, cb.0, cb.1);
+
+                    let frag = mk_fragment(&txt, i, j);
+                    let prefix = SpanLines::frame_prefix(&txt, &frag, SEP);
+
+                    // println!(
+                    //     "    {}:{}:{} -> {}:{} <> {}",
+                    //     frag.location_offset(),
+                    //     frag.location_offset() + frag.len(),
+                    //     frag.fragment().escape_debug(),
+                    //     prefix.escape_debug(),
+                    //     cmp.location_offset(),
+                    //     cmp.fragment().escape_debug()
+                    // );
+
+                    assert_eq!(prefix, *cmp);
+                }
+            }
+        }
+
+        run("", &[]);
+        run("a", &[]);
+        run("aaaa", &[]);
+        run("\naaaa", &[0]);
+        run("aaaa\n", &[4]);
+        run("\naaaa\n", &[0, 5]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
+    }
+
+    #[test]
+    fn test_start_frame() {
+        fn run(txt: &str, occ: &[usize]) {
+            // println!("--{:?}--", txt);
+            let bounds = test_bounds(txt, occ);
+
+            let txt = LocatedSpan::new(txt);
+
+            for i in 0..=txt.len() {
+                for j in i..=txt.len() {
+                    let cb = check_bounds_complete_fragment(*txt, i, i, &bounds);
+                    // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
+                    let cmp = mk_fragment(&txt, cb.0, cb.1);
+
+                    let frag = mk_fragment(&txt, i, j);
+                    let next = SpanLines::start_frame(&txt, &frag, SEP);
+
+                    // println!(
+                    //     "    {}:{}:{} -> {}:{} <> {}:{}",
+                    //     frag.location_offset(),
+                    //     frag.location_offset() + frag.len(),
+                    //     frag.fragment().escape_debug(),
+                    //     next.location_offset(),
+                    //     next.fragment().escape_debug(),
+                    //     cmp.location_offset(),
+                    //     cmp.fragment().escape_debug()
+                    // );
+
+                    assert_eq!(next, cmp);
+                }
+            }
+        }
+
+        run("", &[]);
+        run("a", &[]);
+        run("aaaa", &[]);
+        run("\naaaa", &[0]);
+        run("aaaa\n", &[4]);
+        run("\naaaa\n", &[0, 5]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
+    }
+
+    #[test]
+    fn test_end_frame() {
+        fn run(txt: &str, occ: &[usize]) {
+            // println!("--{:?}--", txt);
+            let bounds = test_bounds(txt, occ);
+
+            let txt = LocatedSpan::new(txt);
+
+            for i in 0..=txt.len() {
+                for j in i..=txt.len() {
+                    let cb = check_bounds_complete_fragment(*txt, j, j, &bounds);
+                    // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
+                    let cmp = mk_fragment(&txt, cb.0, cb.1);
+
+                    let frag = mk_fragment(&txt, i, j);
+                    let next = SpanLines::end_frame(&txt, &frag, SEP);
+
+                    // println!(
+                    //     "    {}:{}:{} -> {}:{} <> {}:{}",
+                    //     frag.location_offset(),
+                    //     frag.location_offset() + frag.len(),
+                    //     frag.fragment().escape_debug(),
+                    //     next.location_offset(),
+                    //     next.fragment().escape_debug(),
+                    //     cmp.location_offset(),
+                    //     cmp.fragment().escape_debug()
+                    // );
+
+                    assert_eq!(next, cmp);
+                }
+            }
+        }
+
+        run("", &[]);
+        run("a", &[]);
+        run("aaaa", &[]);
+        run("\naaaa", &[0]);
+        run("aaaa\n", &[4]);
+        run("\naaaa\n", &[0, 5]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
     }
 
     fn check_bounds_complete_fragment(
@@ -539,7 +675,7 @@ mod tests {
         let btxt = txt.as_bytes();
 
         let start_0 = 'loop_val: {
-            for (idx, b) in bounds.iter().enumerate() {
+            for (_idx, b) in bounds.iter().enumerate() {
                 if b[0] <= start && start < b[1] {
                     break 'loop_val b[0];
                 } else if b[0] <= start && start == b[1] {
@@ -572,158 +708,7 @@ mod tests {
     }
 
     #[test]
-    fn test_start_frame() {
-        fn run(txt: &str, occ: &[usize]) {
-            println!("--{:?}--", txt);
-            let bounds = test_bounds(txt, occ);
-
-            let txt = LocatedSpan::new(txt);
-
-            for i in 0..=txt.len() {
-                for j in i..=txt.len() {
-                    let cb = check_bounds_complete_fragment(*txt, i, i, &bounds);
-                    println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
-                    let cmp = mk_fragment(&txt, cb.0, cb.1);
-
-                    let frag = mk_fragment(&txt, i, j);
-                    let next = SpanLines::start_frame(&txt, &frag, SEP);
-
-                    println!(
-                        "    {}:{}:{} -> {}:{} <> {}:{}",
-                        frag.location_offset(),
-                        frag.location_offset() + frag.len(),
-                        frag.fragment().escape_debug(),
-                        next.location_offset(),
-                        next.fragment().escape_debug(),
-                        cmp.location_offset(),
-                        cmp.fragment().escape_debug()
-                    );
-
-                    assert_eq!(next, cmp);
-                }
-            }
-        }
-
-        run("", &[]);
-        run("a", &[]);
-        run("aaaa", &[]);
-        run("\naaaa", &[0]);
-        run("aaaa\n", &[4]);
-        run("\naaaa\n", &[0, 5]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
-    }
-
-    #[test]
-    fn test_end_frame() {
-        fn run(txt: &str, occ: &[usize]) {
-            println!("--{:?}--", txt);
-            let bounds = test_bounds(txt, occ);
-
-            let txt = LocatedSpan::new(txt);
-
-            for i in 0..=txt.len() {
-                for j in i..=txt.len() {
-                    let cb = check_bounds_complete_fragment(*txt, j, j, &bounds);
-                    println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
-                    let cmp = mk_fragment(&txt, cb.0, cb.1);
-
-                    let frag = mk_fragment(&txt, i, j);
-                    let next = SpanLines::end_frame(&txt, &frag, SEP);
-
-                    println!(
-                        "    {}:{}:{} -> {}:{} <> {}:{}",
-                        frag.location_offset(),
-                        frag.location_offset() + frag.len(),
-                        frag.fragment().escape_debug(),
-                        next.location_offset(),
-                        next.fragment().escape_debug(),
-                        cmp.location_offset(),
-                        cmp.fragment().escape_debug()
-                    );
-
-                    assert_eq!(next, cmp);
-                }
-            }
-        }
-
-        run("", &[]);
-        run("a", &[]);
-        run("aaaa", &[]);
-        run("\naaaa", &[0]);
-        run("aaaa\n", &[4]);
-        run("\naaaa\n", &[0, 5]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
-    }
-
-    #[test]
     fn test_complete_fragment() {
-        fn run(txt: &str, occ: &[usize]) {
-            println!("--{:?}--", txt);
-            let bounds = test_bounds(txt, occ);
-
-            let txt = LocatedSpan::new(txt);
-
-            for i in 0..=txt.len() {
-                for j in i..=txt.len() {
-                    let cb = check_bounds_complete_fragment(*txt, i, j, &bounds);
-                    println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
-                    let cmp = mk_fragment(&txt, cb.0, cb.1);
-
-                    let frag = mk_fragment(&txt, i, j);
-                    let next = SpanLines::complete_fragment(&txt, &frag, SEP);
-
-                    println!(
-                        "    {}:{}:{} -> {}:{} <> {}:{}",
-                        frag.location_offset(),
-                        frag.location_offset() + frag.len(),
-                        frag.fragment().escape_debug(),
-                        next.location_offset(),
-                        next.fragment().escape_debug(),
-                        cmp.location_offset(),
-                        cmp.fragment().escape_debug()
-                    );
-
-                    assert_eq!(next, cmp);
-                }
-            }
-        }
-
-        run("", &[]);
-        run("a", &[]);
-        run("aaaa", &[]);
-        run("\naaaa", &[0]);
-        run("aaaa\n", &[4]);
-        run("\naaaa\n", &[0, 5]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
-        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
-        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
-    }
-
-    #[test]
-    fn test_next_fragment() {
-        fn check_bounds(pos: usize, bounds: &Vec<[usize; 2]>) -> (usize, usize) {
-            for (idx, b) in bounds.iter().enumerate() {
-                if b[0] <= pos && pos < b[1] {
-                    return (pos, b[1]);
-                } else if b[0] <= pos && pos == b[1] {
-                    if idx + 1 < bounds.len() {
-                        let b1 = bounds[idx + 1];
-                        return (b1[0], b1[1]);
-                    } else {
-                        return (pos, pos);
-                    }
-                }
-            }
-            panic!();
-        }
-
         fn run(txt: &str, occ: &[usize]) {
             // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
@@ -732,7 +717,68 @@ mod tests {
 
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
-                    let cb = check_bounds(j, &bounds);
+                    let cb = check_bounds_complete_fragment(*txt, i, j, &bounds);
+                    // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
+                    let cmp = mk_fragment(&txt, cb.0, cb.1);
+
+                    let frag = mk_fragment(&txt, i, j);
+                    let next = SpanLines::complete_fragment(&txt, &frag, SEP);
+
+                    // println!(
+                    //     "    {}:{}:{} -> {}:{} <> {}:{}",
+                    //     frag.location_offset(),
+                    //     frag.location_offset() + frag.len(),
+                    //     frag.fragment().escape_debug(),
+                    //     next.location_offset(),
+                    //     next.fragment().escape_debug(),
+                    //     cmp.location_offset(),
+                    //     cmp.fragment().escape_debug()
+                    // );
+
+                    assert_eq!(next, cmp);
+                }
+            }
+        }
+
+        run("", &[]);
+        run("a", &[]);
+        run("aaaa", &[]);
+        run("\naaaa", &[0]);
+        run("aaaa\n", &[4]);
+        run("\naaaa\n", &[0, 5]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee", &[4, 9, 14, 19]);
+        run("aaaa\nbbbb\ncccc\ndddd\neeee\n", &[4, 9, 14, 19, 24]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee", &[0, 5, 10, 15, 20]);
+        run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
+    }
+
+    fn check_bounds_next_fragment(pos: usize, bounds: &Vec<[usize; 2]>) -> (usize, usize) {
+        for (idx, b) in bounds.iter().enumerate() {
+            if b[0] <= pos && pos < b[1] {
+                return (pos, b[1]);
+            } else if b[0] <= pos && pos == b[1] {
+                if idx + 1 < bounds.len() {
+                    let b1 = bounds[idx + 1];
+                    return (b1[0], b1[1]);
+                } else {
+                    return (pos, pos);
+                }
+            }
+        }
+        panic!();
+    }
+
+    #[test]
+    fn test_next_fragment() {
+        fn run(txt: &str, occ: &[usize]) {
+            // println!("--{:?}--", txt);
+            let bounds = test_bounds(txt, occ);
+
+            let txt = LocatedSpan::new(txt);
+
+            for i in 0..=txt.len() {
+                for j in i..=txt.len() {
+                    let cb = check_bounds_next_fragment(j, &bounds);
                     // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
                     let cmp = mk_fragment(&txt, cb.0, cb.1);
 
@@ -767,25 +813,29 @@ mod tests {
         run("\naaaa\nbbbb\ncccc\ndddd\neeee\n", &[0, 5, 10, 15, 20, 25]);
     }
 
-    #[test]
-    fn test_prev_fragment() {
-        fn check_bounds(txt: &str, pos: usize, bounds: &Vec<[usize; 2]>) -> (usize, usize) {
-            let btxt = txt.as_bytes();
+    fn check_bounds_prev_fragment(
+        txt: &str,
+        pos: usize,
+        bounds: &Vec<[usize; 2]>,
+    ) -> (usize, usize) {
+        let btxt = txt.as_bytes();
 
-            for b in bounds {
-                if b[0] <= pos && pos < b[1] {
-                    return (b[0], pos);
-                } else if b[0] <= pos && pos == b[1] && b[1] > 0 && btxt[b[1] - 1] == SEP {
+        for b in bounds {
+            if b[0] <= pos && pos < b[1] {
+                return (b[0], pos);
+            } else if b[0] <= pos && pos == b[1] && b[1] > 0 && btxt[b[1] - 1] == SEP {
+                return (b[0], b[1]);
+            } else if b[0] <= pos && pos == b[1] {
+                if pos == txt.len() {
                     return (b[0], b[1]);
-                } else if b[0] <= pos && pos == b[1] {
-                    if pos == txt.len() {
-                        return (b[0], b[1]);
-                    }
                 }
             }
-            panic!();
         }
+        panic!();
+    }
 
+    #[test]
+    fn test_prev_fragment() {
         fn run(txt: &str, occ: &[usize]) {
             // println!("--{:?}--", txt);
             let bounds = test_bounds(txt, occ);
@@ -794,10 +844,8 @@ mod tests {
 
             for i in 0..=txt.len() {
                 for j in i..=txt.len() {
-                    let cb = check_bounds(*txt, i, &bounds);
-
+                    let cb = check_bounds_prev_fragment(*txt, i, &bounds);
                     // println!("    <{}:{}> -> <{}:{}>", i, j, cb.0, cb.1);
-
                     let cmp = mk_fragment(&txt, cb.0, cb.1);
 
                     let frag = mk_fragment(&txt, i, j);
