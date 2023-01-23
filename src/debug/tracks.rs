@@ -3,9 +3,10 @@
 //!
 
 use crate::debug::{restrict, DebugWidth};
-use crate::{
-    Code, DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, WarnTrack,
+use crate::tracking_context::{
+    DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, WarnTrack,
 };
+use crate::Code;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::fmt;
 use std::fmt::{Debug, Formatter};

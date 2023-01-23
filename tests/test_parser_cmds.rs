@@ -140,13 +140,13 @@ mod cmds_parser {
     use std::{fs, io};
 
     use kparse::spans::SpanExt;
-    use kparse::{error_code, transform};
+    use kparse::{error_code, transform, Context, ParserError};
     use CCode::*;
 
     pub type Span<'s> = kparse::Span<'s, &'s str, CCode>;
-    pub type CParserError<'s> = ParserError<'s, &'s str, CCode>;
-    pub type CParserResult<'s, O> = ParserResult<'s, O, &'s str, CCode, ()>;
-    pub type CNomResult<'s> = ParserNomResult<'s, &'s str, CCode, ()>;
+    pub type CParserError<'s> = kparse::ParserError<'s, &'s str, CCode>;
+    pub type CParserResult<'s, O> = kparse::ParserResult<'s, O, &'s str, CCode, ()>;
+    pub type CNomResult<'s> = kparse::ParserNomResult<'s, &'s str, CCode, ()>;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum CCode {

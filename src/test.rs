@@ -403,8 +403,7 @@ mod span {
 }
 
 mod report {
-    use crate::debug::tracks::Tracks;
-    use crate::debug::{restrict, restrict_str, DebugWidth};
+    use crate::debug::{restrict, restrict_str, DebugWidth, Tracks};
     use crate::test::{Report, Test};
     use crate::{Code, TrackingContext};
     use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};

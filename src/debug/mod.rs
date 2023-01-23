@@ -3,12 +3,14 @@
 //!
 
 pub(crate) mod error;
-pub mod tracks;
+mod tracks;
 
 use crate::{Code, Span};
 use nom::bytes::complete::take_while_m_n;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::ops::{RangeFrom, RangeTo};
+
+pub use tracks::Tracks;
 
 /// Maps a width value from the formatstring to a variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

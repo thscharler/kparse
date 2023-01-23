@@ -416,12 +416,12 @@ mod planung4 {
 
     pub mod diagnostics {
         use crate::planung4::APCode;
-        use kparse::debug::restrict_n;
-        use kparse::debug::tracks::Tracks;
+        use kparse::debug::{restrict_n, Tracks};
         use kparse::prelude::*;
         use kparse::spans::SpanLines;
         use kparse::test::{Report, Test};
-        use kparse::Track;
+        use kparse::tracking_context::Track;
+        use kparse::{ParserError, TrackingContext};
         use nom_locate::LocatedSpan;
         use std::ffi::OsStr;
         use std::fmt::Debug;
@@ -1136,6 +1136,7 @@ mod planung4 {
         use crate::planung4::{nom_tokens, APParserResult, Span};
         use kparse::prelude::*;
         use kparse::spans::SpanExt;
+        use kparse::{Context, ParserError};
         use nom::combinator::opt;
         use nom::sequence::tuple;
 
@@ -1721,6 +1722,7 @@ mod planung4 {
         use chrono::NaiveDate;
         use kparse::prelude::*;
         use kparse::spans::SpanExt;
+        use kparse::{transform, ParserError};
         use nom::combinator::recognize;
         use nom::sequence::tuple;
 

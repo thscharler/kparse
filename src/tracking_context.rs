@@ -1,3 +1,7 @@
+//!
+//! Tracking Context
+//!
+
 use crate::{Code, DynContext, ParseContext, Span};
 use nom::AsBytes;
 use std::cell::RefCell;
