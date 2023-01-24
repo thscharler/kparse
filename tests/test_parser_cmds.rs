@@ -139,12 +139,12 @@ mod cmds_parser {
     use std::path::{Path, PathBuf};
     use std::{fs, io};
 
-    use kparse::spans::SpanExt;
-    use kparse::{error_code, transform, Code, Context, ParserError};
+    use kparse::spans::LocatedSpanExt;
+    use kparse::{error_code, transform, Code, Context};
     use CCode::*;
 
-    pub type Span<'s> = kparse::Span<'s, &'s str, CCode>;
-    pub type CParserError<'s> = kparse::ParserError<'s, &'s str, CCode>;
+    pub type CSpan<'s> = kparse::Span<'s, &'s str, CCode>;
+    pub type CParserError<'s> = kparse::ParserError<CCode, CSpan<'s>, ()>;
     pub type CParserResult<'s, O> = kparse::ParserResult<'s, O, &'s str, CCode, ()>;
     pub type CNomResult<'s> = kparse::ParserNomResult<'s, &'s str, CCode, ()>;
 
@@ -400,22 +400,22 @@ mod cmds_parser {
     #[derive(Debug, Clone, Copy)]
     pub struct Datum<'s> {
         pub datum: NaiveDate,
-        pub span: Span<'s>,
+        pub span: CSpan<'s>,
     }
 
     #[derive(Debug, Clone, Copy)]
     pub struct Nummer<'s> {
         pub nummer: u32,
-        pub span: Span<'s>,
+        pub span: CSpan<'s>,
     }
 
     #[derive(Debug, Clone)]
     pub struct Datei<'s> {
         pub path: PathBuf,
-        pub span: Span<'s>,
+        pub span: CSpan<'s>,
     }
 
-    pub fn parse_cmds(rest: Span<'_>) -> CParserResult<'_, BCommand> {
+    pub fn parse_cmds(rest: CSpan<'_>) -> CParserResult<'_, BCommand> {
         Context.enter(CCommand, &rest);
 
         let mut command = None;
@@ -516,7 +516,7 @@ mod cmds_parser {
         } else {
             let rest = nom_ws_span(rest);
             if !rest.is_empty() {
-                Context.err(ParserError::new(CCommand, rest))
+                Context.err(CParserError::new(CCommand, rest))
             } else {
                 Context.ok(rest, nom_empty(rest), BCommand::None())
             }
@@ -653,11 +653,11 @@ mod cmds_parser {
         },
     };
 
-    fn lah_set(span: Span<'_>) -> bool {
+    fn lah_set(span: CSpan<'_>) -> bool {
         lah_command("set", span)
     }
 
-    fn parse_set(input: Span<'_>) -> CParserResult<'_, BCommand> {
+    fn parse_set(input: CSpan<'_>) -> CParserResult<'_, BCommand> {
         Context.enter(CSet, &input);
 
         let (rest, (span_sub, sub_cmd)) = Parse2Layers {
@@ -694,7 +694,7 @@ mod cmds_parser {
         let rest = nom_ws_span(rest);
 
         if !rest.is_empty() {
-            return Context.err(ParserError::new(CSet, rest));
+            return Context.err(CParserError::new(CSet, rest));
         }
 
         let span = input.span_union(&span_sub, &span_value);
@@ -702,11 +702,11 @@ mod cmds_parser {
         Context.ok(rest, span, BCommand::Set(sub_cmd))
     }
 
-    fn lah_new(span: Span<'_>) -> bool {
+    fn lah_new(span: CSpan<'_>) -> bool {
         lah_command("new", span)
     }
 
-    fn parse_new(input: Span<'_>) -> CParserResult<'_, BCommand> {
+    fn parse_new(input: CSpan<'_>) -> CParserResult<'_, BCommand> {
         Context.enter(CEtik, &input);
 
         let (rest, (span_sub, sub)) = Parse2Layers {
@@ -739,7 +739,7 @@ mod cmds_parser {
         let rest = nom_ws_span(rest);
 
         if !rest.is_empty() {
-            return Context.err(ParserError::new(CNew, rest));
+            return Context.err(CParserError::new(CNew, rest));
         }
 
         let span = if let Some(nummer) = nummer {
@@ -781,11 +781,11 @@ mod cmds_parser {
         map_cmd: BCommand::Diff,
     };
 
-    fn lah_etik(span: Span<'_>) -> bool {
+    fn lah_etik(span: CSpan<'_>) -> bool {
         lah_command("etik", span)
     }
 
-    fn parse_etik(input: Span<'_>) -> CParserResult<'_, BCommand> {
+    fn parse_etik(input: CSpan<'_>) -> CParserResult<'_, BCommand> {
         Context.enter(CEtik, &input);
 
         let (rest, (span_sub, sub)) = Parse2Layers {
@@ -821,7 +821,7 @@ mod cmds_parser {
         let rest = nom_ws_span(rest);
 
         if !rest.is_empty() {
-            return Context.err(ParserError::new(CEtik, rest));
+            return Context.err(CParserError::new(CEtik, rest));
         }
 
         let span = if let Some(nummer) = nummer {
@@ -840,11 +840,11 @@ mod cmds_parser {
         }
     }
 
-    fn lah_report(span: Span<'_>) -> bool {
+    fn lah_report(span: CSpan<'_>) -> bool {
         lah_command("report", span)
     }
 
-    fn parse_report(input: Span<'_>) -> CParserResult<'_, BCommand> {
+    fn parse_report(input: CSpan<'_>) -> CParserResult<'_, BCommand> {
         Context.enter(CReport, &input);
 
         let (rest, (span_sub, sub)) = Parse2Layers {
@@ -877,7 +877,7 @@ mod cmds_parser {
                     }
                     Err(e) => return Context.err(e),
                 },
-                _ => return Context.err(ParserError::new(CReport, rest)),
+                _ => return Context.err(CParserError::new(CReport, rest)),
             }
         } else {
             (rest, nom_empty(rest), sub)
@@ -886,7 +886,7 @@ mod cmds_parser {
         let rest = nom_ws_span(rest);
 
         if !rest.is_empty() {
-            return Context.err(ParserError::new(CReport, rest));
+            return Context.err(CParserError::new(CReport, rest));
         }
 
         let span = input.span_union(&span_sub, &span_datum);
@@ -955,7 +955,7 @@ mod cmds_parser {
         map_cmd: BCommand::Debug,
     };
 
-    pub fn parse_nummer(rest: Span<'_>) -> CParserResult<'_, Nummer<'_>> {
+    pub fn parse_nummer(rest: CSpan<'_>) -> CParserResult<'_, Nummer<'_>> {
         Context.enter(CNummer, &rest);
 
         let (rest, nummer) = token_nummer(rest).track()?;
@@ -963,7 +963,7 @@ mod cmds_parser {
         Context.ok(rest, nummer.span, nummer)
     }
 
-    pub fn parse_datum(rest: Span<'_>) -> CParserResult<'_, Datum<'_>> {
+    pub fn parse_datum(rest: CSpan<'_>) -> CParserResult<'_, Datum<'_>> {
         Context.enter(CDatum, &rest);
 
         let (rest, datum) = token_datum(rest).track()?;
@@ -979,8 +979,8 @@ mod cmds_parser {
 
     #[derive(Debug)]
     pub enum ParseFileError<'s> {
-        PossibleMatches(Span<'s>, Vec<String>),
-        DoesNotExist(Span<'s>),
+        PossibleMatches(CSpan<'s>, Vec<String>),
+        DoesNotExist(CSpan<'s>),
         Pattern(PatternError),
         IOError(io::Error),
     }
@@ -998,7 +998,7 @@ mod cmds_parser {
     }
 
     impl<'a, 's> ParseFile<'a> {
-        pub fn parse(&self, rest: Span<'s>) -> Result<Datei<'s>, ParseFileError<'s>> {
+        pub fn parse(&self, rest: CSpan<'s>) -> Result<Datei<'s>, ParseFileError<'s>> {
             let pattern = glob::Pattern::new(self.pattern)?;
 
             // not a valid name according to the pattern. return possible matches.
@@ -1045,11 +1045,11 @@ mod cmds_parser {
             self.layers.code
         }
 
-        fn lah(&self, span: Span<'_>) -> bool {
+        fn lah(&self, span: CSpan<'_>) -> bool {
             lah_command(self.layers.token, span)
         }
 
-        fn parse<'s>(&self, rest: Span<'s>) -> CParserResult<'s, BCommand> {
+        fn parse<'s>(&self, rest: CSpan<'s>) -> CParserResult<'s, BCommand> {
             Context.enter(self.id(), &rest);
 
             let (rest, sub) = self.layers.parse(rest).track()?;
@@ -1057,7 +1057,7 @@ mod cmds_parser {
             let rest = nom_ws_span(rest);
 
             if !rest.is_empty() {
-                return Context.err(ParserError::new(self.id(), rest));
+                return Context.err(CParserError::new(self.id(), rest));
             }
 
             Context.ok(rest, sub, self.cmd)
@@ -1074,7 +1074,7 @@ mod cmds_parser {
             self.code
         }
 
-        fn parse<'s>(&self, rest: Span<'s>) -> CParserResult<'s, Span<'s>> {
+        fn parse<'s>(&self, rest: CSpan<'s>) -> CParserResult<'s, CSpan<'s>> {
             Context.enter(self.id(), &rest);
 
             let (rest, token) = token_command(self.token, self.code, rest).track()?;
@@ -1089,11 +1089,11 @@ mod cmds_parser {
     }
 
     impl<O: Copy + Debug, const N: usize> Parse2LayerCommand<O, N> {
-        fn lah(&self, span: Span<'_>) -> bool {
+        fn lah(&self, span: CSpan<'_>) -> bool {
             lah_command(self.layers.token, span)
         }
 
-        fn parse<'s>(&self, rest: Span<'s>) -> CParserResult<'s, BCommand> {
+        fn parse<'s>(&self, rest: CSpan<'s>) -> CParserResult<'s, BCommand> {
             Context.enter(self.layers.code, &rest);
 
             let (rest, (span, sub)) = self.layers.parse(rest).track()?;
@@ -1101,7 +1101,7 @@ mod cmds_parser {
             let rest = nom_ws_span(rest);
 
             if !rest.is_empty() {
-                return Context.err(ParserError::new(self.layers.code, rest));
+                return Context.err(CParserError::new(self.layers.code, rest));
             }
 
             Context.ok(rest, span, (self.map_cmd)(sub))
@@ -1131,7 +1131,7 @@ mod cmds_parser {
     }
 
     impl<O: Copy, const N: usize> Parse2Layers<O, N> {
-        fn parse<'s>(&self, input: Span<'s>) -> CParserResult<'s, (Span<'s>, O)> {
+        fn parse<'s>(&self, input: CSpan<'s>) -> CParserResult<'s, (CSpan<'s>, O)> {
             Context.enter(self.code, &input);
 
             let (rest, token) = token_command(self.token, self.code, input).track()?;
@@ -1162,7 +1162,7 @@ mod cmds_parser {
                 return match err {
                     Some(err) => Context.err(err),
                     None => {
-                        let mut err = ParserError::new(self.code, rest);
+                        let mut err = CParserError::new(self.code, rest);
                         for sub in &self.list {
                             err.suggest(sub.code, rest);
                         }
@@ -1186,7 +1186,7 @@ mod cmds_parser {
     //     }
     // }
 
-    fn token_nummer(rest: Span<'_>) -> CParserResult<'_, Nummer<'_>> {
+    fn token_nummer(rest: CSpan<'_>) -> CParserResult<'_, Nummer<'_>> {
         transform(
             nom_number,
             |s| -> Result<Nummer<'_>, ParseIntError> {
@@ -1210,7 +1210,7 @@ mod cmds_parser {
         // }
     }
 
-    fn token_datum(rest: Span<'_>) -> CParserResult<'_, Datum<'_>> {
+    fn token_datum(rest: CSpan<'_>) -> CParserResult<'_, Datum<'_>> {
         // let (rest, day) = nom_number(rest).with_code(CDateDay)?;
         // let (rest, _) = nom_dot(rest).with_code(CDotDay)?;
         // let (rest, month) = nom_number(rest).with_code(CDateMonth)?;
@@ -1234,11 +1234,11 @@ mod cmds_parser {
         if let Some(datum) = datum {
             Ok((rest, Datum { datum, span }))
         } else {
-            Err(nom::Err::Error(ParserError::new(CDatum, span)))
+            Err(nom::Err::Error(CParserError::new(CDatum, span)))
         }
     }
 
-    fn lah_command(tok: &'_ str, rest: Span<'_>) -> bool {
+    fn lah_command(tok: &'_ str, rest: CSpan<'_>) -> bool {
         match tag::<_, _, CParserError<'_>>(tok)(rest) {
             Ok(_) => true,
             Err(_) => match nom_last_token(rest) {
@@ -1252,7 +1252,11 @@ mod cmds_parser {
     }
 
     /// Tries to parse the token. If it fails and at least partially matches it adds a Suggest.
-    fn token_command<'a>(tok: &'_ str, code: CCode, rest: Span<'a>) -> CParserResult<'a, Span<'a>> {
+    fn token_command<'a>(
+        tok: &'_ str,
+        code: CCode,
+        rest: CSpan<'a>,
+    ) -> CParserResult<'a, CSpan<'a>> {
         let (rest, token) = match tag::<_, _, CParserError<'a>>(tok)(rest) {
             Ok((rest, token)) => (rest, token),
             Err(nom::Err::Error(_) | nom::Err::Failure(_)) => {
@@ -1276,19 +1280,19 @@ mod cmds_parser {
     }
 
     /// Returns a token, but only if it ends the line.
-    fn nom_last_token(i: Span<'_>) -> CNomResult<'_> {
+    fn nom_last_token(i: CSpan<'_>) -> CNomResult<'_> {
         match recognize::<_, _, CParserError<'_>, _>(take_till1(|c: char| c == ' ' || c == '\t'))(i)
         {
             Ok((rest, tok)) if rest.is_empty() => Ok((rest, tok)),
-            _ => Err(nom::Err::Error(ParserError::new(CNomError, i))),
+            _ => Err(nom::Err::Error(CParserError::new(CNomError, i))),
         }
     }
 
-    fn nom_number(i: Span<'_>) -> CNomResult<'_> {
+    fn nom_number(i: CSpan<'_>) -> CNomResult<'_> {
         terminated(digit1, nom_ws)(i)
     }
 
-    fn nom_dot(i: Span<'_>) -> CNomResult<'_> {
+    fn nom_dot(i: CSpan<'_>) -> CNomResult<'_> {
         terminated(recognize(nchar('.')), nom_ws)(i)
     }
 
@@ -1298,12 +1302,12 @@ mod cmds_parser {
     //     rest
     // }
 
-    fn nom_empty(i: Span<'_>) -> Span<'_> {
+    fn nom_empty(i: CSpan<'_>) -> CSpan<'_> {
         i.take(0)
     }
 
     /// Eat whitespace
-    fn nom_ws(i: Span<'_>) -> CNomResult<'_> {
+    fn nom_ws(i: CSpan<'_>) -> CNomResult<'_> {
         i.split_at_position_complete(|item| {
             let c = item.as_char();
             !(c == ' ' || c == '\t')
@@ -1311,14 +1315,14 @@ mod cmds_parser {
     }
 
     /// Eat whitespace
-    fn nom_ws1(i: Span<'_>) -> CParserResult<'_, Span<'_>> {
+    fn nom_ws1(i: CSpan<'_>) -> CParserResult<'_, CSpan<'_>> {
         take_while1::<_, _, CParserError<'_>>(|c: char| c == ' ' || c == '\t')(i)
             .with_code(CWhitespace)
     }
 
     /// Eat whitespace
-    fn nom_ws_span(i: Span<'_>) -> Span<'_> {
-        match i.split_at_position_complete::<_, nom::error::Error<Span<'_>>>(|item| {
+    fn nom_ws_span(i: CSpan<'_>) -> CSpan<'_> {
+        match i.split_at_position_complete::<_, nom::error::Error<CSpan<'_>>>(|item| {
             let c = item.as_char();
             !(c == ' ' || c == '\t')
         }) {

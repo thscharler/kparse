@@ -4,7 +4,7 @@ use crate::{
 };
 use nom::error::ParseError;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::ops::{RangeFrom, RangeTo};
 
 //
@@ -12,13 +12,18 @@ use std::ops::{RangeFrom, RangeTo};
 //
 
 // from the std::wilds
-impl<'s, C, Y, I> WithSpan<C, Span<'s, I, C>, ParserError<'s, I, C, Y>> for std::num::ParseIntError
+impl<'s, C, Y, I> WithSpan<C, Span<'s, I, C>, ParserError<C, Span<'s, I, C>, Y>>
+    for std::num::ParseIntError
 where
     C: Code,
     Y: Copy,
     I: AsBytes + Copy,
 {
-    fn with_span(self, code: C, span: Span<'s, I, C>) -> nom::Err<ParserError<'s, I, C, Y>> {
+    fn with_span(
+        self,
+        code: C,
+        span: Span<'s, I, C>,
+    ) -> nom::Err<ParserError<C, Span<'s, I, C>, Y>> {
         nom::Err::Failure(ParserError::new(code, span))
     }
 }
@@ -28,10 +33,14 @@ where
 //
 
 // from the std::wilds
-impl<'s, C: Code, Y: Copy, I: AsBytes + Copy> WithSpan<C, Span<'s, I, C>, ParserError<'s, I, C, Y>>
-    for std::num::ParseFloatError
+impl<'s, C: Code, Y: Copy, I: AsBytes + Copy>
+    WithSpan<C, Span<'s, I, C>, ParserError<C, Span<'s, I, C>, Y>> for std::num::ParseFloatError
 {
-    fn with_span(self, code: C, span: Span<'s, I, C>) -> nom::Err<ParserError<'s, I, C, Y>> {
+    fn with_span(
+        self,
+        code: C,
+        span: Span<'s, I, C>,
+    ) -> nom::Err<ParserError<C, Span<'s, I, C>, Y>> {
         nom::Err::Failure(ParserError::new(code, span))
     }
 }
@@ -43,18 +52,18 @@ impl<'s, C: Code, Y: Copy, I: AsBytes + Copy> WithSpan<C, Span<'s, I, C>, Parser
 //
 // ParserError
 //
-impl<'s, T, C: Code, Y: Copy> From<ParserError<'s, T, C, Y>>
-    for nom::Err<ParserError<'s, T, C, Y>>
+impl<'s, T, C: Code, Y: Copy> From<ParserError<C, Span<'s, T, C>, Y>>
+    for nom::Err<ParserError<C, Span<'s, T, C>, Y>>
 {
-    fn from(e: ParserError<'s, T, C, Y>) -> Self {
+    fn from(e: ParserError<C, Span<'s, T, C>, Y>) -> Self {
         nom::Err::Error(e)
     }
 }
 
-impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> WithCode<C, ParserError<'s, T, C, Y>>
-    for ParserError<'s, T, C, Y>
+impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> WithCode<C, ParserError<C, Span<'s, T, C>, Y>>
+    for ParserError<C, Span<'s, T, C>, Y>
 {
-    fn with_code(self, code: C) -> ParserError<'s, T, C, Y> {
+    fn with_code(self, code: C) -> ParserError<C, Span<'s, T, C>, Y> {
         ParserError::with_code(self, code)
     }
 }
@@ -65,7 +74,7 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> WithCode<C, ParserError<'s, T
 
 // take everything from nom::error::Error
 impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> From<nom::error::Error<Span<'s, T, C>>>
-    for ParserError<'s, T, C, Y>
+    for ParserError<C, Span<'s, T, C>, Y>
 {
     fn from(e: nom::error::Error<Span<'s, T, C>>) -> Self {
         ParserError::from_error_kind(e.input, e.code)
@@ -85,20 +94,20 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> From<nom::error::Error<Span<'
 // 1. just to call with_code on an existing ParserError.
 // 2. to convert whatever to a ParserError and give it a code.
 impl<'s, T: AsBytes + Copy + 's, C: Code + 's, Y: Copy + 's, E>
-    WithCode<C, nom::Err<ParserError<'s, T, C, Y>>> for nom::Err<E>
+    WithCode<C, nom::Err<ParserError<C, Span<'s, T, C>, Y>>> for nom::Err<E>
 where
-    E: Into<ParserError<'s, T, C, Y>>,
+    E: Into<ParserError<C, Span<'s, T, C>, Y>>,
 {
-    fn with_code(self, code: C) -> nom::Err<ParserError<'s, T, C, Y>> {
+    fn with_code(self, code: C) -> nom::Err<ParserError<C, Span<'s, T, C>, Y>> {
         match self {
             nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
             nom::Err::Error(e) => {
-                let p_err: ParserError<'s, T, C, Y> = e.into();
+                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
                 let p_err = p_err.with_code(code);
                 nom::Err::Error(p_err)
             }
             nom::Err::Failure(e) => {
-                let p_err: ParserError<'s, T, C, Y> = e.into();
+                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
                 let p_err = p_err.with_code(code);
                 nom::Err::Failure(p_err)
             }
@@ -116,19 +125,19 @@ where
 
 // Any result that wraps an error type that can be converted via with_span is fine.
 impl<'s, C, Y, I, O, E>
-    ResultWithSpan<C, Span<'s, I, C>, Result<O, nom::Err<ParserError<'s, I, C, Y>>>>
+    ResultWithSpan<C, Span<'s, I, C>, Result<O, nom::Err<ParserError<C, Span<'s, I, C>, Y>>>>
     for Result<O, E>
 where
     C: Code,
     Y: Copy,
     I: AsBytes + Copy,
-    E: WithSpan<C, Span<'s, I, C>, ParserError<'s, I, C, Y>>,
+    E: WithSpan<C, Span<'s, I, C>, ParserError<C, Span<'s, I, C>, Y>>,
 {
     fn with_span(
         self,
         code: C,
         span: Span<'s, I, C>,
-    ) -> Result<O, nom::Err<ParserError<'s, I, C, Y>>> {
+    ) -> Result<O, nom::Err<ParserError<C, Span<'s, I, C>, Y>>> {
         match self {
             Ok(v) => Ok(v),
             Err(e) => Err(e.with_span(code, span)),
@@ -143,13 +152,13 @@ where
 impl<'s, T, C: Code, Y: Copy, O, E> WithCode<C, ParserResult<'s, O, T, C, Y>>
     for Result<(Span<'s, T, C>, O), E>
 where
-    E: WithCode<C, nom::Err<ParserError<'s, T, C, Y>>>,
+    E: WithCode<C, nom::Err<ParserError<C, Span<'s, T, C>, Y>>>,
 {
     fn with_code(self, code: C) -> ParserResult<'s, O, T, C, Y> {
         match self {
             Ok(v) => Ok(v),
             Err(e) => {
-                let p_err: nom::Err<ParserError<'s, T, C, Y>> = e.with_code(code);
+                let p_err: nom::Err<ParserError<C, Span<'s, T, C>, Y>> = e.with_code(code);
                 Err(p_err)
             }
         }
@@ -160,30 +169,33 @@ where
 // LAYER 4 - Convert & Track
 // ***********************************************************************
 
-impl<'s, 't, T: AsBytes + Copy + Debug + 's, C: Code, Y: Copy, O, E>
-    TrackParserError<'s, 't, T, C, Y> for Result<(Span<'s, T, C>, O), nom::Err<E>>
+impl<'s, T, C, Y, O, E> TrackParserError<'s, T, C, Y> for Result<(Span<'s, T, C>, O), nom::Err<E>>
 where
-    E: Into<ParserError<'s, T, C, Y>>,
+    E: Into<ParserError<C, Span<'s, T, C>, Y>>,
+    C: Code,
+    Y: Copy,
+    T: Copy + Display + Debug,
     T: Offset
         + InputTake
         + InputIter
         + InputLength
+        + AsBytes
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
 {
-    type Result = Result<(Span<'s, T, C>, O), nom::Err<ParserError<'s, T, C, Y>>>;
+    type Result = Result<(Span<'s, T, C>, O), nom::Err<ParserError<C, Span<'s, T, C>, Y>>>;
 
     fn track(self) -> Self::Result {
         match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
-                let p_err: ParserError<'s, T, C, Y> = e.into();
+                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<'s, T, C, Y> = e.into();
+                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }
@@ -195,13 +207,13 @@ where
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
-                let p_err: ParserError<'s, T, C, Y> = e.into();
+                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
                 let p_err = p_err.with_code(code);
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<'s, T, C, Y> = e.into();
+                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
                 let p_err = p_err.with_code(code);
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
@@ -217,12 +229,12 @@ where
             }
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
-                let p_err: ParserError<'s, T, C, Y> = e.into();
+                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }
             Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<'s, T, C, Y> = e.into();
+                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
                 Context.exit_err(&p_err.span, p_err.code, &p_err);
                 Err(nom::Err::Error(p_err))
             }

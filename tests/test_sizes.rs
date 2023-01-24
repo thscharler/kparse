@@ -62,8 +62,8 @@ fn test_size2() {
     dbg!(size_of::<ZCode>());
     dbg!(size_of::<Span<'_, &str, ZCode>>());
 
-    dbg!(size_of::<ParserError<&str, ZCode, ()>>());
-    dbg!(size_of::<Vec<Hints<'_, &str, ZCode, ()>>>());
+    dbg!(size_of::<ParserError<ZCode, &str, ()>>());
+    dbg!(size_of::<Vec<Hints<ZCode, &str, ()>>>());
 
     dbg!(size_of::<Context>());
     dbg!(size_of::<ParserNomResult<&str, ZCode, ()>>());

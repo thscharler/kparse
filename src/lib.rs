@@ -12,7 +12,7 @@
 //! use nom::sequence::terminated;
 //! use kparse::prelude::*;
 //! use kparse::{Code, Context, TrackingContext, TrackParserError};
-//! use kparse::spans::SpanExt;
+//! use kparse::spans::LocatedSpanExt;
 //!
 //! fn run_parser() {
 //!     let src = "...".to_string();
@@ -168,7 +168,7 @@ pub use tracking_context::TrackingContext;
 /// Prelude, imports the traits.
 pub mod prelude {
     pub use crate::error::AppendParserError;
-    pub use crate::spans::SpanExt;
+    pub use crate::spans::LocatedSpanExt;
     pub use crate::{ResultWithSpan, TrackParserError, WithCode, WithSpan};
 }
 
@@ -177,11 +177,11 @@ pub type Span<'s, T, C> = LocatedSpan<T, DynContext<'s, T, C>>;
 
 /// Result type.
 pub type ParserResult<'s, O, T, C, Y> =
-    Result<(Span<'s, T, C>, O), nom::Err<ParserError<'s, T, C, Y>>>;
+    Result<(Span<'s, T, C>, O), nom::Err<ParserError<C, Span<'s, T, C>, Y>>>;
 
 /// Type alias for a nom parser. Use this to create a ParserError directly in nom.
 pub type ParserNomResult<'s, T, C, Y> =
-    Result<(Span<'s, T, C>, Span<'s, T, C>), nom::Err<ParserError<'s, T, C, Y>>>;
+    Result<(Span<'s, T, C>, Span<'s, T, C>), nom::Err<ParserError<C, Span<'s, T, C>, Y>>>;
 
 /// Parser state codes.
 ///
@@ -262,26 +262,21 @@ impl Context {
 
     /// Creates a Err-ParserResult from the given ParserError.
     /// Tracks an exit_err with the ParseContext.
-    pub fn err<
-        's,
-        O,
-        T: AsBytes + Copy + Debug,
+    pub fn err<'s, O, T, C, Y, E>(&self, err: E) -> ParserResult<'s, O, T, C, Y>
+    where
+        E: Into<nom::Err<ParserError<C, Span<'s, T, C>, Y>>>,
         C: Code,
         Y: Copy,
-        E: Into<nom::Err<ParserError<'s, T, C, Y>>>,
-    >(
-        &self,
-        err: E,
-    ) -> ParserResult<'s, O, T, C, Y>
-    where
+        T: Copy + Display + Debug,
         T: Offset
             + InputTake
             + InputIter
             + InputLength
+            + AsBytes
             + Slice<RangeFrom<usize>>
             + Slice<RangeTo<usize>>,
     {
-        let err: nom::Err<ParserError<'s, T, C, Y>> = err.into();
+        let err: nom::Err<ParserError<C, Span<'s, T, C>, Y>> = err.into();
         match &err {
             nom::Err::Incomplete(_) => {}
             nom::Err::Error(e) => Context.exit_err(&e.span, e.code, &e),
@@ -345,7 +340,7 @@ impl Context {
 /// let (rest, plan) = token_name(rest).track()?;
 /// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
 /// ```
-pub trait TrackParserError<'s, 't, T, C: Code, Y: Copy> {
+pub trait TrackParserError<'s, T, C: Code, Y: Copy> {
     /// Result type of the track fn.
     type Result;
 
@@ -391,6 +386,7 @@ pub trait WithCode<C: Code, R> {
 //     _phantom: PhantomData<(Y, E1)>,
 // }
 
+/// Takes a parser and converts the error via the WithCode trait.
 pub fn error_code<PA, C, I, O, E0, E1>(
     mut parser: PA,
     code: C,

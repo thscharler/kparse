@@ -5,7 +5,6 @@
 pub(crate) mod error;
 pub(crate) mod tracks;
 
-use crate::{Code, Span};
 use nom::bytes::complete::take_while_m_n;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use std::ops::{RangeFrom, RangeTo};
@@ -66,12 +65,10 @@ where
 }
 
 /// Cuts off the text at 20/40/60 characters.
-pub(crate) fn restrict<T: AsBytes + Copy, C: Code>(
-    w: DebugWidth,
-    span: Span<'_, T, C>,
-) -> Span<'_, T, C>
+pub(crate) fn restrict<I>(w: DebugWidth, span: I) -> I
 where
-    T: Offset
+    I: Copy,
+    I: Offset
         + InputTake
         + InputIter
         + InputLength
@@ -86,19 +83,17 @@ where
 }
 
 /// Cuts off the text at max_len characters.
-pub(crate) fn restrict_n<T: AsBytes + Copy, C: Code>(
-    max_len: usize,
-    span: Span<'_, T, C>,
-) -> Span<'_, T, C>
+pub(crate) fn restrict_n<I>(max_len: usize, span: I) -> I
 where
-    T: Offset
+    I: Copy,
+    I: Offset
         + InputTake
         + InputIter
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
 {
-    match take_while_m_n::<_, _, nom::error::Error<Span<'_, T, C>>>(0, max_len, |_c| true)(span) {
+    match take_while_m_n::<_, _, nom::error::Error<I>>(0, max_len, |_c| true)(span) {
         Ok((_, v)) => v,
         Err(_) => span,
     }

@@ -4,28 +4,45 @@
 
 use bytecount::{count, naive_num_chars, num_chars};
 use memchr::{memchr, memrchr};
-use nom::{AsBytes, InputLength};
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
+use std::ops::{Range, RangeFrom, RangeTo};
 
 /// Extension trait for LocatedSpan.
-pub trait SpanExt<A, T, X> {
+pub trait LocatedSpanExt {
     /// Return a new Span that encompasses both parameters.
     ///
     /// # Safety
     /// Uses the offset from both spans and corrects order and bounds. So the result might
     /// be nonsensical but safe.
-    fn span_union(&self, first: &A, second: &A) -> Self;
+    fn span_union<'a>(&self, first: &'a Self, second: &'a Self) -> Self;
+
+    /// The offset represents the position of the fragment relatively to
+    /// the input of the parser. It starts at offset 0.
+    fn location_offset(&self) -> usize;
+
+    /// The line number of the fragment relatively to the input of the
+    /// parser. It starts at line 1.
+    fn location_line(&self) -> u32;
 }
 
-impl<'s, 'a, X> SpanExt<LocatedSpan<&'a str, X>, &'s str, X> for LocatedSpan<&'s str, X>
+impl<T, X> LocatedSpanExt for LocatedSpan<T, X>
 where
+    T: AsBytes,
     X: Copy,
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + Slice<Range<usize>>
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
 {
-    fn span_union(
+    fn span_union<'a>(
         &self,
-        first: &LocatedSpan<&'a str, X>,
-        second: &LocatedSpan<&'a str, X>,
-    ) -> LocatedSpan<&'s str, X> {
+        first: &'a LocatedSpan<T, X>,
+        second: &'a LocatedSpan<T, X>,
+    ) -> LocatedSpan<T, X> {
         let offset_0 = self.location_offset();
 
         let offset_1 = first.location_offset() - offset_0;
@@ -58,66 +75,17 @@ where
             len
         };
 
-        unsafe {
-            LocatedSpan::new_from_raw_offset(
-                offset_0 + offset,
-                line,
-                &self.fragment()[offset..offset + len],
-                extra,
-            )
-        }
+        let slice = self.fragment().slice(offset..offset + len);
+
+        unsafe { LocatedSpan::new_from_raw_offset(offset_0 + offset, line, slice, extra) }
     }
-}
 
-impl<'s, 'a, X> SpanExt<LocatedSpan<&'a [u8], X>, &'s [u8], X> for LocatedSpan<&'s [u8], X>
-where
-    X: Copy,
-{
-    fn span_union(
-        &self,
-        first: &LocatedSpan<&'a [u8], X>,
-        second: &LocatedSpan<&'a [u8], X>,
-    ) -> LocatedSpan<&'s [u8], X> {
-        let offset_0 = self.location_offset();
+    fn location_offset(&self) -> usize {
+        LocatedSpan::location_offset(self)
+    }
 
-        let offset_1 = first.location_offset() - offset_0;
-        let offset_2 = second.location_offset() - offset_0;
-
-        let (offset, line, len, extra) = if offset_1 <= offset_2 {
-            (
-                offset_1,
-                first.location_line(),
-                offset_2 - offset_1 + second.input_len(),
-                first.extra,
-            )
-        } else {
-            (
-                offset_2,
-                second.location_line(),
-                offset_1 - offset_2 + first.input_len(),
-                second.extra,
-            )
-        };
-
-        let offset = if offset > self.input_len() {
-            self.input_len()
-        } else {
-            offset
-        };
-        let len = if offset + len > self.input_len() {
-            self.input_len() - offset
-        } else {
-            len
-        };
-
-        unsafe {
-            LocatedSpan::new_from_raw_offset(
-                offset_0 + offset,
-                line,
-                &self.fragment()[offset..offset + len],
-                extra,
-            )
-        }
+    fn location_line(&self) -> u32 {
+        LocatedSpan::location_line(self)
     }
 }
 

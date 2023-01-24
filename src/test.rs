@@ -300,7 +300,7 @@ where
     }
 }
 
-impl<'s, P, T, C, O> Test<'s, P, T, C, O, ParserError<'s, T, C>>
+impl<'s, P, T, C, O> Test<'s, P, T, C, O, ParserError<C, Span<'s, T, C>>>
 where
     T: AsBytes + Copy + Debug + 's,
     T: Offset
