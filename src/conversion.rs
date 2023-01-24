@@ -12,8 +12,13 @@ use std::ops::{RangeFrom, RangeTo};
 //
 
 // from the std::wilds
-impl<'s, T: AsBytes + Copy, C: Code, Y: Copy> WithSpan<'s, T, C, Y> for std::num::ParseIntError {
-    fn with_span(self, code: C, span: Span<'s, T, C>) -> nom::Err<ParserError<'s, T, C, Y>> {
+impl<'s, C, Y, I> WithSpan<C, Span<'s, I, C>, ParserError<'s, I, C, Y>> for std::num::ParseIntError
+where
+    C: Code,
+    Y: Copy,
+    I: AsBytes + Copy,
+{
+    fn with_span(self, code: C, span: Span<'s, I, C>) -> nom::Err<ParserError<'s, I, C, Y>> {
         nom::Err::Failure(ParserError::new(code, span))
     }
 }
@@ -23,8 +28,10 @@ impl<'s, T: AsBytes + Copy, C: Code, Y: Copy> WithSpan<'s, T, C, Y> for std::num
 //
 
 // from the std::wilds
-impl<'s, T: AsBytes + Copy, C: Code, Y: Copy> WithSpan<'s, T, C, Y> for std::num::ParseFloatError {
-    fn with_span(self, code: C, span: Span<'s, T, C>) -> nom::Err<ParserError<'s, T, C, Y>> {
+impl<'s, C: Code, Y: Copy, I: AsBytes + Copy> WithSpan<C, Span<'s, I, C>, ParserError<'s, I, C, Y>>
+    for std::num::ParseFloatError
+{
+    fn with_span(self, code: C, span: Span<'s, I, C>) -> nom::Err<ParserError<'s, I, C, Y>> {
         nom::Err::Failure(ParserError::new(code, span))
     }
 }
@@ -108,22 +115,23 @@ where
 //
 
 // Any result that wraps an error type that can be converted via with_span is fine.
-impl<'s, T, C: Code, Y: Copy, O, E>
-    ResultWithSpan<'s, T, C, Result<O, nom::Err<ParserError<'s, T, C, Y>>>> for Result<O, E>
+impl<'s, C, Y, I, O, E>
+    ResultWithSpan<C, Span<'s, I, C>, Result<O, nom::Err<ParserError<'s, I, C, Y>>>>
+    for Result<O, E>
 where
-    E: WithSpan<'s, T, C, Y>,
+    C: Code,
+    Y: Copy,
+    I: AsBytes + Copy,
+    E: WithSpan<C, Span<'s, I, C>, ParserError<'s, I, C, Y>>,
 {
     fn with_span(
         self,
         code: C,
-        span: Span<'s, T, C>,
-    ) -> Result<O, nom::Err<ParserError<'s, T, C, Y>>> {
+        span: Span<'s, I, C>,
+    ) -> Result<O, nom::Err<ParserError<'s, I, C, Y>>> {
         match self {
             Ok(v) => Ok(v),
-            Err(e) => {
-                let p_err: nom::Err<ParserError<'s, T, C, Y>> = e.with_span(code, span);
-                Err(p_err)
-            }
+            Err(e) => Err(e.with_span(code, span)),
         }
     }
 }

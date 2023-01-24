@@ -13,14 +13,14 @@
     <cargoProject FILE="$PROJECT_DIR$/../spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="docs &#10;bits&amp;pieces">
-      <change afterPath="$PROJECT_DIR$/examples/parser4.rs" afterDir="false" />
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="make WithSpan easier.&#10;create ResultWithSpan for our advanced use cases.&#10;&#10;merge tracker into conversions. one less.&#10;&#10;and more doc">
+      <change beforePath="$PROJECT_DIR$/../core2/src/planung/io/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../core2/src/planung/io/parser4.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../core2/src/statistik/plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../core2/src/statistik/plumap.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../core2/src/statistik/plumap/parse.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../core2/src/statistik/plumap/parse.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../core2/tests/tests_elcom.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../core2/tests/tests_elcom.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -56,7 +56,7 @@
     <setting file="file://$PROJECT_DIR$/readme.md" root0="FORCE_HIGHLIGHTING" root1="SKIP_INSPECTION" />
     <setting file="file://$PROJECT_DIR$/src/conversion.rs" root0="SKIP_INSPECTION" />
     <setting file="file://$PROJECT_DIR$/src/debug/mod.rs" root0="SKIP_INSPECTION" />
-    <setting file="file://$PROJECT_DIR$/src/lib.rs" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/src/lib.rs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="diy3gi17" />
@@ -82,7 +82,7 @@
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.0",
     "project.structure.side.proportion": "0.0",
-    "settings.editor.selected.configurable": "language.rust.cargo"
+    "settings.editor.selected.configurable": "language.rust.build.tool.cargo"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -105,7 +105,24 @@
       <command value="cargo tree" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Test timing">
+  <component name="RunManager" selected="Cargo.Build">
+    <configuration name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="build" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/../core2" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Clean" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="clean" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -244,7 +261,7 @@
     </configuration>
     <configuration name="Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="test --release" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$/../core2" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
       <option name="allFeatures" value="false" />
@@ -261,6 +278,7 @@
     </configuration>
     <list>
       <item itemvalue="Cargo.Test" />
+      <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Clean" />
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Doc" />
@@ -296,13 +314,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00014" summary="m2 for throw_away_everything__again&#10;&#10;starting to make it run again.">
-      <created>1673368694614</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1673368694614</updated>
     </task>
     <task id="LOCAL-00015" summary="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context.">
       <created>1673377336898</created>
@@ -640,7 +651,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674509070422</updated>
     </task>
-    <option name="localTasksCounter" value="63" />
+    <task id="LOCAL-00063" summary="make WithSpan easier.&#10;create ResultWithSpan for our advanced use cases.&#10;&#10;merge tracker into conversions. one less.&#10;&#10;and more doc">
+      <created>1674514573317</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1674514573317</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -674,7 +692,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Activate more lints.&#10;&#10;doc, cleanup pub's, minor tweaking." />
     <MESSAGE value="Kundenadresse PLZ spinnt mit auto complete.&#10;&#10;Row-header in kunden db." />
     <MESSAGE value="doc url corrected" />
     <MESSAGE value="vtransform is not necessary.&#10;can be achieved with transform + consumed." />
@@ -699,7 +716,8 @@
     <MESSAGE value="reorganize pub items.&#10;&#10;include only the traits in the prelude." />
     <MESSAGE value="move to kparse" />
     <MESSAGE value="docs &#10;bits&amp;pieces" />
-    <option name="LAST_COMMIT_MESSAGE" value="docs &#10;bits&amp;pieces" />
+    <MESSAGE value="make WithSpan easier.&#10;create ResultWithSpan for our advanced use cases.&#10;&#10;merge tracker into conversions. one less.&#10;&#10;and more doc" />
+    <option name="LAST_COMMIT_MESSAGE" value="make WithSpan easier.&#10;create ResultWithSpan for our advanced use cases.&#10;&#10;merge tracker into conversions. one less.&#10;&#10;and more doc" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
