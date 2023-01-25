@@ -15,21 +15,17 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="doc + clippy">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="simplified type parameters for ParserError.&#10;&#10;Add location_offset and location_line to the trait LocatedSpanExt.&#10;Which was renamed from SpanExt.">
       <change beforePath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../iparse/iparse.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/iparse.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/parser4.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/conversion.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/debug/tracks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/tracks.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -111,7 +107,7 @@
       <command value="cargo tree" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Build">
+  <component name="RunManager" selected="Cargo.Test">
     <configuration name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -320,20 +316,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00012" summary="m2 for throw_away_everything__again&#10;&#10;TrackingContext">
-      <created>1673329575022</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1673329575022</updated>
-    </task>
-    <task id="LOCAL-00013" summary="m2 for throw_away_everything__again&#10;&#10;Display + Debug for ParserError">
-      <created>1673332335364</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1673332335364</updated>
     </task>
     <task id="LOCAL-00014" summary="m2 for throw_away_everything__again&#10;&#10;starting to make it run again.">
       <created>1673368694614</created>
@@ -664,7 +646,21 @@
       <option name="project" value="LOCAL" />
       <updated>1674463783294</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="simplified type parameters for ParserError.&#10;&#10;Add location_offset and location_line to the trait LocatedSpanExt.&#10;Which was renamed from SpanExt.">
+      <created>1674598326204</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1674598326204</updated>
+    </task>
+    <task id="LOCAL-00062" summary="Test">
+      <created>1674628722941</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1674628722941</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -699,8 +695,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Rename CombineParserError to AppendParserError to have a concise naming scheme for this.&#10;&#10;Transform now returns the parsed Span too.&#10;&#10;Add readme" />
-    <MESSAGE value="Activate more lints.&#10;&#10;doc, cleanup pub's, minor tweaking." />
     <MESSAGE value="Kundenadresse PLZ spinnt mit auto complete.&#10;&#10;Row-header in kunden db." />
     <MESSAGE value="doc url corrected" />
     <MESSAGE value="vtransform is not necessary.&#10;can be achieved with transform + consumed." />
@@ -724,7 +718,9 @@
     <MESSAGE value="remove stuff" />
     <MESSAGE value="doc" />
     <MESSAGE value="doc + clippy" />
-    <option name="LAST_COMMIT_MESSAGE" value="doc + clippy" />
+    <MESSAGE value="simplified type parameters for ParserError.&#10;&#10;Add location_offset and location_line to the trait LocatedSpanExt.&#10;Which was renamed from SpanExt." />
+    <MESSAGE value="Test" />
+    <option name="LAST_COMMIT_MESSAGE" value="Test" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

@@ -169,7 +169,8 @@ where
 // LAYER 4 - Convert & Track
 // ***********************************************************************
 
-impl<'s, T, C, Y, O, E> TrackParserError<'s, T, C, Y> for Result<(Span<'s, T, C>, O), nom::Err<E>>
+impl<'s, T, C, Y, O, E> TrackParserError<'s, Span<'s, T, C>, C, Y>
+    for Result<(Span<'s, T, C>, O), nom::Err<E>>
 where
     E: Into<ParserError<C, Span<'s, T, C>, Y>>,
     C: Code,
