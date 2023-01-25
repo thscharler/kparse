@@ -32,7 +32,11 @@ pub struct NoContext;
 
 impl NoContext {
     /// Creates a span with the correct context for NoContext.
-    pub fn span<'s, T: AsBytes + Copy + 's, C: Code>(&'s self, txt: T) -> Span<'s, T, C> {
+    pub fn span<'s, T, C>(&'s self, txt: T) -> Span<'s, T, C>
+    where
+        T: AsBytes + Copy + 's,
+        C: Code,
+    {
         Span::new_extra(txt, DynContext(None))
     }
 }

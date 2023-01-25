@@ -143,7 +143,7 @@ mod planung4 {
     pub type APNomResult<'s> = kparse::ParserNomResult<'s, &'s str, APCode, ()>;
 
     pub mod diagnostics {
-        use crate::planung4::{APCode, APParserError};
+        use crate::planung4::{APCode, APParserError, APSpan};
         use kparse::spans::SpanLines;
         use kparse::test::{Report, Test};
         use kparse::tracking_context::Tracks;
@@ -155,7 +155,7 @@ mod planung4 {
 
         /// Write out the Tracer.
         #[allow(dead_code)]
-        pub fn dump_trace(tracks: &Tracks<'_, &str, APCode>) {
+        pub fn dump_trace(tracks: &Tracks<&str, APCode>) {
             println!("{:?}", tracks);
         }
 
@@ -163,7 +163,8 @@ mod planung4 {
         #[derive(Clone, Copy)]
         pub struct ReportDiagnostics;
 
-        impl<'s, C, O> Report<Test<'s, TrackingContext<'s, &str, C>, &str, C, O, APParserError<'_>>>
+        impl<'s, C, O>
+            Report<Test<'s, TrackingContext<&'s str, C>, APSpan<'s>, O, APParserError<'_>>>
             for ReportDiagnostics
         where
             C: Code,
@@ -172,14 +173,13 @@ mod planung4 {
             #[track_caller]
             fn report(
                 &self,
-                test: &Test<'s, TrackingContext<'s, &str, C>, &str, C, O, APParserError<'_>>,
+                test: &Test<'s, TrackingContext<&'s str, C>, APSpan<'s>, O, APParserError<'_>>,
             ) {
                 if test.failed.get() {
-                    let text = LocatedSpan::new(test.text);
                     match &test.result {
                         Ok(_v) => {}
                         Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                            dump_diagnostics(&PathBuf::from(""), text, e, "", true);
+                            dump_diagnostics(&PathBuf::from(""), test.span, e, "", true);
                         }
                         Err(nom::Err::Incomplete(_e)) => {}
                     }

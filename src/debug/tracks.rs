@@ -20,7 +20,7 @@ fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
 pub(crate) fn debug_tracks<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    tracks: &Vec<Track<'_, T, C>>,
+    tracks: &Vec<Track<T, C>>,
 ) -> fmt::Result
 where
     T: Offset
@@ -58,7 +58,7 @@ where
 fn debug_track<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &Track<'_, T, C>,
+    v: &Track<T, C>,
 ) -> fmt::Result
 where
     T: Offset
@@ -82,7 +82,7 @@ where
 fn debug_enter<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &EnterTrack<'_, T, C>,
+    v: &EnterTrack<T, C>,
 ) -> fmt::Result
 where
     T: Offset
@@ -114,7 +114,7 @@ where
 fn debug_info<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &InfoTrack<'_, T, C>,
+    v: &InfoTrack<T, C>,
 ) -> fmt::Result
 where
     T: Offset
@@ -150,7 +150,7 @@ where
 fn debug_warn<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &WarnTrack<'_, T, C>,
+    v: &WarnTrack<T, C>,
 ) -> fmt::Result
 where
     T: Offset
@@ -186,7 +186,7 @@ where
 fn debug_debug<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &DebugTrack<'_, T, C>,
+    v: &DebugTrack<T, C>,
 ) -> fmt::Result
 where
     T: Offset
@@ -205,7 +205,7 @@ where
 fn debug_ok<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &OkTrack<'_, T, C>,
+    v: &OkTrack<T, C>,
 ) -> fmt::Result
 where
     T: Offset
@@ -236,7 +236,7 @@ where
 fn debug_err<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &ErrTrack<'_, T, C>,
+    v: &ErrTrack<T, C>,
 ) -> fmt::Result
 where
     T: Offset
@@ -255,7 +255,7 @@ where
 fn debug_exit<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &ExitTrack<'_, T, C>,
+    v: &ExitTrack<T, C>,
 ) -> fmt::Result
 where
     T: Offset
