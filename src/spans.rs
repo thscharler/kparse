@@ -26,6 +26,48 @@ pub trait LocatedSpanExt {
     fn location_line(&self) -> u32;
 }
 
+impl<'s> LocatedSpanExt for &'s str {
+    /// Can be implemented reasonably sane for &str.
+    fn span_union<'a>(&self, first: &'a Self, second: &'a Self) -> Self {
+        let self_ptr = self.as_ptr();
+
+        let offset_1 = unsafe { first.as_ptr().offset_from(self_ptr) };
+        let offset_2 = unsafe { second.as_ptr().offset_from(self_ptr) };
+
+        let offset_1 = if offset_1 >= 0 { offset_1 as usize } else { 0 };
+        let offset_2 = if offset_2 >= 0 { offset_2 as usize } else { 0 };
+
+        let (offset, len) = if offset_1 <= offset_2 {
+            (offset_1, offset_2 - offset_1 + second.len())
+        } else {
+            (offset_2, offset_1 - offset_2 + first.len())
+        };
+
+        let offset = if offset > self.len() {
+            self.len()
+        } else {
+            offset
+        };
+        let len = if offset + len > self.len() {
+            self.len() - offset
+        } else {
+            len
+        };
+
+        self.slice(offset..offset + len)
+    }
+
+    /// Unconditionally panics.
+    fn location_offset(&self) -> usize {
+        unimplemented!()
+    }
+
+    /// Unconditionally panics.
+    fn location_line(&self) -> u32 {
+        unimplemented!()
+    }
+}
+
 impl<T, X> LocatedSpanExt for LocatedSpan<T, X>
 where
     T: AsBytes,
