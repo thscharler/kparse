@@ -498,7 +498,10 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct NoReport;
 
-    impl<'s, P, T, C, O, E> Report<Test<'s, P, CtxSpan<'s, T, C>, O, E>> for NoReport {
+    impl<'s, P, T, C, O, E> Report<Test<'s, P, CtxSpan<'s, T, C>, O, E>> for NoReport
+    where
+        C: Code,
+    {
         fn report(&self, _: &Test<'s, P, CtxSpan<'s, T, C>, O, E>) {}
     }
 
