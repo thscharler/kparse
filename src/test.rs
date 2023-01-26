@@ -54,11 +54,11 @@ pub trait Report<T> {
 ///
 /// Finish the test with q().
 #[must_use]
-pub fn track_parse<'s, T, C, O, E>(
-    buf: &'s mut Option<StdTracker<T, C>>,
+pub fn track_parse<'s, C, T, O, E>(
+    buf: &'s mut Option<StdTracker<C, T>>,
     text: T,
-    fn_test: impl Fn(TrackSpan<'s, T, C>) -> Result<(TrackSpan<'s, T, C>, O), nom::Err<E>>,
-) -> Test<'s, StdTracker<T, C>, TrackSpan<'s, T, C>, O, E>
+    fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
+) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
     T: AsBytes + Copy,
     C: Code,
@@ -86,11 +86,11 @@ where
 ///
 /// Finish the test with q().
 #[must_use]
-pub fn notrack_parse<'s, T, C, O, E>(
-    buf: &'s mut Option<StdTracker<T, C>>,
+pub fn notrack_parse<'s, C, T, O, E>(
+    buf: &'s mut Option<StdTracker<C, T>>,
     text: T,
-    fn_test: impl Fn(TrackSpan<'s, T, C>) -> Result<(TrackSpan<'s, T, C>, O), nom::Err<E>>,
-) -> Test<'s, StdTracker<T, C>, TrackSpan<'s, T, C>, O, E>
+    fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
+) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
     T: AsBytes + Copy,
     C: Code,
@@ -118,11 +118,11 @@ where
 ///
 /// Finish the test with q().
 #[must_use]
-pub fn noctx_parse<'s, T, C, O, E>(
+pub fn noctx_parse<'s, C, T, O, E>(
     buf: &'s mut Option<NoTracker>,
     text: T,
-    fn_test: impl Fn(TrackSpan<'s, T, C>) -> Result<(TrackSpan<'s, T, C>, O), nom::Err<E>>,
-) -> Test<'s, NoTracker, TrackSpan<'s, T, C>, O, E>
+    fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
+) -> Test<'s, NoTracker, TrackSpan<'s, C, T>, O, E>
 where
     T: AsBytes + Copy + 's,
     C: Code + 's,
@@ -189,7 +189,7 @@ pub fn byte_parse<'s, O, E>(
     }
 }
 
-impl<'s, P, T, C, O, E> Test<'s, P, TrackSpan<'s, T, C>, O, E>
+impl<'s, P, C, T, O, E> Test<'s, P, TrackSpan<'s, C, T>, O, E>
 where
     T: AsBytes + Copy + Debug + 's,
     C: Code,
@@ -252,7 +252,7 @@ where
 }
 
 // works for any fn that uses a Span as input and returns a (Span, X) pair.
-impl<'s, P, T, C, O, E> Test<'s, P, TrackSpan<'s, T, C>, O, E>
+impl<'s, P, C, T, O, E> Test<'s, P, TrackSpan<'s, C, T>, O, E>
 where
     T: AsBytes + Copy + Debug + PartialEq + 's,
     T: Offset
@@ -318,7 +318,7 @@ where
 }
 
 // works for any NomFn.
-impl<'s, P, T, C, O> Test<'s, P, TrackSpan<'s, T, C>, O, nom::error::Error<TrackSpan<'s, T, C>>>
+impl<'s, P, C, T, O> Test<'s, P, TrackSpan<'s, C, T>, O, nom::error::Error<TrackSpan<'s, C, T>>>
 where
     T: AsBytes + Copy + Debug + 's,
     T: Offset
@@ -353,7 +353,7 @@ where
     }
 }
 
-impl<'s, P, T, C, O> Test<'s, P, TrackSpan<'s, T, C>, O, ParserError<C, TrackSpan<'s, T, C>>>
+impl<'s, P, C, T, O> Test<'s, P, TrackSpan<'s, C, T>, O, ParserError<C, TrackSpan<'s, C, T>>>
 where
     T: AsBytes + Copy + Debug + 's,
     T: Offset
@@ -432,7 +432,7 @@ mod span {
     /// Compares a Span with a tuple (offset, str).
     /// To be used with Test::ok().
     #[allow(clippy::needless_lifetimes)]
-    pub fn span<'a, 's, T, C>(span: &'a TrackSpan<'s, T, C>, value: (usize, T)) -> bool
+    pub fn span<'a, 's, T, C>(span: &'a TrackSpan<'s, C, T>, value: (usize, T)) -> bool
     where
         T: AsBytes + Copy + PartialEq,
         C: Code,
@@ -444,7 +444,7 @@ mod span {
     /// Compares only the first tuple element. Fails if it is None.
     #[allow(clippy::needless_lifetimes)]
     pub fn span_0<'a, 's, T, C>(
-        span: &'a (Option<TrackSpan<'s, T, C>>, TrackSpan<'s, T, C>),
+        span: &'a (Option<TrackSpan<'s, C, T>>, TrackSpan<'s, C, T>),
         value: (usize, T),
     ) -> bool
     where
@@ -461,7 +461,7 @@ mod span {
     /// Check that the first element of a tuple (Option<Span<'s>>, Span<'s>) is None.
     #[allow(clippy::needless_lifetimes)]
     pub fn span_0_isnone<'a, 's, T, C>(
-        span: &'a (Option<TrackSpan<'s, T, C>>, TrackSpan<'s, T, C>),
+        span: &'a (Option<TrackSpan<'s, C, T>>, TrackSpan<'s, C, T>),
         _value: (),
     ) -> bool
     where
@@ -475,7 +475,7 @@ mod span {
     /// Compares the second element.
     #[allow(clippy::needless_lifetimes)]
     pub fn span_1<'a, 's, T, C>(
-        span: &'a (Option<TrackSpan<'s, T, C>>, TrackSpan<'s, T, C>),
+        span: &'a (Option<TrackSpan<'s, C, T>>, TrackSpan<'s, C, T>),
         value: (usize, T),
     ) -> bool
     where
@@ -498,18 +498,18 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct NoReport;
 
-    impl<'s, P, T, C, O, E> Report<Test<'s, P, TrackSpan<'s, T, C>, O, E>> for NoReport
+    impl<'s, P, C, T, O, E> Report<Test<'s, P, TrackSpan<'s, C, T>, O, E>> for NoReport
     where
         C: Code,
     {
-        fn report(&self, _: &Test<'s, P, TrackSpan<'s, T, C>, O, E>) {}
+        fn report(&self, _: &Test<'s, P, TrackSpan<'s, C, T>, O, E>) {}
     }
 
     /// Dumps the Result data if any test failed.
     #[derive(Clone, Copy)]
     pub struct CheckDump;
 
-    impl<'s, P, T, C, O, E> Report<Test<'s, P, TrackSpan<'s, T, C>, O, E>> for CheckDump
+    impl<'s, P, C, T, O, E> Report<Test<'s, P, TrackSpan<'s, C, T>, O, E>> for CheckDump
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -523,7 +523,7 @@ mod report {
         E: Debug,
     {
         #[track_caller]
-        fn report(&self, test: &Test<'s, P, TrackSpan<'s, T, C>, O, E>) {
+        fn report(&self, test: &Test<'s, P, TrackSpan<'s, C, T>, O, E>) {
             if test.failed.get() {
                 dump(test);
                 panic!("test failed")
@@ -535,7 +535,7 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct Timing(pub u32);
 
-    impl<'s, P, T, C, O, E> Report<Test<'s, P, TrackSpan<'s, T, C>, O, E>> for Timing
+    impl<'s, P, C, T, O, E> Report<Test<'s, P, TrackSpan<'s, C, T>, O, E>> for Timing
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -548,7 +548,7 @@ mod report {
         O: Debug,
         E: Debug,
     {
-        fn report(&self, test: &Test<'s, P, TrackSpan<'s, T, C>, O, E>) {
+        fn report(&self, test: &Test<'s, P, TrackSpan<'s, C, T>, O, E>) {
             println!(
                 "when parsing {:?} in {:?} =>",
                 restrict_str(DebugWidth::Medium, test.span),
@@ -569,7 +569,7 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct Dump;
 
-    impl<'s, P, T, C, O, E> Report<Test<'s, P, TrackSpan<'s, T, C>, O, E>> for Dump
+    impl<'s, P, C, T, O, E> Report<Test<'s, P, TrackSpan<'s, C, T>, O, E>> for Dump
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -582,12 +582,12 @@ mod report {
         O: Debug,
         E: Debug,
     {
-        fn report(&self, test: &Test<'s, P, TrackSpan<'s, T, C>, O, E>) {
+        fn report(&self, test: &Test<'s, P, TrackSpan<'s, C, T>, O, E>) {
             dump(test)
         }
     }
 
-    fn dump<'s, P, T, C, O, E>(test: &Test<'s, P, TrackSpan<'s, T, C>, O, E>)
+    fn dump<'s, P, C, T, O, E>(test: &Test<'s, P, TrackSpan<'s, C, T>, O, E>)
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -622,7 +622,7 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct CheckTrace;
 
-    impl<'s, T, C, O, E> Report<Test<'s, StdTracker<T, C>, TrackSpan<'s, T, C>, O, E>> for CheckTrace
+    impl<'s, C, T, O, E> Report<Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>> for CheckTrace
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -636,7 +636,7 @@ mod report {
         E: Debug,
     {
         #[track_caller]
-        fn report(&self, test: &Test<'s, StdTracker<T, C>, TrackSpan<'s, T, C>, O, E>) {
+        fn report(&self, test: &Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>) {
             if test.failed.get() {
                 trace(test);
                 panic!("test failed")
@@ -648,7 +648,7 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct Trace;
 
-    impl<'s, T, C, O, E> Report<Test<'s, StdTracker<T, C>, TrackSpan<'s, T, C>, O, E>> for Trace
+    impl<'s, C, T, O, E> Report<Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>> for Trace
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -661,12 +661,12 @@ mod report {
         O: Debug,
         E: Debug,
     {
-        fn report(&self, test: &Test<'s, StdTracker<T, C>, TrackSpan<'s, T, C>, O, E>) {
+        fn report(&self, test: &Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>) {
             trace(test);
         }
     }
 
-    fn trace<'s, T, C, O, E>(test: &Test<'s, StdTracker<T, C>, TrackSpan<'s, T, C>, O, E>)
+    fn trace<'s, C, T, O, E>(test: &Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>)
     where
         T: AsBytes + Copy + Debug,
         T: Offset

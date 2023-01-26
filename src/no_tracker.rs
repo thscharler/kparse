@@ -31,8 +31,8 @@ use nom::AsBytes;
 pub struct NoTracker;
 
 impl NoTracker {
-    /// Creates a span with the correct context for NoContext.
-    pub fn span<'s, T, C>(&'s self, txt: T) -> TrackSpan<'s, T, C>
+    /// Creates a span with the correct context for [NoTracker].
+    pub fn span<'s, T, C>(&'s self, txt: T) -> TrackSpan<'s, C, T>
     where
         T: AsBytes + Copy + 's,
         C: Code,

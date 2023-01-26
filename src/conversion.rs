@@ -1,5 +1,6 @@
 use crate::{
-    Code, DynTracker, ParserError, ResultWithSpan, TrackParserError, WithCode, WithSpan, C3, CCC,
+    Code, Context, ContextTrait, DynTracker, ParserError, ResultWithSpan, TrackParserError,
+    WithCode, WithSpan,
 };
 use nom::error::ParseError;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
@@ -174,11 +175,11 @@ where
     Y: Copy,
 {
     fn exit_ok(span: &'s str, parsed: &'s str) {
-        <C3 as CCC<C, &str>>::exit_ok(&C3, span, parsed);
+        <Context as ContextTrait<C, &str>>::exit_ok(&Context, span, parsed);
     }
 
     fn exit_err(span: &'s str, code: C, err: &dyn Error) {
-        <C3 as CCC<C, &str>>::exit_err(&C3, span, code, err);
+        <Context as ContextTrait<C, &str>>::exit_err(&Context, span, code, err);
     }
 }
 
@@ -190,11 +191,11 @@ where
     Y: Copy,
 {
     fn exit_ok(span: &'s [u8], parsed: &'s [u8]) {
-        <C3 as CCC<C, &[u8]>>::exit_ok(&C3, span, parsed);
+        <Context as ContextTrait<C, &[u8]>>::exit_ok(&Context, span, parsed);
     }
 
     fn exit_err(span: &'s [u8], code: C, err: &dyn Error) {
-        <C3 as CCC<C, &[u8]>>::exit_err(&C3, span, code, err);
+        <Context as ContextTrait<C, &[u8]>>::exit_err(&Context, span, code, err);
     }
 }
 
@@ -214,18 +215,18 @@ where
         + Slice<RangeTo<usize>>,
 {
     fn exit_ok(span: LocatedSpan<T, ()>, parsed: LocatedSpan<T, ()>) {
-        <C3 as CCC<C, LocatedSpan<T, ()>>>::exit_ok(&C3, span, parsed);
+        <Context as ContextTrait<C, LocatedSpan<T, ()>>>::exit_ok(&Context, span, parsed);
     }
 
     fn exit_err(span: LocatedSpan<T, ()>, code: C, err: &dyn Error) {
-        <C3 as CCC<C, LocatedSpan<T, ()>>>::exit_err(&C3, span, code, err);
+        <Context as ContextTrait<C, LocatedSpan<T, ()>>>::exit_err(&Context, span, code, err);
     }
 }
 
-impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, DynTracker<'s, T, C>>, Y, O, E>
-    for Result<(LocatedSpan<T, DynTracker<'s, T, C>>, O), nom::Err<E>>
+impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, DynTracker<'s, C, T>>, Y, O, E>
+    for Result<(LocatedSpan<T, DynTracker<'s, C, T>>, O), nom::Err<E>>
 where
-    E: Into<ParserError<C, LocatedSpan<T, DynTracker<'s, T, C>>, Y>>,
+    E: Into<ParserError<C, LocatedSpan<T, DynTracker<'s, C, T>>, Y>>,
     C: Code,
     Y: Copy,
     T: Copy + Debug,
@@ -238,13 +239,17 @@ where
         + Slice<RangeTo<usize>>,
 {
     fn exit_ok(
-        span: LocatedSpan<T, DynTracker<'s, T, C>>,
-        parsed: LocatedSpan<T, DynTracker<'s, T, C>>,
+        span: LocatedSpan<T, DynTracker<'s, C, T>>,
+        parsed: LocatedSpan<T, DynTracker<'s, C, T>>,
     ) {
-        <C3 as CCC<C, LocatedSpan<T, DynTracker<'s, T, C>>>>::exit_ok(&C3, span, parsed);
+        <Context as ContextTrait<C, LocatedSpan<T, DynTracker<'s, C, T>>>>::exit_ok(
+            &Context, span, parsed,
+        );
     }
 
-    fn exit_err(span: LocatedSpan<T, DynTracker<'s, T, C>>, code: C, err: &dyn Error) {
-        <C3 as CCC<C, LocatedSpan<T, DynTracker<'s, T, C>>>>::exit_err(&C3, span, code, err);
+    fn exit_err(span: LocatedSpan<T, DynTracker<'s, C, T>>, code: C, err: &dyn Error) {
+        <Context as ContextTrait<C, LocatedSpan<T, DynTracker<'s, C, T>>>>::exit_err(
+            &Context, span, code, err,
+        );
     }
 }

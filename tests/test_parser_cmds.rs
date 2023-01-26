@@ -143,10 +143,10 @@ mod cmds_parser {
     use kparse::{error_code, transform, Code, Context};
     use CCode::*;
 
-    pub type CSpan<'s> = kparse::TrackSpan<'s, &'s str, CCode>;
+    pub type CSpan<'s> = kparse::TrackSpan<'s, CCode, &'s str>;
     pub type CParserError<'s> = kparse::ParserError<CCode, CSpan<'s>, ()>;
-    pub type CParserResult<'s, O> = kparse::TrackParserResult<'s, O, &'s str, CCode, ()>;
-    pub type CNomResult<'s> = kparse::TrackParserNomResult<'s, &'s str, CCode, ()>;
+    pub type CParserResult<'s, O> = kparse::TrackParserResult<'s, CCode, &'s str, (), O>;
+    pub type CNomResult<'s> = kparse::TrackParserNomResult<'s, CCode, &'s str, ()>;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum CCode {

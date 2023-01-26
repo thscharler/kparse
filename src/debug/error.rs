@@ -4,7 +4,7 @@ use nom::{InputIter, InputLength, InputTake, Offset, Slice};
 use std::fmt;
 use std::fmt::Debug;
 /// impl of debug for ParserError.
-pub(crate) fn debug_parse_error<I, C, Y>(
+pub(crate) fn debug_parse_error<C, I, Y>(
     f: &mut fmt::Formatter<'_>,
     err: &ParserError<C, I, Y>,
 ) -> fmt::Result
@@ -29,7 +29,7 @@ where
 
 use std::ops::{RangeFrom, RangeTo};
 
-fn debug_parse_error_short<I, C, Y>(
+fn debug_parse_error_short<C, I, Y>(
     f: &mut impl fmt::Write,
     err: &ParserError<C, I, Y>,
 ) -> fmt::Result
@@ -76,7 +76,7 @@ where
     Ok(())
 }
 
-fn debug_parse_error_medium<I, C, Y>(
+fn debug_parse_error_medium<C, I, Y>(
     f: &mut impl fmt::Write,
     err: &ParserError<C, I, Y>,
 ) -> fmt::Result
@@ -126,7 +126,7 @@ where
     Ok(())
 }
 
-fn debug_parse_error_long<I, C, Y>(
+fn debug_parse_error_long<C, I, Y>(
     f: &mut impl fmt::Write,
     err: &ParserError<C, I, Y>,
 ) -> fmt::Result

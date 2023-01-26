@@ -20,7 +20,7 @@ fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
 pub(crate) fn debug_tracks<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    tracks: &Vec<Track<T, C>>,
+    tracks: &Vec<Track<C, T>>,
 ) -> fmt::Result
 where
     T: Offset
@@ -58,7 +58,7 @@ where
 fn debug_track<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &Track<T, C>,
+    v: &Track<C, T>,
 ) -> fmt::Result
 where
     T: Offset
@@ -82,7 +82,7 @@ where
 fn debug_enter<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &EnterTrack<T, C>,
+    v: &EnterTrack<C, T>,
 ) -> fmt::Result
 where
     T: Offset
@@ -114,7 +114,7 @@ where
 fn debug_info<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &InfoTrack<T, C>,
+    v: &InfoTrack<C, T>,
 ) -> fmt::Result
 where
     T: Offset
@@ -150,7 +150,7 @@ where
 fn debug_warn<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &WarnTrack<T, C>,
+    v: &WarnTrack<C, T>,
 ) -> fmt::Result
 where
     T: Offset
@@ -186,7 +186,7 @@ where
 fn debug_debug<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &DebugTrack<T, C>,
+    v: &DebugTrack<C, T>,
 ) -> fmt::Result
 where
     T: Offset
@@ -205,7 +205,7 @@ where
 fn debug_ok<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &OkTrack<T, C>,
+    v: &OkTrack<C, T>,
 ) -> fmt::Result
 where
     T: Offset
@@ -236,7 +236,7 @@ where
 fn debug_err<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &ErrTrack<T, C>,
+    v: &ErrTrack<C, T>,
 ) -> fmt::Result
 where
     T: Offset
@@ -255,7 +255,7 @@ where
 fn debug_exit<T: AsBytes + Copy + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
-    v: &ExitTrack<T, C>,
+    v: &ExitTrack<C, T>,
 ) -> fmt::Result
 where
     T: Offset

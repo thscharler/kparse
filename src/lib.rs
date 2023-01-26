@@ -32,7 +32,7 @@
 //! }
 //!
 //! pub fn parse_plan(input: APSpan<'_>) -> APParserResult<'_, APPlan<'_>> {
-//!     Context.enter(APCPlan, &input);
+//!     Context.enter(APCPlan, input);
 //!
 //!     let (rest, h0) = nom_header(input).track_as(APCHeader)?;
 //!     let (rest, _) = nom_tag_plan(rest).track_as(APCPlan)?;
@@ -59,9 +59,9 @@
 //!     const NOM_ERROR: Self = Self::APCNomError;
 //! }
 //!
-//! pub type APSpan<'s> = kparse::TrackSpan<'s, &'s str, APCode>;
-//! pub type APParserResult<'s, O> = kparse::TrackParserResult<'s, O, &'s str, APCode, ()>;
-//! pub type APNomResult<'s> = kparse::TrackParserNomResult<'s, &'s str, APCode, ()>;
+//! pub type APSpan<'s> = kparse::TrackSpan<'s, APCode, &'s str>;
+//! pub type APParserResult<'s, O> = kparse::TrackParserResult<'s, APCode, &'s str, (), O>;
+//! pub type APNomResult<'s> = kparse::TrackParserNomResult<'s, APCode, &'s str,  ()>;
 //!
 //!
 //! pub struct APPlan<'s> {
@@ -165,7 +165,6 @@ pub use context::*;
 #[allow(unreachable_pub)]
 pub use conversion::*;
 
-pub use c3::*;
 pub use combinators::*;
 pub use error::ParserError;
 pub use no_tracker::NoTracker;
@@ -183,17 +182,17 @@ pub mod prelude {
 ///
 /// It holds a dyn ParseContext in the extra field of LocatedSpan to distribute
 /// the context.
-pub type TrackSpan<'s, T, C> = LocatedSpan<T, DynTracker<'s, T, C>>; // todo order
+pub type TrackSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
 /// Standard result type in conjunction with CtxSpan.
-pub type TrackParserResult<'s, O, T, C, Y> =
-    Result<(TrackSpan<'s, T, C>, O), nom::Err<ParserError<C, TrackSpan<'s, T, C>, Y>>>; // todo order
+pub type TrackParserResult<'s, C, T, Y, O> =
+    Result<(TrackSpan<'s, C, T>, O), nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>>;
 
 /// Type alias for a nom parser. Use this to create a ParserError directly in nom.
-pub type TrackParserNomResult<'s, T, C, Y> = Result<
-    (TrackSpan<'s, T, C>, TrackSpan<'s, T, C>),
-    nom::Err<ParserError<C, TrackSpan<'s, T, C>, Y>>,
->; // todo order
+pub type TrackParserNomResult<'s, C, T, Y> = Result<
+    (TrackSpan<'s, C, T>, TrackSpan<'s, C, T>),
+    nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>,
+>;
 
 /// Parser state codes.
 ///
@@ -212,7 +211,7 @@ pub trait Code: Copy + Display + Debug + Eq {
 ///
 /// This trait is not used directly, use the functions of [Context].
 ///
-pub trait Tracker<T, C>
+pub trait Tracker<C, T>
 where
     C: Code,
 {
@@ -241,11 +240,11 @@ where
 /// Access the tracking functions via [Context].
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct DynTracker<'c, T, C>(Option<&'c dyn Tracker<T, C>>)
+pub struct DynTracker<'c, C, T>(Option<&'c dyn Tracker<C, T>>)
 where
     C: Code;
 
-impl<'c, T, C> Debug for DynTracker<'c, T, C>
+impl<'c, C, T> Debug for DynTracker<'c, C, T>
 where
     C: Code,
 {
@@ -307,145 +306,6 @@ where
     /// Calls exit_err() on the ParseContext. You might want to use err() instead.
     fn exit_err(&self, span: I, code: C, err: &dyn Error);
 }
-
-// /// Each produced span contains a reference to a [Tracker] in the extra field.
-// /// This struct makes using it more accessible.
-// ///
-// /// ```rust ignore
-// /// use kparse::{Context, Span};
-// ///
-// /// fn parse_xyz(span: APSpan<'_>) -> APParserResult<'_, u32> {
-// ///     Context.enter(APCode::APCHeader, &span);
-// ///     // ...
-// ///     Context.ok(span, parsed, v32)
-// /// }
-// /// ```
-// pub struct Context;
-//
-// impl Context {
-//     /// Creates an Ok-Result from the parameters.
-//     /// Tracks an exit_ok with the ParseContext.
-//     pub fn ok<'s, O, T, C, Y>(
-//         &self,
-//         remainder: TrackSpan<'s, T, C>,
-//         parsed: TrackSpan<'s, T, C>,
-//         value: O,
-//     ) -> TrackParserResult<'s, O, T, C, Y>
-//     where
-//         T: AsBytes + Copy,
-//         C: Code,
-//         Y: Copy,
-//     {
-//         Context.exit_ok(&remainder, &parsed);
-//         Ok((remainder, value))
-//     }
-//
-//     /// Creates a Err-ParserResult from the given ParserError.
-//     /// Tracks an exit_err with the ParseContext.
-//     pub fn err<'s, O, T, C, Y, E>(&self, err: E) -> TrackParserResult<'s, O, T, C, Y>
-//     where
-//         E: Into<nom::Err<ParserError<C, TrackSpan<'s, T, C>, Y>>>,
-//         C: Code,
-//         Y: Copy,
-//         T: Copy + Debug,
-//         T: Offset
-//             + InputTake
-//             + InputIter
-//             + InputLength
-//             + AsBytes
-//             + Slice<RangeFrom<usize>>
-//             + Slice<RangeTo<usize>>,
-//     {
-//         let err: nom::Err<ParserError<C, TrackSpan<'s, T, C>, Y>> = err.into();
-//         match &err {
-//             nom::Err::Incomplete(_) => {}
-//             nom::Err::Error(e) => Context.exit_err(&e.span, e.code, &e),
-//             nom::Err::Failure(e) => Context.exit_err(&e.span, e.code, &e),
-//         }
-//         Err(err)
-//     }
-//
-//     fn clear_span<'s, T, C>(span: &TrackSpan<'s, T, C>) -> LocatedSpan<T, ()>
-//     where
-//         T: AsBytes + Copy + 's,
-//         C: Code,
-//     {
-//         unsafe {
-//             LocatedSpan::new_from_raw_offset(
-//                 span.location_offset(),
-//                 span.location_line(),
-//                 *span.fragment(),
-//                 (),
-//             )
-//         }
-//     }
-//
-//     /// Enter a parser function. For tracking.
-//     pub fn enter<'s, T, C>(&self, func: C, span: &TrackSpan<'s, T, C>)
-//     where
-//         T: AsBytes + Copy,
-//         C: Code,
-//     {
-//         if let Some(ctx) = span.extra.0 {
-//             ctx.enter(func, &Self::clear_span(span))
-//         }
-//     }
-//
-//     /// Track some debug info.
-//     pub fn debug<'s, T, C: Code>(&self, span: &TrackSpan<'s, T, C>, debug: String)
-//     where
-//         T: AsBytes + Copy,
-//         C: Code,
-//     {
-//         if let Some(ctx) = span.extra.0 {
-//             ctx.debug(&Self::clear_span(span), debug)
-//         }
-//     }
-//
-//     /// Track some other info.
-//     pub fn info<'s, T, C: Code>(&self, span: &TrackSpan<'s, T, C>, info: &'static str)
-//     where
-//         T: AsBytes + Copy,
-//         C: Code,
-//     {
-//         if let Some(ctx) = span.extra.0 {
-//             ctx.info(&Self::clear_span(span), info)
-//         }
-//     }
-//
-//     /// Track some warning.
-//     pub fn warn<'s, T, C: Code>(&self, span: &TrackSpan<'s, T, C>, warn: &'static str)
-//     where
-//         T: AsBytes + Copy,
-//         C: Code,
-//     {
-//         if let Some(ctx) = span.extra.0 {
-//             ctx.warn(&Self::clear_span(span), warn)
-//         }
-//     }
-//
-//     /// Calls exit_ok() on the ParseContext. You might want to use ok() instead.
-//     pub fn exit_ok<'s, T, C: Code>(&self, span: &TrackSpan<'s, T, C>, parsed: &TrackSpan<'s, T, C>)
-//     where
-//         T: AsBytes + Copy,
-//         C: Code,
-//     {
-//         if let Some(ctx) = span.extra.0 {
-//             ctx.exit_ok(&Self::clear_span(span), &Self::clear_span(parsed))
-//         }
-//     }
-//
-//     /// Calls exit_err() on the ParseContext. You might want to use err() instead.
-//     pub fn exit_err<'s, T, C>(&self, span: &TrackSpan<'s, T, C>, code: C, err: &dyn Error)
-//     where
-//         T: AsBytes + Copy,
-//         C: Code,
-//     {
-//         if let Some(ctx) = span.extra.0 {
-//             ctx.exit_err(&Self::clear_span(span), code, err)
-//         }
-//     }
-// }
 
 /// This trait is used for error tracking.
 ///

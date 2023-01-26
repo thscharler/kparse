@@ -19,7 +19,7 @@ use std::ops::{RangeFrom, RangeTo};
 /// ```
 pub struct Context;
 
-type DynSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, T, C>>;
+type DynSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
 impl<'s, T, C> ContextTrait<C, DynSpan<'s, C, T>> for Context
 where

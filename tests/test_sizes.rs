@@ -50,7 +50,7 @@ impl Code for ZCode {
 #[derive(Debug, Clone, Copy)]
 struct Nummer<'s> {
     nummer: u32,
-    span: TrackSpan<'s, &'s str, ZCode>,
+    span: TrackSpan<'s, ZCode, &'s str>,
 }
 
 #[test]
@@ -60,21 +60,21 @@ fn test_size2() {
     dbg!(size_of::<&str>());
 
     dbg!(size_of::<ZCode>());
-    dbg!(size_of::<TrackSpan<'_, &str, ZCode>>());
+    dbg!(size_of::<TrackSpan<'_, ZCode, &str>>());
 
     dbg!(size_of::<ParserError<ZCode, &str, ()>>());
     dbg!(size_of::<Vec<Hints<ZCode, &str, ()>>>());
 
     dbg!(size_of::<Context>());
-    dbg!(size_of::<TrackParserNomResult<&str, ZCode, ()>>());
-    dbg!(size_of::<TrackParserResult<(), &str, ZCode, ()>>());
-    dbg!(size_of::<TrackParserResult<Nummer<'_>, &str, ZCode, ()>>());
-    dbg!(size_of::<TrackSpan<&str, ZCode>>());
+    dbg!(size_of::<TrackParserNomResult<ZCode, &str, ()>>());
+    dbg!(size_of::<TrackParserResult<ZCode, &str, (), ()>>());
+    dbg!(size_of::<TrackParserResult<ZCode, &str, (), Nummer<'_>>>());
+    dbg!(size_of::<TrackSpan<ZCode, &str>>());
     dbg!(size_of::<LocatedSpan<&str>>());
 
-    dbg!(size_of::<DynTracker<&str, ZCode>>());
+    dbg!(size_of::<DynTracker<ZCode, &str>>());
 
     dbg!(size_of::<NoTracker>());
-    dbg!(size_of::<StdTracker<&str, ZCode>>());
-    dbg!(size_of::<Track<&str, ZCode>>());
+    dbg!(size_of::<StdTracker<ZCode, &str>>());
+    dbg!(size_of::<Track<ZCode, &str>>());
 }

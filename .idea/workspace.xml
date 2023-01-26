@@ -15,20 +15,20 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="Rename again.&#10;&#10;NoContext -&gt; NoTracker&#10;TrackingContext -&gt; StdTracker&#10;&#10;DynContext -&gt; DynTracker&#10;CtxSpan -&gt; TrackSpan&#10;CtxParserResult -&gt; TrackParserResult&#10;CtxParserNomResult -&gt; TrackParserNomResult">
-      <change afterPath="$PROJECT_DIR$/src/context.rs" afterDir="false" />
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="Consistent ordering of type parameters.">
       <change beforePath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../iparse/iparse.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/iparse.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/c3.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/c3.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/debug/tracks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/tracks.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/no_tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/no_tracker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/std_tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/std_tracker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_plumap.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_plumap2.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_plumap2.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_sizes.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_sizes.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -319,20 +319,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00030" summary="ParserError wants Y, X is for LocatedSpan">
-      <created>1673811784018</created>
-      <option name="number" value="00030" />
-      <option name="presentableId" value="LOCAL-00030" />
-      <option name="project" value="LOCAL" />
-      <updated>1673811784018</updated>
-    </task>
-    <task id="LOCAL-00031" summary="Create SpanLines in data_frame.&#10;&#10;Cleanup test after add test_parser4.&#10;Remove more type constraints.&#10;&#10;test_parser4 complete now.">
-      <created>1673811932829</created>
-      <option name="number" value="00031" />
-      <option name="presentableId" value="LOCAL-00031" />
-      <option name="project" value="LOCAL" />
-      <updated>1673811932829</updated>
     </task>
     <task id="LOCAL-00032" summary="clippy">
       <created>1673812589539</created>
@@ -663,7 +649,21 @@
       <option name="project" value="LOCAL" />
       <updated>1674755445812</updated>
     </task>
-    <option name="localTasksCounter" value="79" />
+    <task id="LOCAL-00079" summary="holy sh*t, finally it's done. &#10;&#10;the tracking system can be removed completely via one type alias.&#10;&#10;Introduces the ContextTrait.">
+      <created>1674758207684</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1674758207684</updated>
+    </task>
+    <task id="LOCAL-00080" summary="Consistent ordering of type parameters.">
+      <created>1674759099270</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1674759099270</updated>
+    </task>
+    <option name="localTasksCounter" value="81" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -698,8 +698,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="use bytecount::count&#10;&#10;remove humantime dep" />
-    <MESSAGE value="clean up tests." />
     <MESSAGE value="test_complete_fragment" />
     <MESSAGE value="test_end_frame" />
     <MESSAGE value="test_start_frame" />
@@ -723,7 +721,9 @@
     <MESSAGE value="Move our two combinators to a subpackage but pub use them." />
     <MESSAGE value="Implement LocatedSpanExt for &amp;str. With limitations." />
     <MESSAGE value="Rename again.&#10;&#10;NoContext -&gt; NoTracker&#10;TrackingContext -&gt; StdTracker&#10;&#10;DynContext -&gt; DynTracker&#10;CtxSpan -&gt; TrackSpan&#10;CtxParserResult -&gt; TrackParserResult&#10;CtxParserNomResult -&gt; TrackParserNomResult" />
-    <option name="LAST_COMMIT_MESSAGE" value="Rename again.&#10;&#10;NoContext -&gt; NoTracker&#10;TrackingContext -&gt; StdTracker&#10;&#10;DynContext -&gt; DynTracker&#10;CtxSpan -&gt; TrackSpan&#10;CtxParserResult -&gt; TrackParserResult&#10;CtxParserNomResult -&gt; TrackParserNomResult" />
+    <MESSAGE value="holy sh*t, finally it's done. &#10;&#10;the tracking system can be removed completely via one type alias.&#10;&#10;Introduces the ContextTrait." />
+    <MESSAGE value="Consistent ordering of type parameters." />
+    <option name="LAST_COMMIT_MESSAGE" value="Consistent ordering of type parameters." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

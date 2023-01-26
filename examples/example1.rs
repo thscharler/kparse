@@ -49,9 +49,9 @@ impl Display for ICode {
     }
 }
 
-pub type ISpan<'s> = kparse::TrackSpan<'s, &'s str, ICode>;
-pub type IParserResult<'s, O> = kparse::TrackParserResult<'s, O, &'s str, ICode, ()>;
-pub type INomResult<'s> = kparse::TrackParserNomResult<'s, &'s str, ICode, ()>;
+pub type ISpan<'s> = kparse::TrackSpan<'s, ICode, &'s str>;
+pub type IParserResult<'s, O> = kparse::TrackParserResult<'s, ICode, &'s str, (), O>;
+pub type INomResult<'s> = kparse::TrackParserNomResult<'s, ICode, &'s str, ()>;
 pub type IParserError<'s> = kparse::ParserError<ICode, ISpan<'s>, ()>;
 
 #[derive(Debug)]
@@ -282,7 +282,7 @@ fn parse_non_terminal_3(rest: ISpan<'_>) -> IParserResult<'_, ()> {
 }
 
 fn run_parser() {
-    let ctx: StdTracker<&str, ICode> = StdTracker::new(true);
+    let ctx: StdTracker<ICode, &str> = StdTracker::new(true);
     let span = ctx.span("A");
 
     let _r = parse_terminal_a(span);
