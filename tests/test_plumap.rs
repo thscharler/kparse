@@ -238,17 +238,12 @@ mod parser {
     };
     use crate::token::{token_datum, token_faktor, token_nummer};
     use crate::PLUCode::*;
-    use crate::{PKommentar, PLUParserError, PLUParserResult, PMap, PPluMap, PSpan};
+    use crate::{PLUParserError, PLUParserResult, PMap, PPluMap, PSpan};
     use kparse::prelude::*;
-    use kparse::{error_code, C3, CCC};
+    use kparse::{error_code, Context};
     use nom::combinator::opt;
-    use nom::sequence::{pair, preceded};
-    use nom::{IResult, Parser};
-
-    struct Conditional<CFn, PFn> {
-        cond_fn: CFn,
-        parse_fn: PFn,
-    }
+    use nom::sequence::preceded;
+    use nom::Parser;
 
     pub fn conditional<I, O, E, CFn, PFn>(
         cond_fn: CFn,
@@ -273,7 +268,7 @@ mod parser {
 
     /// Parser.
     pub fn parse_plumap(input: PSpan<'_>) -> PLUParserResult<'_, PPluMap<'_>> {
-        C3.enter(PLUMap, input);
+        Context.enter(PLUMap, input);
 
         let mut r = Vec::new();
 
@@ -289,7 +284,7 @@ mod parser {
                 r.push(map);
                 rest3
             } else {
-                return C3.err(PLUParserError::new(PLUMapping, rest2));
+                return Context.err(PLUParserError::new(PLUMapping, rest2));
             };
 
             loop_rest = nom_ws_nl(rest2);
@@ -299,7 +294,7 @@ mod parser {
         }
         let rest = loop_rest;
 
-        C3.ok(rest, nom_empty(rest), PPluMap { maps: r })
+        Context.ok(rest, nom_empty(rest), PPluMap { maps: r })
     }
 
     /// Parser für ein Mapping.
@@ -308,7 +303,7 @@ mod parser {
     }
 
     fn parse_mapping(input: PSpan<'_>) -> PLUParserResult<'_, PMap<'_>> {
-        C3.enter(PLUMapping, input);
+        Context.enter(PLUMapping, input);
 
         let (rest, nummer) = token_nummer(input).track()?;
         let (rest, faktor) = opt(preceded(nom_star_op, token_faktor))(rest).track()?;
@@ -328,12 +323,12 @@ mod parser {
         .track()?;
 
         if !nom_is_nl(rest) {
-            return C3.err(PLUParserError::new(PLUMapping, rest));
+            return Context.err(PLUParserError::new(PLUMapping, rest));
         }
 
         let span = input.span_union(&nummer.span, &nom_empty(rest));
 
-        C3.ok(
+        Context.ok(
             rest,
             span,
             PMap {
@@ -348,9 +343,9 @@ mod parser {
     }
 
     fn parse_kommentar(rest: PSpan<'_>) -> PLUParserResult<'_, ()> {
-        C3.enter(PLUKommentar, rest);
+        Context.enter(PLUKommentar, rest);
         let (rest, kommentar) = nom_kommentar(rest).track()?;
-        C3.ok(rest, kommentar, ())
+        Context.ok(rest, kommentar, ())
     }
 }
 

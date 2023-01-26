@@ -416,7 +416,7 @@ mod cmds_parser {
     }
 
     pub fn parse_cmds(rest: CSpan<'_>) -> CParserResult<'_, BCommand> {
-        Context.enter(CCommand, &rest);
+        Context.enter(CCommand, rest);
 
         let mut command = None;
         let mut err = None;
@@ -658,7 +658,7 @@ mod cmds_parser {
     }
 
     fn parse_set(input: CSpan<'_>) -> CParserResult<'_, BCommand> {
-        Context.enter(CSet, &input);
+        Context.enter(CSet, input);
 
         let (rest, (span_sub, sub_cmd)) = Parse2Layers {
             token: "set",
@@ -707,7 +707,7 @@ mod cmds_parser {
     }
 
     fn parse_new(input: CSpan<'_>) -> CParserResult<'_, BCommand> {
-        Context.enter(CEtik, &input);
+        Context.enter(CEtik, input);
 
         let (rest, (span_sub, sub)) = Parse2Layers {
             token: "new",
@@ -786,7 +786,7 @@ mod cmds_parser {
     }
 
     fn parse_etik(input: CSpan<'_>) -> CParserResult<'_, BCommand> {
-        Context.enter(CEtik, &input);
+        Context.enter(CEtik, input);
 
         let (rest, (span_sub, sub)) = Parse2Layers {
             token: "etik",
@@ -845,7 +845,7 @@ mod cmds_parser {
     }
 
     fn parse_report(input: CSpan<'_>) -> CParserResult<'_, BCommand> {
-        Context.enter(CReport, &input);
+        Context.enter(CReport, input);
 
         let (rest, (span_sub, sub)) = Parse2Layers {
             code: CReport,
@@ -956,7 +956,7 @@ mod cmds_parser {
     };
 
     pub fn parse_nummer(rest: CSpan<'_>) -> CParserResult<'_, Nummer<'_>> {
-        Context.enter(CNummer, &rest);
+        Context.enter(CNummer, rest);
 
         let (rest, nummer) = token_nummer(rest).track()?;
 
@@ -964,7 +964,7 @@ mod cmds_parser {
     }
 
     pub fn parse_datum(rest: CSpan<'_>) -> CParserResult<'_, Datum<'_>> {
-        Context.enter(CDatum, &rest);
+        Context.enter(CDatum, rest);
 
         let (rest, datum) = token_datum(rest).track()?;
         Context.ok(rest, datum.span, datum)
@@ -1050,7 +1050,7 @@ mod cmds_parser {
         }
 
         fn parse<'s>(&self, rest: CSpan<'s>) -> CParserResult<'s, BCommand> {
-            Context.enter(self.id(), &rest);
+            Context.enter(self.id(), rest);
 
             let (rest, sub) = self.layers.parse(rest).track()?;
 
@@ -1075,7 +1075,7 @@ mod cmds_parser {
         }
 
         fn parse<'s>(&self, rest: CSpan<'s>) -> CParserResult<'s, CSpan<'s>> {
-            Context.enter(self.id(), &rest);
+            Context.enter(self.id(), rest);
 
             let (rest, token) = token_command(self.token, self.code, rest).track()?;
 
@@ -1094,7 +1094,7 @@ mod cmds_parser {
         }
 
         fn parse<'s>(&self, rest: CSpan<'s>) -> CParserResult<'s, BCommand> {
-            Context.enter(self.layers.code, &rest);
+            Context.enter(self.layers.code, rest);
 
             let (rest, (span, sub)) = self.layers.parse(rest).track()?;
 
@@ -1132,10 +1132,10 @@ mod cmds_parser {
 
     impl<O: Copy, const N: usize> Parse2Layers<O, N> {
         fn parse<'s>(&self, input: CSpan<'s>) -> CParserResult<'s, (CSpan<'s>, O)> {
-            Context.enter(self.code, &input);
+            Context.enter(self.code, input);
 
             let (rest, token) = token_command(self.token, self.code, input).track()?;
-            Context.debug(&token, format!("found {}", token));
+            Context.debug(token, format!("found {}", token));
 
             let (rest, _) = nom_ws1(rest).track()?;
 

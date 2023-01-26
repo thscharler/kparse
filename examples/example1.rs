@@ -4,7 +4,7 @@ use crate::ICode::*;
 use kparse::prelude::*;
 use kparse::spans::LocatedSpanExt;
 use kparse::test::{track_parse, Trace};
-use kparse::{transform, Code, Context, NoContext, TrackingContext};
+use kparse::{transform, Code, Context, NoTracker, StdTracker};
 use nom::bytes::complete::{tag, tag_no_case};
 use nom::character::complete::{char as nchar, digit1};
 use nom::combinator::{consumed, opt, recognize};
@@ -49,9 +49,9 @@ impl Display for ICode {
     }
 }
 
-pub type ISpan<'s> = kparse::CtxSpan<'s, &'s str, ICode>;
-pub type IParserResult<'s, O> = kparse::CtxParserResult<'s, O, &'s str, ICode, ()>;
-pub type INomResult<'s> = kparse::CtxParserNomResult<'s, &'s str, ICode, ()>;
+pub type ISpan<'s> = kparse::TrackSpan<'s, &'s str, ICode>;
+pub type IParserResult<'s, O> = kparse::TrackParserResult<'s, O, &'s str, ICode, ()>;
+pub type INomResult<'s> = kparse::TrackParserNomResult<'s, &'s str, ICode, ()>;
 pub type IParserError<'s> = kparse::ParserError<ICode, ISpan<'s>, ()>;
 
 #[derive(Debug)]
@@ -160,7 +160,7 @@ pub fn token_nummer(rest: ISpan<'_>) -> IParserResult<'_, INummer<'_>> {
 }
 
 fn parse_terminal_a(rest: ISpan<'_>) -> IParserResult<'_, TerminalA<'_>> {
-    Context.enter(ICTerminalA, &rest);
+    Context.enter(ICTerminalA, rest);
 
     let (rest, token) = match parse_a(rest) {
         Ok((rest, token)) => (rest, token),
@@ -171,7 +171,7 @@ fn parse_terminal_a(rest: ISpan<'_>) -> IParserResult<'_, TerminalA<'_>> {
 }
 
 fn parse_terminal_a2(rest: ISpan<'_>) -> IParserResult<'_, TerminalA<'_>> {
-    Context.enter(ICTerminalA, &rest);
+    Context.enter(ICTerminalA, rest);
 
     let (rest, token) = parse_a(rest).track()?;
 
@@ -179,7 +179,7 @@ fn parse_terminal_a2(rest: ISpan<'_>) -> IParserResult<'_, TerminalA<'_>> {
 }
 
 fn parse_terminal_b(rest: ISpan<'_>) -> IParserResult<'_, TerminalB<'_>> {
-    Context.enter(ICTerminalB, &rest);
+    Context.enter(ICTerminalB, rest);
 
     let (rest, token) = nom_parse_b(rest).track()?;
 
@@ -194,7 +194,7 @@ fn parse_terminal_b(rest: ISpan<'_>) -> IParserResult<'_, TerminalB<'_>> {
 }
 
 fn parse_terminal_c(rest: ISpan<'_>) -> IParserResult<'_, TerminalC<'_>> {
-    Context.enter(ICTerminalC, &rest);
+    Context.enter(ICTerminalC, rest);
 
     let (rest, (tok, v)) =
         consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
@@ -203,7 +203,7 @@ fn parse_terminal_c(rest: ISpan<'_>) -> IParserResult<'_, TerminalC<'_>> {
 }
 
 fn parse_terminal_d(input: ISpan<'_>) -> IParserResult<'_, TerminalD<'_>> {
-    Context.enter(ICTerminalD, &input);
+    Context.enter(ICTerminalD, input);
 
     let (rest, _) = opt(nom_star_star)(input).track()?;
     let (rest, tag) = nom_tag_kdnr(rest).track()?;
@@ -215,7 +215,7 @@ fn parse_terminal_d(input: ISpan<'_>) -> IParserResult<'_, TerminalD<'_>> {
 }
 
 fn parse_non_terminal1(input: ISpan<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
-    Context.enter(ICNonTerminal1, &input);
+    Context.enter(ICNonTerminal1, input);
 
     let (rest, a) = parse_terminal_a(input).track()?;
     let (rest, b) = parse_terminal_b(rest).track()?;
@@ -226,7 +226,7 @@ fn parse_non_terminal1(input: ISpan<'_>) -> IParserResult<'_, NonTerminal1<'_>> 
 }
 
 fn parse_non_terminal1_1(rest: ISpan<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
-    Context.enter(ICNonTerminal1, &rest);
+    Context.enter(ICNonTerminal1, rest);
 
     let (rest, (token, (a, b))) =
         consumed(tuple((parse_terminal_a, parse_terminal_b)))(rest).track()?;
@@ -235,7 +235,7 @@ fn parse_non_terminal1_1(rest: ISpan<'_>) -> IParserResult<'_, NonTerminal1<'_>>
 }
 
 fn parse_non_terminal_2(input: ISpan<'_>) -> IParserResult<'_, NonTerminal2<'_>> {
-    Context.enter(ICNonTerminal1, &input);
+    Context.enter(ICNonTerminal1, input);
 
     let (rest, a) = opt(parse_terminal_a)(input).track()?;
     let (rest, b) = parse_terminal_b(rest).track()?;
@@ -251,7 +251,7 @@ fn parse_non_terminal_2(input: ISpan<'_>) -> IParserResult<'_, NonTerminal2<'_>>
 }
 
 fn parse_non_terminal_3(rest: ISpan<'_>) -> IParserResult<'_, ()> {
-    Context.enter(ICNonTerminal3, &rest);
+    Context.enter(ICNonTerminal3, rest);
 
     let mut loop_rest = rest;
     let mut err = None;
@@ -282,14 +282,14 @@ fn parse_non_terminal_3(rest: ISpan<'_>) -> IParserResult<'_, ()> {
 }
 
 fn run_parser() {
-    let ctx: TrackingContext<&str, ICode> = TrackingContext::new(true);
+    let ctx: StdTracker<&str, ICode> = StdTracker::new(true);
     let span = ctx.span("A");
 
     let _r = parse_terminal_a(span);
 }
 
 fn run_parser2() {
-    let span = NoContext.span("A");
+    let span = NoTracker.span("A");
 
     let _r = parse_terminal_a(span);
 }

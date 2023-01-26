@@ -15,18 +15,20 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="TrackParserError T-&gt;I">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="Rename again.&#10;&#10;NoContext -&gt; NoTracker&#10;TrackingContext -&gt; StdTracker&#10;&#10;DynContext -&gt; DynTracker&#10;CtxSpan -&gt; TrackSpan&#10;CtxParserResult -&gt; TrackParserResult&#10;CtxParserNomResult -&gt; TrackParserNomResult">
+      <change afterPath="$PROJECT_DIR$/src/context.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../iparse/iparse.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/iparse.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/tracks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/tracks.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/c3.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/c3.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/no_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/no_context.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracking_context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracking_context.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_plumap.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_plumap2.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_plumap2.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,24 +77,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "TODO_SCOPE": "Module 'kparse'",
-    "last_opened_file_path": "C:/Users/stommy/Documents/IdeaProjects/kparse",
-    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.0",
-    "settings.editor.selected.configurable": "language.rust.cargo"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;TODO_SCOPE&quot;: &quot;Module 'kparse'&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/stommy/Documents/IdeaProjects/kparse/tests&quot;,
+    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;language.rust.cargo&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\tests" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\examples" />
-      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\tests" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\debug" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src" />
     </key>
@@ -317,111 +319,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00015" summary="m2 for throw_away_everything__again&#10;&#10;refined the conversions&#10;&#10;add suggestions to parseerror.&#10;&#10;throw away ParseContextForSpan, and create Context.">
-      <created>1673377336898</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1673377336898</updated>
-    </task>
-    <task id="LOCAL-00016" summary="m2 for throw_away_everything__again&#10;&#10;adapted our first test case. partly.&#10;&#10;Context comes in nicely.&#10;The conversion traits now seem to be matching.">
-      <created>1673380480178</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1673380480178</updated>
-    </task>
-    <task id="LOCAL-00017" summary="m2 for throw_away_everything__again&#10;&#10;Add CombineParserError.&#10;&#10;Make TrackingContext usable.&#10;&#10;complete test_parser_cmds.">
-      <created>1673413570557</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1673413570557</updated>
-    </task>
-    <task id="LOCAL-00018" summary="m2 for throw_away_everything__again&#10;&#10;test mod">
-      <created>1673463565691</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
-      <option name="project" value="LOCAL" />
-      <updated>1673463565691</updated>
-    </task>
-    <task id="LOCAL-00019" summary="m2 for throw_away_everything__again&#10;&#10;RawContext&#10;&#10;test runner">
-      <created>1673506334414</created>
-      <option name="number" value="00019" />
-      <option name="presentableId" value="LOCAL-00019" />
-      <option name="project" value="LOCAL" />
-      <updated>1673506334414</updated>
-    </task>
-    <task id="LOCAL-00020" summary="m2 for throw_away_everything__again&#10;&#10;some f'ing around with ParseContext">
-      <created>1673542537113</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1673542537113</updated>
-    </task>
-    <task id="LOCAL-00021" summary="m2 for throw_away_everything__again&#10;&#10;span_union only in Context.&#10;no need to pass through everything.">
-      <created>1673547895985</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1673547895985</updated>
-    </task>
-    <task id="LOCAL-00022" summary="m4 shine&#10;&#10;new AddCode and Transform and company">
-      <created>1673593190499</created>
-      <option name="number" value="00022" />
-      <option name="presentableId" value="LOCAL-00022" />
-      <option name="project" value="LOCAL" />
-      <updated>1673593190499</updated>
-    </task>
-    <task id="LOCAL-00023" summary="m4 shine&#10;&#10;new AddCode and Transform and company">
-      <created>1673628901845</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
-      <option name="project" value="LOCAL" />
-      <updated>1673628901845</updated>
-    </task>
-    <task id="LOCAL-00024" summary="m4 shine&#10;&#10;a small razor applied.">
-      <created>1673641623369</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
-      <option name="project" value="LOCAL" />
-      <updated>1673641623369</updated>
-    </task>
-    <task id="LOCAL-00025" summary="&#10;Adding X to the ParseContext is complete useless. Ends with a recursive type.&#10;&#10;Adding X to the DynContext ends up with complicated code in the usercode, with multiple typedefs for each context that don't interact too well.&#10;&#10;Not adding X to the DynContext but still having it not hidden by DynContext f's up with Context and type ascription (?). &#10;&#10;Using multiple lifetimes in a trait definition is plain hell. Turn the heat up if you use them in an associated type.&#10;&#10;Not having a definite order for your type variables, or having the same one in different places for different purposes leads to madness.">
-      <created>1673764948699</created>
-      <option name="number" value="00025" />
-      <option name="presentableId" value="LOCAL-00025" />
-      <option name="project" value="LOCAL" />
-      <updated>1673764948699</updated>
-    </task>
-    <task id="LOCAL-00026" summary="No need to impl ParseContext on DynContext. Muddies the water.&#10;&#10;The same for Context. &#10;Both are positively not a ParseContext. They are small  gears in the machine.">
-      <created>1673765854432</created>
-      <option name="number" value="00026" />
-      <option name="presentableId" value="LOCAL-00026" />
-      <option name="project" value="LOCAL" />
-      <updated>1673765854432</updated>
-    </task>
-    <task id="LOCAL-00027" summary="test for sizes">
-      <created>1673767306716</created>
-      <option name="number" value="00027" />
-      <option name="presentableId" value="LOCAL-00027" />
-      <option name="project" value="LOCAL" />
-      <updated>1673767306716</updated>
-    </task>
-    <task id="LOCAL-00028" summary="test for sizes">
-      <created>1673767339214</created>
-      <option name="number" value="00028" />
-      <option name="presentableId" value="LOCAL-00028" />
-      <option name="project" value="LOCAL" />
-      <updated>1673767339214</updated>
-    </task>
-    <task id="LOCAL-00029" summary="can't stop trying to optimize this Context.">
-      <created>1673770991405</created>
-      <option name="number" value="00029" />
-      <option name="presentableId" value="LOCAL-00029" />
-      <option name="project" value="LOCAL" />
-      <updated>1673770991405</updated>
     </task>
     <task id="LOCAL-00030" summary="ParserError wants Y, X is for LocatedSpan">
       <created>1673811784018</created>
@@ -661,7 +558,112 @@
       <option name="project" value="LOCAL" />
       <updated>1674630896973</updated>
     </task>
-    <option name="localTasksCounter" value="64" />
+    <task id="LOCAL-00064" summary="ParseContext: Eliminate the self reference via Span and take a naked span. We can sort this out in Context.&#10;&#10;Replace Span with LocatedSpan in TrackingContext.">
+      <created>1674649833953</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1674649833953</updated>
+    </task>
+    <task id="LOCAL-00065" summary="Remove type constraints from the structs.&#10;&#10;Normalize.">
+      <created>1674749206294</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1674749206294</updated>
+    </task>
+    <task id="LOCAL-00066" summary="Renamed Span -&gt; CtxSpan.&#10;&#10;add str_parse, byte_parse functions.">
+      <created>1674750460715</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1674750460715</updated>
+    </task>
+    <task id="LOCAL-00067" summary="Renamed Span -&gt; CtxSpan.">
+      <created>1674750582100</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1674750582100</updated>
+    </task>
+    <task id="LOCAL-00068" summary="Renamed Span -&gt; CtxSpan.">
+      <created>1674750599602</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1674750599602</updated>
+    </task>
+    <task id="LOCAL-00069" summary="Generalized type I">
+      <created>1674751596807</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1674751596807</updated>
+    </task>
+    <task id="LOCAL-00070" summary="Rename Span to CtxSpan et al">
+      <created>1674751685989</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1674751685989</updated>
+    </task>
+    <task id="LOCAL-00071" summary="Rename Span to CtxSpan et al">
+      <created>1674751697647</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1674751697647</updated>
+    </task>
+    <task id="LOCAL-00072" summary="Removed on bound to much.">
+      <created>1674751757224</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1674751757224</updated>
+    </task>
+    <task id="LOCAL-00073" summary="Rename Span to CtxSpan et al">
+      <created>1674751845375</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1674751845375</updated>
+    </task>
+    <task id="LOCAL-00074" summary="Remove Display requirement. &#10;Hindrance for [u8]">
+      <created>1674752662653</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1674752662653</updated>
+    </task>
+    <task id="LOCAL-00075" summary="Redesign TrackParserError for it to be a bridge into Context. &#10;&#10;Generalize common behaviour and leave only the bridging functions open to implement them for the various input types.&#10;&#10;The impl works with the experimental context C3, but that's ok.">
+      <created>1674752836684</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1674752836684</updated>
+    </task>
+    <task id="LOCAL-00076" summary="Move our two combinators to a subpackage but pub use them.">
+      <created>1674753140209</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1674753140209</updated>
+    </task>
+    <task id="LOCAL-00077" summary="Implement LocatedSpanExt for &amp;str. With limitations.">
+      <created>1674754865193</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1674754865193</updated>
+    </task>
+    <task id="LOCAL-00078" summary="Rename again.&#10;&#10;NoContext -&gt; NoTracker&#10;TrackingContext -&gt; StdTracker&#10;&#10;DynContext -&gt; DynTracker&#10;CtxSpan -&gt; TrackSpan&#10;CtxParserResult -&gt; TrackParserResult&#10;CtxParserNomResult -&gt; TrackParserNomResult">
+      <created>1674755445812</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1674755445812</updated>
+    </task>
+    <option name="localTasksCounter" value="79" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -696,18 +698,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="doc url corrected" />
-    <MESSAGE value="vtransform is not necessary.&#10;can be achieved with transform + consumed." />
-    <MESSAGE value="DataFrame impl can be repr(transparent)" />
-    <MESSAGE value="Replace the fixed &amp;str with T." />
-    <MESSAGE value="Pack the free functions from data_frame in the two new traits Fragment and BufferFragments. Makes them a bit nicer to use. Especially the str one eliminates a lot from_ut8_unchecked. &#10;&#10;Context uses this now. NoContext too.&#10;&#10;Dataframe got rid of the unsafe fn. Move delim from const type parameter to field. makes more sense. Use the new traits." />
-    <MESSAGE value="new impl for&#10;&#10;next_fragment, prev_fragment, subslice_offset.&#10;&#10;still not completely clear where the safe/unsafe boundary lies. &#10;&#10;need more tests &amp; reading." />
-    <MESSAGE value="remove original() from ParseContext.&#10;replace Context.span_union with SpanExt.span_union which can be implemented based on LocatedSpan and thus safer.&#10;&#10;New module spans:&#10;SpanExt - allow merging subspans of a span. Cuts off the result at the margins of the buffer instead of panicking.&#10;&#10; SpanLines: deconstructs the old DataFrame et al to a safer construct." />
-    <MESSAGE value="make SpanLines compile." />
-    <MESSAGE value="make SpanLines compile.&#10;&#10;current tests run ok :-)" />
-    <MESSAGE value="remove StrContext. makes no sense any longer.&#10;&#10;throw away const parameter for TrackingContext. replace with data flag." />
-    <MESSAGE value="make count a independent fn.&#10;&#10;excluding the separator char in next_fragment and prev_fragment makes this incredibly complicated. this is better left to a caller. i think it makes it also ambiguous when empty spans near the sep are used. &#10;&#10;now this is defined as: the separator at the end belongs to the fragment, the gap after the separator belongs to the next one." />
-    <MESSAGE value="docs, clean up tests." />
     <MESSAGE value="use bytecount::count&#10;&#10;remove humantime dep" />
     <MESSAGE value="clean up tests." />
     <MESSAGE value="test_complete_fragment" />
@@ -721,7 +711,19 @@
     <MESSAGE value="simplified type parameters for ParserError.&#10;&#10;Add location_offset and location_line to the trait LocatedSpanExt.&#10;Which was renamed from SpanExt." />
     <MESSAGE value="Test" />
     <MESSAGE value="TrackParserError T-&gt;I" />
-    <option name="LAST_COMMIT_MESSAGE" value="TrackParserError T-&gt;I" />
+    <MESSAGE value="ParseContext: Eliminate the self reference via Span and take a naked span. We can sort this out in Context.&#10;&#10;Replace Span with LocatedSpan in TrackingContext." />
+    <MESSAGE value="Remove type constraints from the structs.&#10;&#10;Normalize." />
+    <MESSAGE value="Renamed Span -&gt; CtxSpan.&#10;&#10;add str_parse, byte_parse functions." />
+    <MESSAGE value="Renamed Span -&gt; CtxSpan." />
+    <MESSAGE value="Generalized type I" />
+    <MESSAGE value="Removed on bound to much." />
+    <MESSAGE value="Rename Span to CtxSpan et al" />
+    <MESSAGE value="Remove Display requirement. &#10;Hindrance for [u8]" />
+    <MESSAGE value="Redesign TrackParserError for it to be a bridge into Context. &#10;&#10;Generalize common behaviour and leave only the bridging functions open to implement them for the various input types.&#10;&#10;The impl works with the experimental context C3, but that's ok." />
+    <MESSAGE value="Move our two combinators to a subpackage but pub use them." />
+    <MESSAGE value="Implement LocatedSpanExt for &amp;str. With limitations." />
+    <MESSAGE value="Rename again.&#10;&#10;NoContext -&gt; NoTracker&#10;TrackingContext -&gt; StdTracker&#10;&#10;DynContext -&gt; DynTracker&#10;CtxSpan -&gt; TrackSpan&#10;CtxParserResult -&gt; TrackParserResult&#10;CtxParserNomResult -&gt; TrackParserNomResult" />
+    <option name="LAST_COMMIT_MESSAGE" value="Rename again.&#10;&#10;NoContext -&gt; NoTracker&#10;TrackingContext -&gt; StdTracker&#10;&#10;DynContext -&gt; DynTracker&#10;CtxSpan -&gt; TrackSpan&#10;CtxParserResult -&gt; TrackParserResult&#10;CtxParserNomResult -&gt; TrackParserNomResult" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
