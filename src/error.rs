@@ -32,7 +32,7 @@ use std::num::NonZeroUsize;
 use std::ops::{RangeFrom, RangeTo};
 
 /// Parser error.
-pub struct ParserError<C: Code, I, Y: Copy = ()> {
+pub struct ParserError<C, I, Y = ()> {
     /// Error code
     pub code: C,
     /// Error span
@@ -42,7 +42,7 @@ pub struct ParserError<C: Code, I, Y: Copy = ()> {
 }
 
 /// Extra information added to a ParserError.
-pub enum Hints<C: Code, I, Y: Copy> {
+pub enum Hints<C, I, Y> {
     /// Contains any nom error that occurred.
     Nom(Nom<C, I>),
     /// Contains the nom needed information.
@@ -59,7 +59,7 @@ pub enum Hints<C: Code, I, Y: Copy> {
 
 /// Contains the data of a nom error.
 #[derive(Clone, Copy)]
-pub struct Nom<C: Code, I> {
+pub struct Nom<C, I> {
     /// nom ErrorKind
     pub kind: ErrorKind,
     /// Span
@@ -72,7 +72,7 @@ pub struct Nom<C: Code, I> {
 
 /// Contains a error code and the span.
 #[derive(Clone, Copy)]
-pub struct SpanAndCode<C: Code, I> {
+pub struct SpanAndCode<C, I> {
     /// Error code
     pub code: C,
     /// Span
@@ -198,15 +198,15 @@ impl<C, I, Y> Display for ParserError<C, I, Y>
 where
     C: Code,
     I: Copy + Display,
-    Y: Copy,
     I: Offset
         + InputTake
         + InputIter
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
+    Y: Copy,
 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} expects ", self.code)?;
 
         for (i, exp) in self.iter_expected().enumerate() {
@@ -225,13 +225,13 @@ impl<C, I, Y> Debug for ParserError<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    Y: Copy,
     I: Offset
         + InputTake
         + InputIter
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
+    Y: Copy,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         debug_parse_error(f, self)
@@ -242,13 +242,13 @@ impl<C, I, Y> Debug for Hints<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    Y: Copy + Debug,
     I: Offset
         + InputTake
         + InputIter
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
+    Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -301,7 +301,6 @@ where
 impl<C, I, Y> Error for ParserError<C, I, Y>
 where
     C: Code,
-    Y: Copy,
     I: Copy + Display + Debug,
     I: Offset
         + InputTake
@@ -309,6 +308,7 @@ where
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
+    Y: Copy,
 {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.hints
