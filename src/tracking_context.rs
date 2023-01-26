@@ -13,7 +13,7 @@
 //! ```
 
 use crate::debug::tracks::debug_tracks;
-use crate::{Code, DynContext, ParseContext, Span};
+use crate::{Code, CtxSpan, DynContext, ParseContext};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::cell::RefCell;
@@ -88,11 +88,11 @@ where
     }
 
     /// Create a new Span from this context using the original str.
-    pub fn span<'s>(&'s self, text: T) -> Span<'s, T, C>
+    pub fn span<'s>(&'s self, text: T) -> CtxSpan<'s, T, C>
     where
         T: 's,
     {
-        Span::new_extra(text, DynContext(Some(self)))
+        CtxSpan::new_extra(text, DynContext(Some(self)))
     }
 
     /// Extract the tracking results.
