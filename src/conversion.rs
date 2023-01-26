@@ -1,9 +1,11 @@
 use crate::{
-    Code, Context, ParserError, ParserResult, ResultWithSpan, Span, TrackParserError, WithCode,
-    WithSpan,
+    Code, Context, DynContext, ParserError, ResultWithSpan, TrackParserError, WithCode, WithSpan,
+    C3, CCC,
 };
 use nom::error::ParseError;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
+use nom_locate::LocatedSpan;
+use std::error::Error;
 use std::fmt::{Debug, Display};
 use std::ops::{RangeFrom, RangeTo};
 
@@ -166,13 +168,44 @@ where
 // LAYER 4 - Convert & Track
 // ***********************************************************************
 
-impl<'s, T, C, Y, O, E> TrackParserError<'s, Span<'s, T, C>, C, Y>
-    for Result<(Span<'s, T, C>, O), nom::Err<E>>
+impl<'s, C, Y, O, E> TrackParserError<'s, C, &'s str, Y, O, E> for Result<(&'s str, O), nom::Err<E>>
 where
-    E: Into<ParserError<C, Span<'s, T, C>, Y>>,
+    E: Into<ParserError<C, &'s str, Y>>,
     C: Code,
     Y: Copy,
-    T: Copy + Display + Debug,
+{
+    fn exit_ok(span: &'s str, parsed: &'s str) {
+        <C3 as CCC<C, &str>>::exit_ok(&C3, span, parsed);
+    }
+
+    fn exit_err(span: &'s str, code: C, err: &dyn Error) {
+        <C3 as CCC<C, &str>>::exit_err(&C3, span, code, err);
+    }
+}
+
+impl<'s, C, Y, O, E> TrackParserError<'s, C, &'s [u8], Y, O, E>
+    for Result<(&'s [u8], O), nom::Err<E>>
+where
+    E: Into<ParserError<C, &'s [u8], Y>>,
+    C: Code,
+    Y: Copy,
+{
+    fn exit_ok(span: &'s [u8], parsed: &'s [u8]) {
+        <C3 as CCC<C, &[u8]>>::exit_ok(&C3, span, parsed);
+    }
+
+    fn exit_err(span: &'s [u8], code: C, err: &dyn Error) {
+        <C3 as CCC<C, &[u8]>>::exit_err(&C3, span, code, err);
+    }
+}
+
+impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, ()>, Y, O, E>
+    for Result<(LocatedSpan<T, ()>, O), nom::Err<E>>
+where
+    E: Into<ParserError<C, LocatedSpan<T, ()>, Y>>,
+    C: Code,
+    Y: Copy,
+    T: Copy + Debug,
     T: Offset
         + InputTake
         + InputIter
@@ -181,61 +214,38 @@ where
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
 {
-    type Result = Result<(Span<'s, T, C>, O), nom::Err<ParserError<C, Span<'s, T, C>, Y>>>;
-
-    fn track(self) -> Self::Result {
-        match self {
-            Ok(v) => Ok(v),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => {
-                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
-                Context.exit_err(&p_err.span, p_err.code, &p_err);
-                Err(nom::Err::Error(p_err))
-            }
-            Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
-                Context.exit_err(&p_err.span, p_err.code, &p_err);
-                Err(nom::Err::Error(p_err))
-            }
-        }
+    fn exit_ok(span: LocatedSpan<T, ()>, parsed: LocatedSpan<T, ()>) {
+        <C3 as CCC<C, LocatedSpan<T, ()>>>::exit_ok(&C3, span, parsed);
     }
 
-    fn track_as(self, code: C) -> Self::Result {
-        match self {
-            Ok(v) => Ok(v),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => {
-                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
-                let p_err = p_err.with_code(code);
-                Context.exit_err(&p_err.span, p_err.code, &p_err);
-                Err(nom::Err::Error(p_err))
-            }
-            Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
-                let p_err = p_err.with_code(code);
-                Context.exit_err(&p_err.span, p_err.code, &p_err);
-                Err(nom::Err::Error(p_err))
-            }
-        }
+    fn exit_err(span: LocatedSpan<T, ()>, code: C, err: &dyn Error) {
+        <C3 as CCC<C, LocatedSpan<T, ()>>>::exit_err(&C3, span, code, err);
+    }
+}
+
+impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, DynContext<'s, T, C>>, Y, O, E>
+    for Result<(LocatedSpan<T, DynContext<'s, T, C>>, O), nom::Err<E>>
+where
+    E: Into<ParserError<C, LocatedSpan<T, DynContext<'s, T, C>>, Y>>,
+    C: Code,
+    Y: Copy,
+    T: Copy + Debug,
+    T: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + AsBytes
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
+    fn exit_ok(
+        span: LocatedSpan<T, DynContext<'s, T, C>>,
+        parsed: LocatedSpan<T, DynContext<'s, T, C>>,
+    ) {
+        <C3 as CCC<C, LocatedSpan<T, DynContext<'s, T, C>>>>::exit_ok(&C3, span, parsed);
     }
 
-    fn track_ok(self, parsed: Span<'s, T, C>) -> Self::Result {
-        match self {
-            Ok((span, v)) => {
-                Context.exit_ok(&parsed, &span);
-                Ok((span, v))
-            }
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => {
-                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
-                Context.exit_err(&p_err.span, p_err.code, &p_err);
-                Err(nom::Err::Error(p_err))
-            }
-            Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
-                Context.exit_err(&p_err.span, p_err.code, &p_err);
-                Err(nom::Err::Error(p_err))
-            }
-        }
+    fn exit_err(span: LocatedSpan<T, DynContext<'s, T, C>>, code: C, err: &dyn Error) {
+        <C3 as CCC<C, LocatedSpan<T, DynContext<'s, T, C>>>>::exit_err(&C3, span, code, err);
     }
 }

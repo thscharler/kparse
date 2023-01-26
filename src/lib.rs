@@ -395,18 +395,70 @@ impl Context {
 /// let (rest, plan) = token_name(rest).track()?;
 /// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
 /// ```
-pub trait TrackParserError<'s, I: Copy, C: Code, Y: Copy> {
-    /// Result type of the track fn.
-    type Result;
-
+pub trait TrackParserError<'s, C, I, Y, O, E>
+where
+    C: Code,
+    I: AsBytes + Copy + Debug,
+    I: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + AsBytes
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+    Y: Copy,
+    E: Into<ParserError<C, I, Y>>,
+    Self: Into<Result<(I, O), nom::Err<E>>>,
+{
     /// Track if this is an error.
-    fn track(self) -> Self::Result;
+    fn track(self) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+        let ego = self.into();
+        match ego {
+            Ok(v) => Ok(v),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                let p_err: ParserError<C, I, Y> = e.into();
+                Self::exit_err(p_err.span, p_err.code, &p_err);
+                Err(nom::Err::Error(p_err))
+            }
+        }
+    }
 
     /// Track if this is an error. Set a new code too.
-    fn track_as(self, code: C) -> Self::Result;
+    fn track_as(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+        let ego = self.into();
+        match ego {
+            Ok(v) => Ok(v),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                let p_err: ParserError<C, I, Y> = e.into();
+                let p_err = p_err.with_code(code);
+                Self::exit_err(p_err.span, p_err.code, &p_err);
+                Err(nom::Err::Error(p_err))
+            }
+        }
+    }
 
     /// Track if this is an error. And if this is ok too.
-    fn track_ok(self, parsed: I) -> Self::Result;
+    fn track_ok(self, parsed: I) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+        let ego = self.into();
+        match ego {
+            Ok((span, v)) => {
+                Self::exit_ok(parsed, span);
+                Ok((span, v))
+            }
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                let p_err: ParserError<C, I, Y> = e.into();
+                Self::exit_err(p_err.span, p_err.code, &p_err);
+                Err(nom::Err::Error(p_err))
+            }
+        }
+    }
+
+    fn exit_ok(span: I, parsed: I);
+
+    fn exit_err(span: I, code: C, err: &dyn Error);
 }
 
 /// Convert an external error into a ParserError and add an error code and a span.
