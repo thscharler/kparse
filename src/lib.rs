@@ -59,9 +59,9 @@
 //!     const NOM_ERROR: Self = Self::APCNomError;
 //! }
 //!
-//! pub type APSpan<'s> = kparse::Span<'s, &'s str, APCode>;
-//! pub type APParserResult<'s, O> = kparse::ParserResult<'s, O, &'s str, APCode, ()>;
-//! pub type APNomResult<'s> = kparse::ParserNomResult<'s, &'s str, APCode, ()>;
+//! pub type APSpan<'s> = kparse::CtxSpan<'s, &'s str, APCode>;
+//! pub type APParserResult<'s, O> = kparse::CtxParserResult<'s, O, &'s str, APCode, ()>;
+//! pub type APNomResult<'s> = kparse::CtxParserNomResult<'s, &'s str, APCode, ()>;
 //!
 //!
 //! pub struct APPlan<'s> {
@@ -173,15 +173,18 @@ pub mod prelude {
 }
 
 /// Standard input type.
-pub type Span<'s, T, C> = LocatedSpan<T, DynContext<'s, T, C>>;
+///
+/// It holds a dyn ParseContext in the extra field of LocatedSpan to distribute
+/// the context.
+pub type CtxSpan<'s, T, C> = LocatedSpan<T, DynContext<'s, T, C>>; // todo order
 
-/// Result type.
-pub type ParserResult<'s, O, T, C, Y> =
-    Result<(Span<'s, T, C>, O), nom::Err<ParserError<C, Span<'s, T, C>, Y>>>;
+/// Standard result type in conjunction with CtxSpan.
+pub type CtxParserResult<'s, O, T, C, Y> =
+    Result<(CtxSpan<'s, T, C>, O), nom::Err<ParserError<C, CtxSpan<'s, T, C>, Y>>>; // todo order
 
 /// Type alias for a nom parser. Use this to create a ParserError directly in nom.
-pub type ParserNomResult<'s, T, C, Y> =
-    Result<(Span<'s, T, C>, Span<'s, T, C>), nom::Err<ParserError<C, Span<'s, T, C>, Y>>>;
+pub type CtxParserNomResult<'s, T, C, Y> =
+    Result<(CtxSpan<'s, T, C>, CtxSpan<'s, T, C>), nom::Err<ParserError<C, CtxSpan<'s, T, C>, Y>>>; // todo order
 
 /// Parser state codes.
 ///
@@ -260,10 +263,10 @@ impl Context {
     /// Tracks an exit_ok with the ParseContext.
     pub fn ok<'s, O, T, C, Y>(
         &self,
-        remainder: Span<'s, T, C>,
-        parsed: Span<'s, T, C>,
+        remainder: CtxSpan<'s, T, C>,
+        parsed: CtxSpan<'s, T, C>,
         value: O,
-    ) -> ParserResult<'s, O, T, C, Y>
+    ) -> CtxParserResult<'s, O, T, C, Y>
     where
         T: AsBytes + Copy,
         C: Code,
@@ -275,9 +278,9 @@ impl Context {
 
     /// Creates a Err-ParserResult from the given ParserError.
     /// Tracks an exit_err with the ParseContext.
-    pub fn err<'s, O, T, C, Y, E>(&self, err: E) -> ParserResult<'s, O, T, C, Y>
+    pub fn err<'s, O, T, C, Y, E>(&self, err: E) -> CtxParserResult<'s, O, T, C, Y>
     where
-        E: Into<nom::Err<ParserError<C, Span<'s, T, C>, Y>>>,
+        E: Into<nom::Err<ParserError<C, CtxSpan<'s, T, C>, Y>>>,
         C: Code,
         Y: Copy,
         T: Copy + Display + Debug,
@@ -289,7 +292,7 @@ impl Context {
             + Slice<RangeFrom<usize>>
             + Slice<RangeTo<usize>>,
     {
-        let err: nom::Err<ParserError<C, Span<'s, T, C>, Y>> = err.into();
+        let err: nom::Err<ParserError<C, CtxSpan<'s, T, C>, Y>> = err.into();
         match &err {
             nom::Err::Incomplete(_) => {}
             nom::Err::Error(e) => Context.exit_err(&e.span, e.code, &e),
@@ -298,7 +301,7 @@ impl Context {
         Err(err)
     }
 
-    fn clear_span<'s, T, C>(span: &Span<'s, T, C>) -> LocatedSpan<T, ()>
+    fn clear_span<'s, T, C>(span: &CtxSpan<'s, T, C>) -> LocatedSpan<T, ()>
     where
         T: AsBytes + Copy + 's,
         C: Code,
@@ -314,7 +317,7 @@ impl Context {
     }
 
     /// Enter a parser function. For tracking.
-    pub fn enter<'s, T, C>(&self, func: C, span: &Span<'s, T, C>)
+    pub fn enter<'s, T, C>(&self, func: C, span: &CtxSpan<'s, T, C>)
     where
         T: AsBytes + Copy,
         C: Code,
@@ -325,7 +328,7 @@ impl Context {
     }
 
     /// Track some debug info.
-    pub fn debug<'s, T, C: Code>(&self, span: &Span<'s, T, C>, debug: String)
+    pub fn debug<'s, T, C: Code>(&self, span: &CtxSpan<'s, T, C>, debug: String)
     where
         T: AsBytes + Copy,
         C: Code,
@@ -336,7 +339,7 @@ impl Context {
     }
 
     /// Track some other info.
-    pub fn info<'s, T, C: Code>(&self, span: &Span<'s, T, C>, info: &'static str)
+    pub fn info<'s, T, C: Code>(&self, span: &CtxSpan<'s, T, C>, info: &'static str)
     where
         T: AsBytes + Copy,
         C: Code,
@@ -347,7 +350,7 @@ impl Context {
     }
 
     /// Track some warning.
-    pub fn warn<'s, T, C: Code>(&self, span: &Span<'s, T, C>, warn: &'static str)
+    pub fn warn<'s, T, C: Code>(&self, span: &CtxSpan<'s, T, C>, warn: &'static str)
     where
         T: AsBytes + Copy,
         C: Code,
@@ -358,7 +361,7 @@ impl Context {
     }
 
     /// Calls exit_ok() on the ParseContext. You might want to use ok() instead.
-    pub fn exit_ok<'s, T, C: Code>(&self, span: &Span<'s, T, C>, parsed: &Span<'s, T, C>)
+    pub fn exit_ok<'s, T, C: Code>(&self, span: &CtxSpan<'s, T, C>, parsed: &CtxSpan<'s, T, C>)
     where
         T: AsBytes + Copy,
         C: Code,
@@ -369,7 +372,7 @@ impl Context {
     }
 
     /// Calls exit_err() on the ParseContext. You might want to use err() instead.
-    pub fn exit_err<'s, T, C>(&self, span: &Span<'s, T, C>, code: C, err: &dyn Error)
+    pub fn exit_err<'s, T, C>(&self, span: &CtxSpan<'s, T, C>, code: C, err: &dyn Error)
     where
         T: AsBytes + Copy,
         C: Code,
