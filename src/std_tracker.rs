@@ -13,7 +13,7 @@
 //! ```
 
 use crate::debug::tracks::debug_tracks;
-use crate::{Code, CtxSpan, DynContext, ParseContext};
+use crate::{Code, DynTracker, TrackSpan, Tracker};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::cell::RefCell;
@@ -34,7 +34,7 @@ use std::ops::{RangeFrom, RangeTo};
 ///
 /// // ... run parser with span.
 /// ```
-pub struct TrackingContext<T, C>
+pub struct StdTracker<T, C>
 where
     T: AsBytes + Copy,
     C: Code,
@@ -74,7 +74,7 @@ where
     }
 }
 
-impl<T, C> TrackingContext<T, C>
+impl<T, C> StdTracker<T, C>
 where
     T: AsBytes + Copy,
     C: Code,
@@ -88,11 +88,11 @@ where
     }
 
     /// Create a new Span from this context using the original str.
-    pub fn span<'s>(&'s self, text: T) -> CtxSpan<'s, T, C>
+    pub fn span<'s>(&'s self, text: T) -> TrackSpan<'s, T, C>
     where
         T: 's,
     {
-        CtxSpan::new_extra(text, DynContext(Some(self)))
+        TrackSpan::new_extra(text, DynTracker(Some(self)))
     }
 
     /// Extract the tracking results.
@@ -119,7 +119,7 @@ where
     }
 }
 
-impl<T, C> ParseContext<T, C> for TrackingContext<T, C>
+impl<T, C> Tracker<T, C> for StdTracker<T, C>
 where
     T: AsBytes + Copy,
     C: Code,
@@ -152,7 +152,7 @@ where
     }
 }
 
-impl<T, C> TrackingContext<T, C>
+impl<T, C> StdTracker<T, C>
 where
     T: AsBytes + Copy,
     C: Code,
@@ -182,7 +182,7 @@ where
     }
 }
 
-impl<T, C> TrackingContext<T, C>
+impl<T, C> StdTracker<T, C>
 where
     T: AsBytes + Copy,
     C: Code,

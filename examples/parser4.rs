@@ -137,17 +137,17 @@ mod planung4 {
         }
     }
 
-    pub type APSpan<'s> = kparse::CtxSpan<'s, &'s str, APCode>;
+    pub type APSpan<'s> = kparse::TrackSpan<'s, &'s str, APCode>;
     pub type APParserError<'s> = kparse::ParserError<APCode, APSpan<'s>, ()>;
-    pub type APParserResult<'s, O> = kparse::CtxParserResult<'s, O, &'s str, APCode, ()>;
-    pub type APNomResult<'s> = kparse::CtxParserNomResult<'s, &'s str, APCode, ()>;
+    pub type APParserResult<'s, O> = kparse::TrackParserResult<'s, O, &'s str, APCode, ()>;
+    pub type APNomResult<'s> = kparse::TrackParserNomResult<'s, &'s str, APCode, ()>;
 
     pub mod diagnostics {
         use crate::planung4::{APCode, APParserError, APSpan};
         use kparse::spans::SpanLines;
+        use kparse::std_tracker::Tracks;
         use kparse::test::{Report, Test};
-        use kparse::tracking_context::Tracks;
-        use kparse::{Code, TrackingContext};
+        use kparse::{Code, StdTracker};
         use nom_locate::LocatedSpan;
         use std::ffi::OsStr;
         use std::fmt::Debug;
@@ -163,8 +163,7 @@ mod planung4 {
         #[derive(Clone, Copy)]
         pub struct ReportDiagnostics;
 
-        impl<'s, C, O>
-            Report<Test<'s, TrackingContext<&'s str, C>, APSpan<'s>, O, APParserError<'_>>>
+        impl<'s, C, O> Report<Test<'s, StdTracker<&'s str, C>, APSpan<'s>, O, APParserError<'_>>>
             for ReportDiagnostics
         where
             C: Code,
@@ -173,7 +172,7 @@ mod planung4 {
             #[track_caller]
             fn report(
                 &self,
-                test: &Test<'s, TrackingContext<&'s str, C>, APSpan<'s>, O, APParserError<'_>>,
+                test: &Test<'s, StdTracker<&'s str, C>, APSpan<'s>, O, APParserError<'_>>,
             ) {
                 if test.failed.get() {
                     match &test.result {
@@ -1514,7 +1513,7 @@ mod planung4 {
             fn with_span(
                 self,
                 code: APCode,
-                span: kparse::CtxSpan<'s, &'s str, APCode>,
+                span: kparse::TrackSpan<'s, &'s str, APCode>,
             ) -> nom::Err<APParserError<'s>> {
                 nom::Err::Failure(ParserError::new(code, span))
             }

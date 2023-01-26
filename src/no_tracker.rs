@@ -12,7 +12,7 @@
 //! ```
 //!
 
-use crate::{Code, CtxSpan, DynContext};
+use crate::{Code, DynTracker, TrackSpan};
 use nom::AsBytes;
 
 /// No tracking context. Does nothing but producing a suitable Span.
@@ -28,15 +28,15 @@ use nom::AsBytes;
 ///
 /// ```
 ///
-pub struct NoContext;
+pub struct NoTracker;
 
-impl NoContext {
+impl NoTracker {
     /// Creates a span with the correct context for NoContext.
-    pub fn span<'s, T, C>(&'s self, txt: T) -> CtxSpan<'s, T, C>
+    pub fn span<'s, T, C>(&'s self, txt: T) -> TrackSpan<'s, T, C>
     where
         T: AsBytes + Copy + 's,
         C: Code,
     {
-        CtxSpan::new_extra(txt, DynContext(None))
+        TrackSpan::new_extra(txt, DynTracker(None))
     }
 }

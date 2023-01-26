@@ -1,12 +1,11 @@
 use crate::{
-    Code, Context, DynContext, ParserError, ResultWithSpan, TrackParserError, WithCode, WithSpan,
-    C3, CCC,
+    Code, DynTracker, ParserError, ResultWithSpan, TrackParserError, WithCode, WithSpan, C3, CCC,
 };
 use nom::error::ParseError;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::error::Error;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::ops::{RangeFrom, RangeTo};
 
 //
@@ -223,10 +222,10 @@ where
     }
 }
 
-impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, DynContext<'s, T, C>>, Y, O, E>
-    for Result<(LocatedSpan<T, DynContext<'s, T, C>>, O), nom::Err<E>>
+impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, DynTracker<'s, T, C>>, Y, O, E>
+    for Result<(LocatedSpan<T, DynTracker<'s, T, C>>, O), nom::Err<E>>
 where
-    E: Into<ParserError<C, LocatedSpan<T, DynContext<'s, T, C>>, Y>>,
+    E: Into<ParserError<C, LocatedSpan<T, DynTracker<'s, T, C>>, Y>>,
     C: Code,
     Y: Copy,
     T: Copy + Debug,
@@ -239,13 +238,13 @@ where
         + Slice<RangeTo<usize>>,
 {
     fn exit_ok(
-        span: LocatedSpan<T, DynContext<'s, T, C>>,
-        parsed: LocatedSpan<T, DynContext<'s, T, C>>,
+        span: LocatedSpan<T, DynTracker<'s, T, C>>,
+        parsed: LocatedSpan<T, DynTracker<'s, T, C>>,
     ) {
-        <C3 as CCC<C, LocatedSpan<T, DynContext<'s, T, C>>>>::exit_ok(&C3, span, parsed);
+        <C3 as CCC<C, LocatedSpan<T, DynTracker<'s, T, C>>>>::exit_ok(&C3, span, parsed);
     }
 
-    fn exit_err(span: LocatedSpan<T, DynContext<'s, T, C>>, code: C, err: &dyn Error) {
-        <C3 as CCC<C, LocatedSpan<T, DynContext<'s, T, C>>>>::exit_err(&C3, span, code, err);
+    fn exit_err(span: LocatedSpan<T, DynTracker<'s, T, C>>, code: C, err: &dyn Error) {
+        <C3 as CCC<C, LocatedSpan<T, DynTracker<'s, T, C>>>>::exit_err(&C3, span, code, err);
     }
 }

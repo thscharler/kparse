@@ -1,10 +1,10 @@
 #![allow(dead_code)]
 
 use kparse::error::Hints;
-use kparse::tracking_context::Track;
+use kparse::std_tracker::Track;
 use kparse::{
-    Code, Context, CtxParserNomResult, CtxParserResult, CtxSpan, DynContext, NoContext,
-    ParserError, TrackingContext,
+    Code, Context, DynTracker, NoTracker, ParserError, StdTracker, TrackParserNomResult,
+    TrackParserResult, TrackSpan,
 };
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Display, Formatter};
@@ -50,7 +50,7 @@ impl Code for ZCode {
 #[derive(Debug, Clone, Copy)]
 struct Nummer<'s> {
     nummer: u32,
-    span: CtxSpan<'s, &'s str, ZCode>,
+    span: TrackSpan<'s, &'s str, ZCode>,
 }
 
 #[test]
@@ -60,21 +60,21 @@ fn test_size2() {
     dbg!(size_of::<&str>());
 
     dbg!(size_of::<ZCode>());
-    dbg!(size_of::<CtxSpan<'_, &str, ZCode>>());
+    dbg!(size_of::<TrackSpan<'_, &str, ZCode>>());
 
     dbg!(size_of::<ParserError<ZCode, &str, ()>>());
     dbg!(size_of::<Vec<Hints<ZCode, &str, ()>>>());
 
     dbg!(size_of::<Context>());
-    dbg!(size_of::<CtxParserNomResult<&str, ZCode, ()>>());
-    dbg!(size_of::<CtxParserResult<(), &str, ZCode, ()>>());
-    dbg!(size_of::<CtxParserResult<Nummer<'_>, &str, ZCode, ()>>());
-    dbg!(size_of::<CtxSpan<&str, ZCode>>());
+    dbg!(size_of::<TrackParserNomResult<&str, ZCode, ()>>());
+    dbg!(size_of::<TrackParserResult<(), &str, ZCode, ()>>());
+    dbg!(size_of::<TrackParserResult<Nummer<'_>, &str, ZCode, ()>>());
+    dbg!(size_of::<TrackSpan<&str, ZCode>>());
     dbg!(size_of::<LocatedSpan<&str>>());
 
-    dbg!(size_of::<DynContext<&str, ZCode>>());
+    dbg!(size_of::<DynTracker<&str, ZCode>>());
 
-    dbg!(size_of::<NoContext>());
-    dbg!(size_of::<TrackingContext<&str, ZCode>>());
+    dbg!(size_of::<NoTracker>());
+    dbg!(size_of::<StdTracker<&str, ZCode>>());
     dbg!(size_of::<Track<&str, ZCode>>());
 }
