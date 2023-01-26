@@ -49,9 +49,9 @@ impl Display for ICode {
     }
 }
 
-pub type ISpan<'s> = kparse::Span<'s, &'s str, ICode>;
-pub type IParserResult<'s, O> = kparse::ParserResult<'s, O, &'s str, ICode, ()>;
-pub type INomResult<'s> = kparse::ParserNomResult<'s, &'s str, ICode, ()>;
+pub type ISpan<'s> = kparse::CtxSpan<'s, &'s str, ICode>;
+pub type IParserResult<'s, O> = kparse::CtxParserResult<'s, O, &'s str, ICode, ()>;
+pub type INomResult<'s> = kparse::CtxParserNomResult<'s, &'s str, ICode, ()>;
 pub type IParserError<'s> = kparse::ParserError<ICode, ISpan<'s>, ()>;
 
 #[derive(Debug)]

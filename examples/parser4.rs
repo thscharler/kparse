@@ -137,10 +137,10 @@ mod planung4 {
         }
     }
 
-    pub type APSpan<'s> = kparse::Span<'s, &'s str, APCode>;
+    pub type APSpan<'s> = kparse::CtxSpan<'s, &'s str, APCode>;
     pub type APParserError<'s> = kparse::ParserError<APCode, APSpan<'s>, ()>;
-    pub type APParserResult<'s, O> = kparse::ParserResult<'s, O, &'s str, APCode, ()>;
-    pub type APNomResult<'s> = kparse::ParserNomResult<'s, &'s str, APCode, ()>;
+    pub type APParserResult<'s, O> = kparse::CtxParserResult<'s, O, &'s str, APCode, ()>;
+    pub type APNomResult<'s> = kparse::CtxParserNomResult<'s, &'s str, APCode, ()>;
 
     pub mod diagnostics {
         use crate::planung4::{APCode, APParserError, APSpan};
@@ -1514,7 +1514,7 @@ mod planung4 {
             fn with_span(
                 self,
                 code: APCode,
-                span: kparse::Span<'s, &'s str, APCode>,
+                span: kparse::CtxSpan<'s, &'s str, APCode>,
             ) -> nom::Err<APParserError<'s>> {
                 nom::Err::Failure(ParserError::new(code, span))
             }
