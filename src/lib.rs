@@ -283,7 +283,7 @@ impl Context {
         E: Into<nom::Err<ParserError<C, CtxSpan<'s, T, C>, Y>>>,
         C: Code,
         Y: Copy,
-        T: Copy + Display + Debug,
+        T: Copy + Debug,
         T: Offset
             + InputTake
             + InputIter

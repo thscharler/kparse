@@ -197,7 +197,7 @@ where
 impl<C, I, Y> Display for ParserError<C, I, Y>
 where
     C: Code,
-    I: Copy + Display,
+    I: Copy + Debug,
     I: Offset
         + InputTake
         + InputIter
@@ -213,10 +213,15 @@ where
             if i > 0 {
                 write!(f, " ")?;
             }
-            write!(f, "{}:{}", exp.code, restrict(DebugWidth::Short, exp.span))?;
+            write!(
+                f,
+                "{}:{:?}",
+                exp.code,
+                restrict(DebugWidth::Short, exp.span)
+            )?;
         }
         // no suggest
-        write!(f, " for span {}", restrict(DebugWidth::Short, self.span))?;
+        write!(f, " for span {:?}", restrict(DebugWidth::Short, self.span))?;
         Ok(())
     }
 }
@@ -301,7 +306,7 @@ where
 impl<C, I, Y> Error for ParserError<C, I, Y>
 where
     C: Code,
-    I: Copy + Display + Debug,
+    I: Copy + Debug,
     I: Offset
         + InputTake
         + InputIter
