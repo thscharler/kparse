@@ -12,18 +12,13 @@ use std::ops::{RangeFrom, RangeTo};
 //
 
 // from the std::wilds
-impl<'s, C, Y, I> WithSpan<C, Span<'s, I, C>, ParserError<C, Span<'s, I, C>, Y>>
-    for std::num::ParseIntError
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for std::num::ParseIntError
 where
     C: Code,
-    Y: Copy,
     I: AsBytes + Copy,
+    Y: Copy,
 {
-    fn with_span(
-        self,
-        code: C,
-        span: Span<'s, I, C>,
-    ) -> nom::Err<ParserError<C, Span<'s, I, C>, Y>> {
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
         nom::Err::Failure(ParserError::new(code, span))
     }
 }
@@ -33,14 +28,13 @@ where
 //
 
 // from the std::wilds
-impl<'s, C: Code, Y: Copy, I: AsBytes + Copy>
-    WithSpan<C, Span<'s, I, C>, ParserError<C, Span<'s, I, C>, Y>> for std::num::ParseFloatError
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for std::num::ParseFloatError
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
 {
-    fn with_span(
-        self,
-        code: C,
-        span: Span<'s, I, C>,
-    ) -> nom::Err<ParserError<C, Span<'s, I, C>, Y>> {
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
         nom::Err::Failure(ParserError::new(code, span))
     }
 }
@@ -52,18 +46,24 @@ impl<'s, C: Code, Y: Copy, I: AsBytes + Copy>
 //
 // ParserError
 //
-impl<'s, T, C: Code, Y: Copy> From<ParserError<C, Span<'s, T, C>, Y>>
-    for nom::Err<ParserError<C, Span<'s, T, C>, Y>>
+impl<C, I, Y> From<ParserError<C, I, Y>> for nom::Err<ParserError<C, I, Y>>
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
 {
-    fn from(e: ParserError<C, Span<'s, T, C>, Y>) -> Self {
+    fn from(e: ParserError<C, I, Y>) -> Self {
         nom::Err::Error(e)
     }
 }
 
-impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> WithCode<C, ParserError<C, Span<'s, T, C>, Y>>
-    for ParserError<C, Span<'s, T, C>, Y>
+impl<C, I, Y> WithCode<C, ParserError<C, I, Y>> for ParserError<C, I, Y>
+where
+    I: AsBytes + Copy,
+    C: Code,
+    Y: Copy,
 {
-    fn with_code(self, code: C) -> ParserError<C, Span<'s, T, C>, Y> {
+    fn with_code(self, code: C) -> ParserError<C, I, Y> {
         ParserError::with_code(self, code)
     }
 }
@@ -73,10 +73,13 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> WithCode<C, ParserError<C, Sp
 //
 
 // take everything from nom::error::Error
-impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> From<nom::error::Error<Span<'s, T, C>>>
-    for ParserError<C, Span<'s, T, C>, Y>
+impl<C, I, Y> From<nom::error::Error<I>> for ParserError<C, I, Y>
+where
+    I: AsBytes + Copy,
+    C: Code,
+    Y: Copy,
 {
-    fn from(e: nom::error::Error<Span<'s, T, C>>) -> Self {
+    fn from(e: nom::error::Error<I>) -> Self {
         ParserError::from_error_kind(e.input, e.code)
     }
 }
@@ -93,23 +96,20 @@ impl<'s, T: AsBytes + Copy + 's, C: Code, Y: Copy> From<nom::error::Error<Span<'
 //
 // 1. just to call with_code on an existing ParserError.
 // 2. to convert whatever to a ParserError and give it a code.
-impl<'s, T: AsBytes + Copy + 's, C: Code + 's, Y: Copy + 's, E>
-    WithCode<C, nom::Err<ParserError<C, Span<'s, T, C>, Y>>> for nom::Err<E>
+impl<C, I, Y, E> WithCode<C, nom::Err<ParserError<C, I, Y>>> for nom::Err<E>
 where
-    E: Into<ParserError<C, Span<'s, T, C>, Y>>,
+    E: Into<ParserError<C, I, Y>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
 {
-    fn with_code(self, code: C) -> nom::Err<ParserError<C, Span<'s, T, C>, Y>> {
+    fn with_code(self, code: C) -> nom::Err<ParserError<C, I, Y>> {
         match self {
             nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => {
-                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
+            nom::Err::Error(e) | nom::Err::Failure(e) => {
+                let p_err: ParserError<C, I, Y> = e.into();
                 let p_err = p_err.with_code(code);
                 nom::Err::Error(p_err)
-            }
-            nom::Err::Failure(e) => {
-                let p_err: ParserError<C, Span<'s, T, C>, Y> = e.into();
-                let p_err = p_err.with_code(code);
-                nom::Err::Failure(p_err)
             }
         }
     }
@@ -124,20 +124,14 @@ where
 //
 
 // Any result that wraps an error type that can be converted via with_span is fine.
-impl<'s, C, Y, I, O, E>
-    ResultWithSpan<C, Span<'s, I, C>, Result<O, nom::Err<ParserError<C, Span<'s, I, C>, Y>>>>
-    for Result<O, E>
+impl<C, I, Y, O, E> ResultWithSpan<C, I, Result<O, nom::Err<ParserError<C, I, Y>>>> for Result<O, E>
 where
+    E: WithSpan<C, I, ParserError<C, I, Y>>,
     C: Code,
-    Y: Copy,
     I: AsBytes + Copy,
-    E: WithSpan<C, Span<'s, I, C>, ParserError<C, Span<'s, I, C>, Y>>,
+    Y: Copy,
 {
-    fn with_span(
-        self,
-        code: C,
-        span: Span<'s, I, C>,
-    ) -> Result<O, nom::Err<ParserError<C, Span<'s, I, C>, Y>>> {
+    fn with_span(self, code: C, span: I) -> Result<O, nom::Err<ParserError<C, I, Y>>> {
         match self {
             Ok(v) => Ok(v),
             Err(e) => Err(e.with_span(code, span)),
@@ -149,16 +143,19 @@ where
 //
 // 1. this is a ParserResult with a nom::Err with a ParserError.
 // 2. this is a Result with a whatever which has a WithCode<ParserError>
-impl<'s, T, C: Code, Y: Copy, O, E> WithCode<C, ParserResult<'s, O, T, C, Y>>
-    for Result<(Span<'s, T, C>, O), E>
+impl<C, I, Y, O, E> WithCode<C, Result<(I, O), nom::Err<ParserError<C, I, Y>>>>
+    for Result<(I, O), E>
 where
-    E: WithCode<C, nom::Err<ParserError<C, Span<'s, T, C>, Y>>>,
+    E: WithCode<C, nom::Err<ParserError<C, I, Y>>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
 {
-    fn with_code(self, code: C) -> ParserResult<'s, O, T, C, Y> {
+    fn with_code(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
         match self {
             Ok(v) => Ok(v),
             Err(e) => {
-                let p_err: nom::Err<ParserError<C, Span<'s, T, C>, Y>> = e.with_code(code);
+                let p_err: nom::Err<ParserError<C, I, Y>> = e.with_code(code);
                 Err(p_err)
             }
         }
