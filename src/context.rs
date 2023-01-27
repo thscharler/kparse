@@ -1,4 +1,4 @@
-use crate::{Code, ContextTrait, DynTracker, ParserError};
+use crate::{Code, ContextTrait, DynTracker, ParserError, SpanTracker};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::error::Error;

@@ -270,8 +270,15 @@ where
 /// ```
 pub trait ContextTrait<C, I>
 where
+    I: Copy + Debug,
+    I: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + AsBytes
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
     C: Code,
-    I: Copy,
 {
     fn ok<O, Y>(
         &self,
@@ -280,13 +287,27 @@ where
         value: O,
     ) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
-        Y: Copy;
+        Y: Copy,
+    {
+        self.exit_ok(remainder, parsed);
+        Ok((remainder, value))
+    }
 
     fn err<O, Y, E>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
         E: Into<nom::Err<ParserError<C, I, Y>>>,
         Y: Copy,
-        C: Code;
+        C: Code,
+    {
+        let err: nom::Err<ParserError<C, I, Y>> = err.into();
+        match &err {
+            nom::Err::Incomplete(_) => {}
+            nom::Err::Error(e) | nom::Err::Failure(e) => {
+                self.exit_err(e.span, e.code, &e);
+            }
+        }
+        Err(err)
+    }
 
     /// Enter a parser function.
     fn enter(&self, func: C, span: I);

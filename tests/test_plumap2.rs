@@ -96,6 +96,14 @@ pub type PLUParserResult<'s, O> = Result<(&'s str, O), nom::Err<ParserError<PLUC
 pub type PLUNomResult<'s> = Result<(&'s str, &'s str), nom::Err<ParserError<PLUCode, &'s str, ()>>>;
 pub type PLUParserError<'s> = ParserError<PLUCode, &'s str, ()>;
 
+#[test]
+fn tests() {
+    let psp = "asdf";
+
+    let x = parse_plumap(psp);
+    dbg!(x);
+}
+
 /// Gesamte Map.
 #[derive(Debug)]
 pub struct PPluMap<'s> {
@@ -265,7 +273,7 @@ mod parser {
 
     /// Parser.
     pub fn parse_plumap(input: PSpan<'_>) -> PLUParserResult<'_, PPluMap<'_>> {
-        Context.enter(PLUMap, input);
+        input.enter(PLUMap, input);
 
         let mut r = Vec::new();
 
