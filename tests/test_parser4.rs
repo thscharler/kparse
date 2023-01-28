@@ -104,7 +104,6 @@ pub fn test_kultur() {
         .err(APCName)
         .q(R);
 
-    //todo: should eventually fail. gives Name="" now.
     track_parse(&mut None, " : 1 GKH\n", parse_kultur)
         .okok()
         .q(R);
@@ -1172,8 +1171,6 @@ mod planung4 {
             let mut loop_rest = rest;
             loop {
                 let rest2 = loop_rest;
-
-                // todo: continue after error ...
 
                 let rest2 = if lah_stichtag(rest2) {
                     let (rest3, val) = parse_stichtag(rest2).track()?;

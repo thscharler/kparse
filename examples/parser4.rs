@@ -892,8 +892,6 @@ mod planung4 {
             loop {
                 let rest2 = loop_rest;
 
-                // todo: continue after error ...
-
                 let rest2 = if lah_stichtag(rest2) {
                     let (rest3, val) = parse_stichtag(rest2).track()?;
                     data.push(PlanValues::Stichtag(val));

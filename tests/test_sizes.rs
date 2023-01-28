@@ -18,19 +18,19 @@ impl Copy for ZCode {}
 
 impl Clone for ZCode {
     fn clone(&self) -> Self {
-        todo!()
+        unimplemented!()
     }
 }
 
 impl Display for ZCode {
     fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        unimplemented!()
     }
 }
 
 impl Debug for ZCode {
     fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        unimplemented!()
     }
 }
 
@@ -38,7 +38,7 @@ impl Eq for ZCode {}
 
 impl PartialEq<Self> for ZCode {
     fn eq(&self, _: &Self) -> bool {
-        todo!()
+        unimplemented!()
     }
 }
 

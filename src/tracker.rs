@@ -95,7 +95,6 @@ where
         + Slice<RangeTo<usize>>,
     C: Code,
 {
-    // todo: move impl to context directly
     /// Creates an Ok() Result from the parameters and tracks the result.
     fn ok<O, Y>(
         &self,
@@ -104,29 +103,14 @@ where
         value: O,
     ) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
-        Y: Copy,
-    {
-        self.exit_ok(remainder, parsed);
-        Ok((remainder, value))
-    }
+        Y: Copy;
 
-    // todo: move impl to context directly
     /// Tracks the error and creates a Result.
     fn err<O, E, Y>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
         E: Into<nom::Err<ParserError<C, I, Y>>>,
         Y: Copy,
-        C: Code,
-    {
-        let err: nom::Err<ParserError<C, I, Y>> = err.into();
-        match &err {
-            nom::Err::Incomplete(_) => {}
-            nom::Err::Error(e) | nom::Err::Failure(e) => {
-                self.exit_err(e.span, e.code, &e);
-            }
-        }
-        Err(err)
-    }
+        C: Code;
 
     /// Enter a parser function.
     fn enter(&self, func: C, span: I);
