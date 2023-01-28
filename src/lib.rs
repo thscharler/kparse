@@ -40,7 +40,8 @@
 #![warn(unused_qualifications)]
 // NO #![warn(unused_results)]
 #![warn(variant_size_differences)]
-
+#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::type_complexity)]
 use nom::error::ParseError;
 use nom::AsBytes;
 use std::fmt::{Debug, Display};
