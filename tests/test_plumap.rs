@@ -10,8 +10,14 @@ use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
 
 // pub use debug::*;
+use kparse::test::{span_parse, CheckDump};
 use kparse::{Code, ParserError};
 pub use parser::*;
+
+#[test]
+fn test_plumap() {
+    span_parse("1 -> 2\n", parse_plumap).okok().q(CheckDump);
+}
 
 /// Parser Codes
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,12 +152,12 @@ pub struct PDatum<'s> {
 mod debug {
     use crate::{PLUCode, PLUParserError, PSpan};
     use kparse::spans::SpanLines;
-    use kparse::std_tracker::Tracks;
-    use kparse::tracking_context::Tracks;
+    use kparse::tracker::Tracks;
     use std::ffi::OsStr;
     use std::path::Path;
 
     /// Fehler Diagnose.
+    #[allow(dead_code)]
     pub fn dump_diagnostics(
         src: &Path,
         txt: PSpan<'_>,
@@ -227,7 +233,8 @@ mod debug {
     }
 
     /// Parser Trace.
-    pub fn dump_trace(tracks: &Tracks<&'_ str, PLUCode>) {
+    #[allow(dead_code)]
+    pub fn dump_trace(tracks: &Tracks<PLUCode, &'_ str>) {
         println!("{:?}", tracks);
     }
 }
@@ -240,8 +247,9 @@ mod parser {
     use crate::token::{token_datum, token_faktor, token_nummer};
     use crate::PLUCode::*;
     use crate::{PLUParserError, PLUParserResult, PMap, PPluMap, PSpan};
+    use kparse::combinators::error_code;
     use kparse::prelude::*;
-    use kparse::{error_code, Context};
+    use kparse::Context;
     use nom::combinator::opt;
     use nom::sequence::preceded;
     use nom::Parser;

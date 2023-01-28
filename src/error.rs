@@ -16,7 +16,6 @@
 //! To convert some error to a ParserError the trait WithSpan can be used.
 //! A From conversion works fine too.
 //!
-//!
 
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};

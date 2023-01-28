@@ -6,7 +6,7 @@ use crate::planung4::tokens::{
     token_datum, token_menge, token_name, token_name_kurz, token_nummer,
 };
 use crate::planung4::APCode::*;
-use kparse::test::{noctx_parse, notrack_parse, track_parse, CheckDump, Timing, Trace};
+use kparse::test::{notrack_parse, track_parse, CheckDump, Timing, Trace};
 use std::fs::read_to_string;
 
 const R: ReportDiagnostics = ReportDiagnostics;
@@ -34,13 +34,10 @@ pub fn timing() {
         .rest("")
         .q(Timing(1));
 
-    println!();
-    println!();
-    println!("NOCTX");
-    noctx_parse(&mut None, s.as_str(), parse)
-        .okok()
-        .rest("")
-        .q(Timing(1));
+    // println!();
+    // println!();
+    // println!("NOCTX");
+    // span_parse(s.as_str(), parse).okok().rest("").q(Timing(1));
 }
 
 #[test]
@@ -413,17 +410,17 @@ mod planung4 {
         }
     }
 
-    pub type APSpan<'s> = kparse::TrackSpan<'s, APCode, &'s str>;
+    pub type APSpan<'s> = kparse::tracker::TrackSpan<'s, APCode, &'s str>;
     pub type APParserError<'s> = kparse::ParserError<APCode, APSpan<'s>, ()>;
-    pub type APParserResult<'s, O> = kparse::TrackParserResult<'s, APCode, &'s str, (), O>;
-    pub type APNomResult<'s> = kparse::TrackParserNomResult<'s, APCode, &'s str, ()>;
+    pub type APParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, APCode, &'s str, (), O>;
+    pub type APNomResult<'s> = kparse::tracker::TrackParserResultSpan<'s, APCode, &'s str, ()>;
 
     pub mod diagnostics {
         use crate::planung4::{APCode, APParserError, APSpan};
         use kparse::spans::SpanLines;
-        use kparse::std_tracker::Tracks;
         use kparse::test::{Report, Test};
-        use kparse::{Code, StdTracker};
+        use kparse::tracker::{StdTracker, Tracks};
+        use kparse::Code;
         use nom_locate::LocatedSpan;
         use std::ffi::OsStr;
         use std::fmt::Debug;
@@ -1720,9 +1717,11 @@ mod planung4 {
         use crate::planung4::APCode::*;
         use crate::planung4::{APCode, APParserError, APParserResult, APSpan};
         use chrono::NaiveDate;
+        use kparse::combinators::transform;
         use kparse::prelude::*;
         use kparse::spans::LocatedSpanExt;
-        use kparse::{transform, ParserError};
+        use kparse::tracker::TrackSpan;
+        use kparse::ParserError;
         use nom::combinator::recognize;
         use nom::sequence::tuple;
 
@@ -1789,7 +1788,7 @@ mod planung4 {
             fn with_span(
                 self,
                 code: APCode,
-                span: kparse::TrackSpan<'s, APCode, &'s str>,
+                span: TrackSpan<'s, APCode, &'s str>,
             ) -> nom::Err<APParserError<'s>> {
                 nom::Err::Failure(ParserError::new(code, span))
             }

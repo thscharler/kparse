@@ -13,14 +13,16 @@
 //!
 //! Note: The &mut None is because lifetimes.
 
-use crate::{Code, NoTracker, ParserError, StdTracker, TrackSpan};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
+use nom_locate::LocatedSpan;
 use std::cell::Cell;
 use std::fmt::Debug;
 use std::ops::{RangeFrom, RangeTo};
 use std::time::{Duration, Instant};
 
 use crate::debug::{restrict, DebugWidth};
+use crate::tracker::{StdTracker, TrackSpan};
+use crate::{Code, ParserError};
 pub use report::*;
 pub use span::*;
 
@@ -118,19 +120,14 @@ where
 ///
 /// Finish the test with q().
 #[must_use]
-pub fn noctx_parse<'s, C, T, O, E>(
-    buf: &'s mut Option<NoTracker>,
+pub fn span_parse<'s, T, O, E>(
     text: T,
-    fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
-) -> Test<'s, NoTracker, TrackSpan<'s, C, T>, O, E>
+    fn_test: impl Fn(LocatedSpan<T, ()>) -> Result<(LocatedSpan<T, ()>, O), nom::Err<E>>,
+) -> Test<'s, (), LocatedSpan<T, ()>, O, E>
 where
     T: AsBytes + Copy + 's,
-    C: Code + 's,
 {
-    buf.replace(NoTracker);
-    let context = buf.as_ref().expect("yes");
-
-    let span = context.span(text);
+    let span = LocatedSpan::new(text);
 
     let now = Instant::now();
     let result = fn_test(span);
@@ -138,7 +135,7 @@ where
 
     Test {
         span,
-        context,
+        context: &(),
         result,
         duration,
         failed: Cell::new(false),
@@ -189,12 +186,14 @@ pub fn byte_parse<'s, O, E>(
     }
 }
 
-impl<'s, P, C, T, O, E> Test<'s, P, TrackSpan<'s, C, T>, O, E>
+type TestSpan<T, X> = LocatedSpan<T, X>;
+
+impl<'s, P, T, O, E, X> Test<'s, P, TestSpan<T, X>, O, E>
 where
     T: AsBytes + Copy + Debug + 's,
-    C: Code,
     O: Debug,
     E: Debug,
+    X: Copy,
 {
     /// Sets the failed flag.
     pub fn flag_fail(&self) {
@@ -252,7 +251,7 @@ where
 }
 
 // works for any fn that uses a Span as input and returns a (Span, X) pair.
-impl<'s, P, C, T, O, E> Test<'s, P, TrackSpan<'s, C, T>, O, E>
+impl<'s, P, T, O, E, X> Test<'s, P, TestSpan<T, X>, O, E>
 where
     T: AsBytes + Copy + Debug + PartialEq + 's,
     T: Offset
@@ -261,9 +260,9 @@ where
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
-    C: Code,
     O: Debug,
     E: Debug,
+    X: Copy,
 {
     /// Checks for ok results.
     ///
@@ -318,7 +317,7 @@ where
 }
 
 // works for any NomFn.
-impl<'s, P, C, T, O> Test<'s, P, TrackSpan<'s, C, T>, O, nom::error::Error<TrackSpan<'s, C, T>>>
+impl<'s, P, T, O, X> Test<'s, P, TestSpan<T, X>, O, nom::error::Error<TestSpan<T, X>>>
 where
     T: AsBytes + Copy + Debug + 's,
     T: Offset
@@ -327,8 +326,8 @@ where
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
-    C: Code,
     O: Debug,
+    X: Copy + Debug,
 {
     /// Test for a nom error that occurred.
     #[must_use]
@@ -353,7 +352,7 @@ where
     }
 }
 
-impl<'s, P, C, T, O> Test<'s, P, TrackSpan<'s, C, T>, O, ParserError<C, TrackSpan<'s, C, T>>>
+impl<'s, P, C, T, O, X> Test<'s, P, TestSpan<T, X>, O, ParserError<C, TestSpan<T, X>>>
 where
     T: AsBytes + Copy + Debug + 's,
     T: Offset
@@ -364,6 +363,7 @@ where
         + Slice<RangeTo<usize>>,
     C: Code,
     O: Debug,
+    X: Copy + Debug,
 {
     /// Checks for an error.
     ///
@@ -426,7 +426,8 @@ where
 }
 
 mod span {
-    use crate::{Code, TrackSpan};
+    use crate::tracker::TrackSpan;
+    use crate::Code;
     use nom::AsBytes;
 
     /// Compares a Span with a tuple (offset, str).
@@ -488,8 +489,9 @@ mod span {
 
 mod report {
     use crate::debug::{restrict, restrict_str, DebugWidth};
-    use crate::test::{Report, Test};
-    use crate::{Code, StdTracker, TrackSpan};
+    use crate::test::{Report, Test, TestSpan};
+    use crate::tracker::{StdTracker, TrackSpan};
+    use crate::Code;
     use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
     use std::fmt::Debug;
     use std::ops::{RangeFrom, RangeTo};
@@ -498,18 +500,15 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct NoReport;
 
-    impl<'s, P, C, T, O, E> Report<Test<'s, P, TrackSpan<'s, C, T>, O, E>> for NoReport
-    where
-        C: Code,
-    {
-        fn report(&self, _: &Test<'s, P, TrackSpan<'s, C, T>, O, E>) {}
+    impl<'s, P, T, O, E, X> Report<Test<'s, P, TestSpan<T, X>, O, E>> for NoReport {
+        fn report(&self, _: &Test<'s, P, TestSpan<T, X>, O, E>) {}
     }
 
     /// Dumps the Result data if any test failed.
     #[derive(Clone, Copy)]
     pub struct CheckDump;
 
-    impl<'s, P, C, T, O, E> Report<Test<'s, P, TrackSpan<'s, C, T>, O, E>> for CheckDump
+    impl<'s, P, T, O, E, X> Report<Test<'s, P, TestSpan<T, X>, O, E>> for CheckDump
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -518,12 +517,12 @@ mod report {
             + InputLength
             + Slice<RangeFrom<usize>>
             + Slice<RangeTo<usize>>,
-        C: Code,
         O: Debug,
         E: Debug,
+        X: Copy + Debug,
     {
         #[track_caller]
-        fn report(&self, test: &Test<'s, P, TrackSpan<'s, C, T>, O, E>) {
+        fn report(&self, test: &Test<'s, P, TestSpan<T, X>, O, E>) {
             if test.failed.get() {
                 dump(test);
                 panic!("test failed")
@@ -535,7 +534,7 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct Timing(pub u32);
 
-    impl<'s, P, C, T, O, E> Report<Test<'s, P, TrackSpan<'s, C, T>, O, E>> for Timing
+    impl<'s, P, T, O, E, X> Report<Test<'s, P, TestSpan<T, X>, O, E>> for Timing
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -544,11 +543,11 @@ mod report {
             + InputLength
             + Slice<RangeFrom<usize>>
             + Slice<RangeTo<usize>>,
-        C: Code,
         O: Debug,
         E: Debug,
+        X: Copy + Debug,
     {
-        fn report(&self, test: &Test<'s, P, TrackSpan<'s, C, T>, O, E>) {
+        fn report(&self, test: &Test<'s, P, TestSpan<T, X>, O, E>) {
             println!(
                 "when parsing {:?} in {:?} =>",
                 restrict_str(DebugWidth::Medium, test.span),
@@ -569,7 +568,7 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct Dump;
 
-    impl<'s, P, C, T, O, E> Report<Test<'s, P, TrackSpan<'s, C, T>, O, E>> for Dump
+    impl<'s, P, T, O, E, X> Report<Test<'s, P, TestSpan<T, X>, O, E>> for Dump
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -578,16 +577,16 @@ mod report {
             + InputLength
             + Slice<RangeFrom<usize>>
             + Slice<RangeTo<usize>>,
-        C: Code,
         O: Debug,
         E: Debug,
+        X: Copy + Debug,
     {
-        fn report(&self, test: &Test<'s, P, TrackSpan<'s, C, T>, O, E>) {
+        fn report(&self, test: &Test<'s, P, TestSpan<T, X>, O, E>) {
             dump(test)
         }
     }
 
-    fn dump<'s, P, C, T, O, E>(test: &Test<'s, P, TrackSpan<'s, C, T>, O, E>)
+    fn dump<P, T, O, E, X>(test: &Test<'_, P, TestSpan<T, X>, O, E>)
     where
         T: AsBytes + Copy + Debug,
         T: Offset
@@ -596,9 +595,9 @@ mod report {
             + InputLength
             + Slice<RangeFrom<usize>>
             + Slice<RangeTo<usize>>,
-        C: Code,
         O: Debug,
         E: Debug,
+        X: Copy + Debug,
     {
         println!();
         println!(

@@ -1,3 +1,7 @@
+//!
+//! Provides some extra parser combinators.
+//!
+
 use crate::{Code, WithCode, WithSpan};
 use nom::Parser;
 

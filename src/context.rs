@@ -1,22 +1,16 @@
-use crate::{Code, ContextTrait, DynTracker, ParserError};
+//!
+//! Provides [Context] to access the tracker.
+//!
+
+use crate::tracker::{ContextTrait, DynTracker};
+use crate::{Code, ParserError};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::error::Error;
 use std::fmt::Debug;
 use std::ops::{RangeFrom, RangeTo};
 
-/// Each produced span contains a reference to a [Tracker] in the extra field.
-/// This struct makes using it more accessible.
-///
-/// ```rust ignore
-/// use kparse::{Context, Span};
-///
-/// fn parse_xyz(span: APSpan<'_>) -> APParserResult<'_, u32> {
-///     Context.enter(APCode::APCHeader, &span);
-///     // ...
-///     Context.ok(span, parsed, v32)
-/// }
-/// ```
+/// Provides access to the tracker functions for various input types.
 pub struct Context;
 
 type DynSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
@@ -65,39 +59,29 @@ where
     }
 
     fn enter(&self, func: C, span: DynSpan<'s, C, T>) {
-        if let Some(trk) = span.extra.0 {
-            trk.enter(func, &clear_span(&span))
-        }
+        span.extra.0.enter(func, &clear_span(&span))
     }
 
     fn debug(&self, span: DynSpan<'s, C, T>, debug: String) {
-        if let Some(trk) = span.extra.0 {
-            trk.debug(&clear_span(&span), debug)
-        }
+        span.extra.0.debug(&clear_span(&span), debug)
     }
 
     fn info(&self, span: DynSpan<'s, C, T>, info: &'static str) {
-        if let Some(trk) = span.extra.0 {
-            trk.info(&clear_span(&span), info)
-        }
+        span.extra.0.info(&clear_span(&span), info)
     }
 
     fn warn(&self, span: DynSpan<'s, C, T>, warn: &'static str) {
-        if let Some(trk) = span.extra.0 {
-            trk.warn(&clear_span(&span), warn)
-        }
+        span.extra.0.warn(&clear_span(&span), warn)
     }
 
     fn exit_ok(&self, span: DynSpan<'s, C, T>, parsed: DynSpan<'s, C, T>) {
-        if let Some(trk) = span.extra.0 {
-            trk.exit_ok(&clear_span(&span), &clear_span(&parsed))
-        }
+        span.extra
+            .0
+            .exit_ok(&clear_span(&span), &clear_span(&parsed))
     }
 
     fn exit_err(&self, span: DynSpan<'s, C, T>, code: C, err: &dyn Error) {
-        if let Some(trk) = span.extra.0 {
-            trk.exit_err(&clear_span(&span), code, err)
-        }
+        span.extra.0.exit_err(&clear_span(&span), code, err)
     }
 }
 

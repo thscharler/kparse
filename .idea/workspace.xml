@@ -3,6 +3,12 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="AutomaticModuleUnloader">
+    <loaded-modules>
+      <module name="kparse" />
+      <module name="core2" />
+    </loaded-modules>
+  </component>
   <component name="BookmarksViewState">
     <option name="rewriteBookmarkType" value="true" />
   </component>
@@ -16,12 +22,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="Making even a simple parser like plumap based on a I type is a lost cause. &#10;&#10;So let's clean this up and finish at the current stage.">
-      <change beforePath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../iparse/iparse.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../iparse/iparse.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/kparse.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kparse.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/parser4.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/combinators.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/combinators.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/context.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/conversion.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/debug/tracks.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/tracks.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/no_tracker.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/std_tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker/std_tracker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_plumap.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_plumap2.rs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_sizes.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_sizes.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -76,21 +93,22 @@
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;TODO_SCOPE&quot;: &quot;Module 'kparse'&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/stommy/Documents/IdeaProjects/kparse/tests&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;17&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/stommy/Documents/IdeaProjects/kparse/src/debug&quot;,
     &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
     &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15078124&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;language.rust.cargo&quot;
   }
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\tests" />
-      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse" />
-      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\examples" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src\debug" />
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\src" />
+      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\reorder\src" />
+      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\reorder\src\debug" />
+      <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\tests" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\scratch" />
@@ -173,40 +191,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test spans::tests::test_complete_fragment" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --lib spans::tests::test_complete_fragment -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Test spans::tests::test_end_frame" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --lib spans::tests::test_end_frame -- --exact" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Test spans::tests::test_frame_prefix" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package kparse --lib spans::tests::test_frame_prefix -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -241,6 +225,40 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test test_parser4" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_parser4 &quot;&quot;" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test test_parser_cmds" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --test test_parser_cmds &quot;&quot;" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package kparse --test test_plumap2 tests -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -259,7 +277,7 @@
       </method>
     </configuration>
     <configuration name="Test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-      <option name="command" value="test --release" />
+      <option name="command" value="test" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -281,19 +299,19 @@
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Doc" />
+      <item itemvalue="Cargo.Test test_parser4" />
+      <item itemvalue="Cargo.Test test_parser_cmds" />
       <item itemvalue="Cargo.Test tests" />
-      <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
-      <item itemvalue="Cargo.Test spans::tests::test_end_frame" />
       <item itemvalue="Cargo.Test spans::tests::test_frame_prefix" />
       <item itemvalue="Cargo.Test spans::tests::test_start_frame" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test test_parser_cmds" />
+        <item itemvalue="Cargo.Test test_parser4" />
         <item itemvalue="Cargo.Test tests" />
         <item itemvalue="Cargo.Test spans::tests::test_frame_prefix" />
         <item itemvalue="Cargo.Test spans::tests::test_start_frame" />
-        <item itemvalue="Cargo.Test spans::tests::test_complete_fragment" />
-        <item itemvalue="Cargo.Test spans::tests::test_end_frame" />
       </list>
     </recent_temporary>
   </component>
@@ -313,13 +331,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00034" summary="Rename CombineParserError to AppendParserError to have a concise naming scheme for this.&#10;&#10;Transform now returns the parsed Span too.&#10;&#10;Add readme">
-      <created>1673819710523</created>
-      <option name="number" value="00034" />
-      <option name="presentableId" value="LOCAL-00034" />
-      <option name="project" value="LOCAL" />
-      <updated>1673819710523</updated>
     </task>
     <task id="LOCAL-00035" summary="Activate more lints.&#10;&#10;doc, cleanup pub's, minor tweaking.">
       <created>1673825406483</created>
@@ -657,8 +668,20 @@
       <option name="project" value="LOCAL" />
       <updated>1674928234682</updated>
     </task>
-    <option name="localTasksCounter" value="83" />
+    <task id="LOCAL-00083" summary="Making even a simple parser like plumap based on a I type is a lost cause. &#10;&#10;So let's clean this up and finish at the current stage.">
+      <created>1674930821070</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1674930821070</updated>
+    </task>
+    <option name="localTasksCounter" value="84" />
     <servers />
+  </component>
+  <component name="UnloadedModulesList">
+    <module name="iparse" />
+    <module name="openformula" />
+    <module name="spreadsheet-ods" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">

@@ -13,7 +13,8 @@
 //! ```
 
 use crate::debug::tracks::debug_tracks;
-use crate::{Code, DynTracker, TrackSpan, Tracker};
+use crate::tracker::{DynTracker, TrackSpan, Tracker};
+use crate::Code;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::cell::RefCell;
@@ -92,7 +93,7 @@ where
     where
         T: 's,
     {
-        TrackSpan::new_extra(text, DynTracker(Some(self)))
+        TrackSpan::new_extra(text, DynTracker(self))
     }
 
     /// Extract the tracking results.

@@ -1,114 +1,12 @@
 //!
-//! Adds tracking functions to a nom parser.
+//! Addons for a nom parser.
 //!
-//!
-//! ```rust no_run
-//! use std::fmt::{Display, Formatter};
-//! use nom::bytes::complete::{tag_no_case, take_while1};
-//! use nom::combinator::recognize;
-//! use nom::{AsChar, InputTakeAtPosition};
-//! use nom::character::complete::{char as nchar};
-//! use nom::multi::many_m_n;
-//! use nom::sequence::terminated;
-//! use kparse::prelude::*;
-//! use kparse::{Code, Context, StdTracker, TrackParserError};
-//! use kparse::spans::LocatedSpanExt;
-//!
-//! fn run_parser() {
-//!     let src = "...".to_string();
-//!
-//!     let ctx = StdTracker::new(true);
-//!     let span = ctx.span(src.as_ref());
-//!
-//!     match parse_plan(span) {
-//!         Ok(v) => {
-//!             // ...
-//!         }
-//!         Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-//!             println!("{:?}", ctx.results());
-//!         }
-//!         _ => {}
-//!     }
-//! }
-//!
-//! pub fn parse_plan(input: APSpan<'_>) -> APParserResult<'_, APPlan<'_>> {
-//!     Context.enter(APCPlan, input);
-//!
-//!     let (rest, h0) = nom_header(input).track_as(APCHeader)?;
-//!     let (rest, _) = nom_tag_plan(rest).track_as(APCPlan)?;
-//!     let (rest, plan) = token_name(rest).track()?;
-//!     let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
-//!
-//!     let span = input.span_union(&h0, &h1);
-//!     
-//!     Context.ok(rest, span, APPlan { name: plan, span })
-//! }
-//!
-//! #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-//! pub enum APCode {
-//!     APCNomError,
-//!
-//!     APCHeader,
-//!     APCPlan,
-//!     APCName,
-//! }
-//!
-//! use APCode::*;
-//!
-//! impl Code for APCode {
-//!     const NOM_ERROR: Self = Self::APCNomError;
-//! }
-//!
-//! pub type APSpan<'s> = kparse::TrackSpan<'s, APCode, &'s str>;
-//! pub type APParserResult<'s, O> = kparse::TrackParserResult<'s, APCode, &'s str, (), O>;
-//! pub type APNomResult<'s> = kparse::TrackParserNomResult<'s, APCode, &'s str,  ()>;
-//!
-//!
-//! pub struct APPlan<'s> {
-//!     pub name: APName<'s>,
-//!     pub span: APSpan<'s>,
-//! }
-//!
-//! pub struct APName<'s> {
-//!     pub span: APSpan<'s>,
-//! }
-//!
-//! pub fn nom_header(i: APSpan<'_>) -> APNomResult<'_> {
-//!     terminated(recognize(many_m_n(0, 6, nchar('='))), nom_ws)(i)
-//! }
-//!
-//! pub fn nom_tag_plan(i: APSpan<'_>) -> APNomResult<'_> {
-//!     terminated(recognize(tag_no_case("plan")), nom_ws)(i)
-//! }
-//!
-//! pub fn token_name(rest: APSpan<'_>) -> APParserResult<'_, APName<'_>> {
-//!     match nom_name(rest) {
-//!         Ok((rest, tok)) => Ok((rest, APName { span: tok })),
-//!         Err(e) => Err(e.with_code(APCName)),
-//!     }
-//! }
-//!
-//! pub fn nom_name(i: APSpan<'_>) -> APNomResult<'_> {
-//!     terminated(
-//!         recognize(take_while1(|c: char| {
-//!             c.is_alphanumeric() || "\'+-²/_.".contains(c)
-//!         })),
-//!         nom_ws,
-//!     )(i)
-//! }
-//!
-//! pub fn nom_ws(i: APSpan<'_>) -> APNomResult<'_> {
-//!     i.split_at_position_complete(|item| {
-//!         let c = item.as_char();
-//!         !(c == ' ' || c == '\t')
-//!     })
-//! }
-//!
-//! impl Display for APCode {
-//!     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { Ok(()) }
-//! }
-//!
-//! ```
+//! * A error code trait.
+//! * A richer error type ParserError.
+//! * Traits to integrate external errors.
+//! * A tracking system for the parser.
+//! * A simple framework to test parser functions.
+//! * SpanLines and SpanBytes to get the context around a span.
 //!
 
 #![doc(html_root_url = "https://docs.rs/kparse")]
@@ -143,270 +41,35 @@
 // NO #![warn(unused_results)]
 #![warn(variant_size_differences)]
 
-use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
-use nom_locate::LocatedSpan;
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use std::ops::{RangeFrom, RangeTo};
+use nom::error::ParseError;
+use nom::AsBytes;
+use std::fmt::{Debug, Display};
 
+pub mod combinators;
 pub mod error;
 pub mod spans;
-pub mod std_tracker;
 pub mod test;
+pub mod tracker;
 
-mod combinators;
 mod context;
-mod conversion;
 mod debug;
 
-#[allow(unreachable_pub)]
-pub use context::*;
-#[allow(unreachable_pub)]
-pub use conversion::*;
+pub use crate::context::Context;
+pub use crate::error::ParserError;
 
-pub use combinators::*;
-pub use error::ParserError;
-pub use no_tracker::NoTracker;
-pub use std_tracker::StdTracker;
-
-/// Prelude, imports the traits.
+/// Prelude, import the traits.
 pub mod prelude {
     pub use crate::error::AppendParserError;
     pub use crate::spans::LocatedSpanExt;
-    pub use crate::ContextTrait;
-    pub use crate::{ResultWithSpan, TrackParserError, WithCode, WithSpan};
+    pub use crate::tracker::{ContextTrait, TrackParserError};
+    pub use crate::{ResultWithSpan, WithCode, WithSpan};
 }
 
-/// Standard input type.
-///
-/// It holds a dyn ParseContext in the extra field of LocatedSpan to distribute
-/// the context.  
-pub type TrackSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
-
-/// Standard result type in conjunction with CtxSpan.
-pub type TrackParserResult<'s, C, T, Y, O> =
-    Result<(TrackSpan<'s, C, T>, O), nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>>;
-
-/// Type alias for a nom parser. Use this to create a ParserError directly in nom.
-pub type TrackParserNomResult<'s, C, T, Y> = Result<
-    (TrackSpan<'s, C, T>, TrackSpan<'s, C, T>),
-    nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>,
->;
-
-/// Parser state codes.
-///
-/// These are used for error handling and parser results and
-/// everything else.
+/// Parser error code.
 pub trait Code: Copy + Display + Debug + Eq {
     // todo: remove display
     /// Default error code for nom-errors.
     const NOM_ERROR: Self;
-}
-
-/// This trait defines the tracking functions.
-///
-/// Create an [StdTracker] or a [NoTracker] before starting the
-/// first parser function.
-///
-/// This trait is not used directly, use the functions of [Context].
-///
-pub trait Tracker<C, T>
-where
-    C: Code,
-{
-    /// Tracks entering a parser function.
-    fn enter(&self, func: C, span: &LocatedSpan<T, ()>);
-
-    /// Debugging
-    fn debug(&self, span: &LocatedSpan<T, ()>, debug: String);
-
-    /// Track something.
-    fn info(&self, span: &LocatedSpan<T, ()>, info: &'static str);
-
-    /// Track something more important.
-    fn warn(&self, span: &LocatedSpan<T, ()>, warn: &'static str);
-
-    /// Tracks an Ok result of a parser function.
-    fn exit_ok(&self, span: &LocatedSpan<T, ()>, parsed: &LocatedSpan<T, ()>);
-
-    /// Tracks an Err result of a parser function.    
-    fn exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err: &dyn Error);
-}
-
-/// An instance of this struct ist kept in the extra field of LocatedSpan.
-/// This way it's propagated all the way through the parser.
-///
-/// Access the tracking functions via [Context].
-#[derive(Clone, Copy)]
-#[repr(transparent)]
-pub struct DynTracker<'c, C, T>(&'c dyn Tracker<C, T>)
-where
-    C: Code;
-
-impl<'c, C, T> Debug for DynTracker<'c, C, T>
-where
-    C: Code,
-{
-    fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
-        Ok(())
-    }
-}
-
-/// Each produced span contains a reference to a [Tracker] in the extra field.
-/// This trait provides the user side of the tracking system.
-///
-/// This trait is implemented for the struct [Context] in some variations.
-/// Context only serves as anchor type for all the traits.
-///
-/// ```rust ignore
-/// use kparse::{Context, Span};
-///
-/// fn parse_xyz(span: APSpan<'_>) -> APParserResult<'_, u32> {
-///     Context.enter(APCode::APCHeader, &span);
-///     // ...
-///     Context.ok(span, parsed, v32)
-/// }
-/// ```
-pub trait ContextTrait<C, I>
-where
-    I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
-    C: Code,
-{
-    /// Creates an Ok() Result from the parameters and tracks the result.
-    fn ok<O, Y>(
-        &self,
-        remainder: I,
-        parsed: I,
-        value: O,
-    ) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
-    where
-        Y: Copy,
-    {
-        self.exit_ok(remainder, parsed);
-        Ok((remainder, value))
-    }
-
-    /// Tracks the error and creates a Result.
-    fn err<O, Y, E>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
-    where
-        E: Into<nom::Err<ParserError<C, I, Y>>>,
-        Y: Copy,
-        C: Code,
-    {
-        let err: nom::Err<ParserError<C, I, Y>> = err.into();
-        match &err {
-            nom::Err::Incomplete(_) => {}
-            nom::Err::Error(e) | nom::Err::Failure(e) => {
-                self.exit_err(e.span, e.code, &e);
-            }
-        }
-        Err(err)
-    }
-
-    /// Enter a parser function.
-    fn enter(&self, func: C, span: I);
-
-    /// Track some debug info.
-    fn debug(&self, span: I, debug: String);
-
-    /// Track some other info.
-    fn info(&self, span: I, info: &'static str);
-
-    /// Track some warning.
-    fn warn(&self, span: I, warn: &'static str);
-
-    /// Calls exit_ok() on the ParseContext. You might want to use ok() instead.
-    fn exit_ok(&self, span: I, parsed: I);
-
-    /// Calls exit_err() on the ParseContext. You might want to use err() instead.
-    fn exit_err(&self, span: I, code: C, err: &dyn Error);
-}
-
-/// This trait is used for error tracking.
-///
-/// The methods can be squeezed between a parser fn call and the ?.
-/// This is equivalent to a Context.err() call.
-/// There is one wide implementation, no need to implement this.
-///
-/// ```rust ignore
-/// let (rest, h0) = nom_header(input).track_as(APCHeader)?;
-/// let (rest, _) = nom_tag_plan(rest).track_as(APCPlan)?;
-/// let (rest, plan) = token_name(rest).track()?;
-/// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
-/// ```
-pub trait TrackParserError<'s, C, I, Y, O, E>
-where
-    C: Code,
-    I: AsBytes + Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
-    Y: Copy,
-    E: Into<ParserError<C, I, Y>>,
-    Self: Into<Result<(I, O), nom::Err<E>>>,
-{
-    /// Track if this is an error.
-    fn track(self) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
-        let ego = self.into();
-        match ego {
-            Ok(v) => Ok(v),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<C, I, Y> = e.into();
-                Self::exit_err(p_err.span, p_err.code, &p_err);
-                Err(nom::Err::Error(p_err))
-            }
-        }
-    }
-
-    /// Track if this is an error. Set a new code too.
-    fn track_as(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
-        let ego = self.into();
-        match ego {
-            Ok(v) => Ok(v),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<C, I, Y> = e.into();
-                let p_err = p_err.with_code(code);
-                Self::exit_err(p_err.span, p_err.code, &p_err);
-                Err(nom::Err::Error(p_err))
-            }
-        }
-    }
-
-    /// Track if this is an error. And if this is ok too.
-    fn track_ok(self, parsed: I) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
-        let ego = self.into();
-        match ego {
-            Ok((span, v)) => {
-                Self::exit_ok(parsed, span);
-                Ok((span, v))
-            }
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<C, I, Y> = e.into();
-                Self::exit_err(p_err.span, p_err.code, &p_err);
-                Err(nom::Err::Error(p_err))
-            }
-        }
-    }
-
-    /// Calls exit_ok on the context.
-    fn exit_ok(span: I, parsed: I);
-
-    /// Calls exit_ok on the context.
-    fn exit_err(span: I, code: C, err: &dyn Error);
 }
 
 /// Convert an external error into a ParserError and add an error code and a span.
@@ -418,7 +81,8 @@ pub trait WithSpan<C: Code, I, E> {
 
 /// Convert an external error into a ParserError and add an error code and a span.
 /// This trait is used internally and works in conjunction with WithSpan.
-/// Rather use [WithSpan]
+/// Rather use [WithSpan] for the conversion. This needs a broader definition, to
+/// be able to work with a Result instead of an error type.
 pub trait ResultWithSpan<C: Code, I, R> {
     /// Convert an external error into a ParserError.
     /// Usually uses nom::Err::Failure to indicate the finality of the error.
@@ -432,4 +96,163 @@ pub trait ResultWithSpan<C: Code, I, R> {
 pub trait WithCode<C: Code, R> {
     /// Translate the error code to a new one.
     fn with_code(self, code: C) -> R;
+}
+
+// -----------------------------------------------------------------------
+// conversions
+// -----------------------------------------------------------------------
+
+//
+// std::num::ParseIntError
+//
+
+// from the std::wilds
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for std::num::ParseIntError
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
+        nom::Err::Failure(ParserError::new(code, span))
+    }
+}
+
+//
+// std::num::ParseFloatError
+//
+
+// from the std::wilds
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for std::num::ParseFloatError
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
+        nom::Err::Failure(ParserError::new(code, span))
+    }
+}
+
+// ***********************************************************************
+// LAYER 1 - useful conversions
+// ***********************************************************************
+
+//
+// ParserError
+//
+impl<C, I, Y> From<ParserError<C, I, Y>> for nom::Err<ParserError<C, I, Y>>
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn from(e: ParserError<C, I, Y>) -> Self {
+        nom::Err::Error(e)
+    }
+}
+
+impl<C, I, Y> WithCode<C, ParserError<C, I, Y>> for ParserError<C, I, Y>
+where
+    I: AsBytes + Copy,
+    C: Code,
+    Y: Copy,
+{
+    fn with_code(self, code: C) -> ParserError<C, I, Y> {
+        ParserError::with_code(self, code)
+    }
+}
+
+//
+// nom::error::Error
+//
+
+// take everything from nom::error::Error
+impl<C, I, Y> From<nom::error::Error<I>> for ParserError<C, I, Y>
+where
+    I: AsBytes + Copy,
+    C: Code,
+    Y: Copy,
+{
+    fn from(e: nom::error::Error<I>) -> Self {
+        ParserError::from_error_kind(e.input, e.code)
+    }
+}
+
+// ***********************************************************************
+// LAYER 2 - wrapped in a nom::Err
+// ***********************************************************************
+
+//
+// nom::Err::<E>
+//
+
+// for ease of use in case of a nom::Err wrapped something.
+//
+// 1. just to call with_code on an existing ParserError.
+// 2. to convert whatever to a ParserError and give it a code.
+impl<C, I, Y, E> WithCode<C, nom::Err<ParserError<C, I, Y>>> for nom::Err<E>
+where
+    E: Into<ParserError<C, I, Y>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_code(self, code: C) -> nom::Err<ParserError<C, I, Y>> {
+        match self {
+            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
+            nom::Err::Error(e) | nom::Err::Failure(e) => {
+                let p_err: ParserError<C, I, Y> = e.into();
+                let p_err = p_err.with_code(code);
+                nom::Err::Error(p_err)
+            }
+        }
+    }
+}
+
+// ***********************************************************************
+// LAYER 3 - wrapped in a Result
+// ***********************************************************************
+
+//
+// Result
+//
+
+// Any result that wraps an error type that can be converted via with_span is fine.
+impl<C, I, Y, O, E> ResultWithSpan<C, I, Result<O, nom::Err<ParserError<C, I, Y>>>> for Result<O, E>
+where
+    E: WithSpan<C, I, ParserError<C, I, Y>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> Result<O, nom::Err<ParserError<C, I, Y>>> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.with_span(code, span)),
+        }
+    }
+}
+
+// everything needs a new code sometimes ... continued ...
+//
+// 1. this is a ParserResult with a nom::Err with a ParserError.
+// 2. this is a Result with a whatever which has a WithCode<ParserError>
+impl<C, I, Y, O, E> WithCode<C, Result<(I, O), nom::Err<ParserError<C, I, Y>>>>
+    for Result<(I, O), E>
+where
+    E: WithCode<C, nom::Err<ParserError<C, I, Y>>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_code(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let p_err: nom::Err<ParserError<C, I, Y>> = e.with_code(code);
+                Err(p_err)
+            }
+        }
+    }
 }
