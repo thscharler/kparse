@@ -21,8 +21,13 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="minor todos,">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="tinkering with the conversion traits.">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/parser4.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -106,7 +111,7 @@
       <command value="cargo tree" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Clippy">
+  <component name="RunManager" selected="Cargo.Test">
     <configuration name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -315,27 +320,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00036" summary="Kundenadresse PLZ spinnt mit auto complete.&#10;&#10;Row-header in kunden db.">
-      <created>1674063543833</created>
-      <option name="number" value="00036" />
-      <option name="presentableId" value="LOCAL-00036" />
-      <option name="project" value="LOCAL" />
-      <updated>1674063543833</updated>
-    </task>
-    <task id="LOCAL-00037" summary="doc url corrected">
-      <created>1674063567360</created>
-      <option name="number" value="00037" />
-      <option name="presentableId" value="LOCAL-00037" />
-      <option name="project" value="LOCAL" />
-      <updated>1674063567360</updated>
-    </task>
-    <task id="LOCAL-00038" summary="vtransform is not necessary.&#10;can be achieved with transform + consumed.">
-      <created>1674072080601</created>
-      <option name="number" value="00038" />
-      <option name="presentableId" value="LOCAL-00038" />
-      <option name="project" value="LOCAL" />
-      <updated>1674072080601</updated>
     </task>
     <task id="LOCAL-00039" summary="DataFrame impl can be repr(transparent)">
       <created>1674072168803</created>
@@ -659,7 +643,28 @@
       <option name="project" value="LOCAL" />
       <updated>1674942559365</updated>
     </task>
-    <option name="localTasksCounter" value="85" />
+    <task id="LOCAL-00085" summary="clippy">
+      <created>1674942815394</created>
+      <option name="number" value="00085" />
+      <option name="presentableId" value="LOCAL-00085" />
+      <option name="project" value="LOCAL" />
+      <updated>1674942815394</updated>
+    </task>
+    <task id="LOCAL-00086" summary="add with_nom() too.">
+      <created>1674946460987</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
+      <option name="project" value="LOCAL" />
+      <updated>1674946460987</updated>
+    </task>
+    <task id="LOCAL-00087" summary="tinkering with the conversion traits.">
+      <created>1674947075873</created>
+      <option name="number" value="00087" />
+      <option name="presentableId" value="LOCAL-00087" />
+      <option name="project" value="LOCAL" />
+      <updated>1674947075873</updated>
+    </task>
+    <option name="localTasksCounter" value="88" />
     <servers />
   </component>
   <component name="UnloadedModulesList">
@@ -699,9 +704,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="finish tests for spans" />
-    <MESSAGE value="spanbytes" />
-    <MESSAGE value="remove stuff" />
     <MESSAGE value="doc" />
     <MESSAGE value="doc + clippy" />
     <MESSAGE value="simplified type parameters for ParserError.&#10;&#10;Add location_offset and location_line to the trait LocatedSpanExt.&#10;Which was renamed from SpanExt." />
@@ -724,7 +726,10 @@
     <MESSAGE value="ContextTrait ok and err can be implemented in the trait." />
     <MESSAGE value="Making even a simple parser like plumap based on a I type is a lost cause. &#10;&#10;So let's clean this up and finish at the current stage." />
     <MESSAGE value="minor todos," />
-    <option name="LAST_COMMIT_MESSAGE" value="minor todos," />
+    <MESSAGE value="clippy" />
+    <MESSAGE value="add with_nom() too." />
+    <MESSAGE value="tinkering with the conversion traits." />
+    <option name="LAST_COMMIT_MESSAGE" value="tinkering with the conversion traits." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

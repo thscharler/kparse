@@ -1,5 +1,5 @@
 //!
-//! Additions to LocatedSpan.
+//! Additions to LocatedSpan, str and \[u8\]
 //!
 
 use bytecount::{count, naive_num_chars, num_chars};
@@ -8,25 +8,17 @@ use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::ops::{Range, RangeFrom, RangeTo};
 
-/// Extension trait for LocatedSpan.
-pub trait LocatedSpanExt {
+/// Extension trait for Spans.
+pub trait SpanExt {
     /// Return a new Span that encompasses both parameters.
     ///
     /// # Safety
     /// Uses the offset from both spans and corrects order and bounds. So the result might
     /// be nonsensical but safe.
     fn span_union<'a>(&self, first: &'a Self, second: &'a Self) -> Self;
-
-    /// The offset represents the position of the fragment relatively to
-    /// the input of the parser. It starts at offset 0.
-    fn location_offset(&self) -> usize;
-
-    /// The line number of the fragment relatively to the input of the
-    /// parser. It starts at line 1.
-    fn location_line(&self) -> u32;
 }
 
-impl<'s> LocatedSpanExt for &'s str {
+impl<'s> SpanExt for &'s str {
     /// Can be implemented reasonably sane for &str.
     fn span_union<'a>(&self, first: &'a Self, second: &'a Self) -> Self {
         let self_ptr = self.as_ptr();
@@ -54,21 +46,43 @@ impl<'s> LocatedSpanExt for &'s str {
             len
         };
 
-        self.slice(offset..offset + len)
-    }
-
-    /// Unconditionally panics.
-    fn location_offset(&self) -> usize {
-        unimplemented!()
-    }
-
-    /// Unconditionally panics.
-    fn location_line(&self) -> u32 {
-        unimplemented!()
+        &self[offset..offset + len]
     }
 }
 
-impl<T, X> LocatedSpanExt for LocatedSpan<T, X>
+impl<'s> SpanExt for &'s [u8] {
+    /// Can be implemented reasonably sane for &\[u8\].
+    fn span_union<'a>(&self, first: &'a Self, second: &'a Self) -> Self {
+        let self_ptr = self.as_ptr();
+
+        let offset_1 = unsafe { first.as_ptr().offset_from(self_ptr) };
+        let offset_2 = unsafe { second.as_ptr().offset_from(self_ptr) };
+
+        let offset_1 = if offset_1 >= 0 { offset_1 as usize } else { 0 };
+        let offset_2 = if offset_2 >= 0 { offset_2 as usize } else { 0 };
+
+        let (offset, len) = if offset_1 <= offset_2 {
+            (offset_1, offset_2 - offset_1 + second.len())
+        } else {
+            (offset_2, offset_1 - offset_2 + first.len())
+        };
+
+        let offset = if offset > self.len() {
+            self.len()
+        } else {
+            offset
+        };
+        let len = if offset + len > self.len() {
+            self.len() - offset
+        } else {
+            len
+        };
+
+        &self[offset..offset + len]
+    }
+}
+
+impl<T, X> SpanExt for LocatedSpan<T, X>
 where
     T: AsBytes,
     X: Copy,
@@ -120,14 +134,6 @@ where
         let slice = self.fragment().slice(offset..offset + len);
 
         unsafe { LocatedSpan::new_from_raw_offset(offset_0 + offset, line, slice, extra) }
-    }
-
-    fn location_offset(&self) -> usize {
-        LocatedSpan::location_offset(self)
-    }
-
-    fn location_line(&self) -> u32 {
-        LocatedSpan::location_line(self)
     }
 }
 

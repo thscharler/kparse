@@ -851,19 +851,9 @@ mod planung4 {
         use crate::planung4::APCode::*;
         use crate::planung4::{nom_tokens, APParserResult, APSpan};
         use kparse::prelude::*;
-        use kparse::spans::LocatedSpanExt;
         use kparse::{Context, ParserError};
         use nom::combinator::opt;
         use nom::sequence::tuple;
-
-        // impl<'s, T> IntoParserResultAddSpan<'s, APCode, T> for Result<T, ParseIntError> {
-        //     fn into_with_span(self, span: Span<'s>) -> ParserResult<'s, APCode, T> {
-        //         match self {
-        //             Ok(v) => Ok(v),
-        //             Err(_) => Err(ParserError::new(APCInteger, span)),
-        //         }
-        //     }
-        // }
 
         pub fn parse(rest: APSpan<'_>) -> APParserResult<'_, APAnbauPlan<'_>> {
             Context.enter(APCAnbauplan, rest);

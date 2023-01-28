@@ -19,10 +19,10 @@
 
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
-use crate::spans::LocatedSpanExt;
 use crate::Code;
 use nom::error::ErrorKind;
-use nom::{InputIter, InputLength, InputTake, Offset, Slice};
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
+use nom_locate::LocatedSpan;
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -78,7 +78,30 @@ pub struct SpanAndCode<C, I> {
     pub span: I,
 }
 
-X
+/// Trait for two functions of LocatedSpan.
+pub trait LocatedSpanExt {
+    /// The offset represents the position of the fragment relatively to
+    /// the input of the parser. It starts at offset 0.
+    fn location_offset(&self) -> usize;
+
+    /// The line number of the fragment relatively to the input of the
+    /// parser. It starts at line 1.
+    fn location_line(&self) -> u32;
+}
+
+impl<T, X> LocatedSpanExt for LocatedSpan<T, X>
+where
+    T: AsBytes,
+    X: Copy,
+{
+    fn location_offset(&self) -> usize {
+        LocatedSpan::location_offset(self)
+    }
+
+    fn location_line(&self) -> u32 {
+        LocatedSpan::location_line(self)
+    }
+}
 
 /// Combines two ParserErrors.
 pub trait AppendParserError<Rhs = Self> {

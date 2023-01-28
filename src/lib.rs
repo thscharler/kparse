@@ -59,8 +59,8 @@ pub use crate::error::ParserError;
 
 /// Prelude, import the traits.
 pub mod prelude {
-    pub use crate::error::AppendParserError;
-    pub use crate::spans::LocatedSpanExt;
+    pub use crate::error::{AppendParserError, LocatedSpanExt};
+    pub use crate::spans::SpanExt;
     pub use crate::tracker::{ContextTrait, TrackParserError};
     pub use crate::{ResultWithSpan, WithCode, WithSpan};
 }
@@ -90,7 +90,7 @@ pub trait ResultWithSpan<C: Code, I, R> {
 /// Could do a conversion from an external error too, but usually there is no span to work with.
 /// For external errors [WithSpan] is the right thing most of the time.
 ///
-/// There are implementations for ParserError, nom::Err<E> and Result<O, E>.
+/// There are implementations for [ParserError], [nom::Err]&lt;E&gt; and [Result]&lt;O, E&gt;.
 /// And there is one for a classic nom::error::Error too.
 pub trait WithCode<C: Code, R> {
     /// Translate the error code to a new one.

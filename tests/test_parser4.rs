@@ -1131,7 +1131,6 @@ mod planung4 {
         use crate::planung4::APCode::*;
         use crate::planung4::{nom_tokens, APParserResult, APSpan};
         use kparse::prelude::*;
-        use kparse::spans::LocatedSpanExt;
         use kparse::{Context, ParserError};
         use nom::combinator::opt;
         use nom::sequence::tuple;
@@ -1716,7 +1715,6 @@ mod planung4 {
         use chrono::NaiveDate;
         use kparse::combinators::transform;
         use kparse::prelude::*;
-        use kparse::spans::LocatedSpanExt;
         use kparse::tracker::TrackSpan;
         use kparse::ParserError;
         use nom::combinator::recognize;
