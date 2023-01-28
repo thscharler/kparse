@@ -352,6 +352,17 @@ where
         }
     }
 
+    /// With a nom errorkind
+    pub fn with_nom(mut self, span: I, kind: ErrorKind) -> Self {
+        self.hints.push(Hints::Nom(Nom {
+            kind,
+            span,
+            ch: None,
+            _phantom: Default::default(),
+        }));
+        self
+    }
+
     /// With a cause.
     pub fn with_cause(mut self, err: Box<dyn Error>) -> Self {
         self.hints.push(Hints::Cause(err));
