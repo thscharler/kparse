@@ -174,13 +174,9 @@ where
     C: Code,
     Y: Copy,
 {
-    fn exit_ok(span: &'s str, parsed: &'s str) {
-        <Context as ContextTrait<C, &str>>::exit_ok(&Context, span, parsed);
-    }
+    fn exit_ok(_span: &'s str, _parsed: &'s str) {}
 
-    fn exit_err(span: &'s str, code: C, err: &dyn Error) {
-        <Context as ContextTrait<C, &str>>::exit_err(&Context, span, code, err);
-    }
+    fn exit_err(_span: &'s str, _code: C, _err: &dyn Error) {}
 }
 
 impl<'s, C, Y, O, E> TrackParserError<'s, C, &'s [u8], Y, O, E>
@@ -190,13 +186,9 @@ where
     C: Code,
     Y: Copy,
 {
-    fn exit_ok(span: &'s [u8], parsed: &'s [u8]) {
-        <Context as ContextTrait<C, &[u8]>>::exit_ok(&Context, span, parsed);
-    }
+    fn exit_ok(_span: &'s [u8], _parsed: &'s [u8]) {}
 
-    fn exit_err(span: &'s [u8], code: C, err: &dyn Error) {
-        <Context as ContextTrait<C, &[u8]>>::exit_err(&Context, span, code, err);
-    }
+    fn exit_err(_span: &'s [u8], _code: C, _err: &dyn Error) {}
 }
 
 impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, ()>, Y, O, E>
@@ -214,13 +206,9 @@ where
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
 {
-    fn exit_ok(span: LocatedSpan<T, ()>, parsed: LocatedSpan<T, ()>) {
-        <Context as ContextTrait<C, LocatedSpan<T, ()>>>::exit_ok(&Context, span, parsed);
-    }
+    fn exit_ok(_span: LocatedSpan<T, ()>, _parsed: LocatedSpan<T, ()>) {}
 
-    fn exit_err(span: LocatedSpan<T, ()>, code: C, err: &dyn Error) {
-        <Context as ContextTrait<C, LocatedSpan<T, ()>>>::exit_err(&Context, span, code, err);
-    }
+    fn exit_err(_span: LocatedSpan<T, ()>, _code: C, _err: &dyn Error) {}
 }
 
 impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, DynTracker<'s, C, T>>, Y, O, E>

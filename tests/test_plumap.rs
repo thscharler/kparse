@@ -143,93 +143,94 @@ pub struct PDatum<'s> {
     pub span: PSpan<'s>,
 }
 
-// mod debug {
-//     use crate::{PLUCode, PLUParserError, PSpan};
-//     use kparse::spans::SpanLines;
-//     use kparse::tracking_context::Tracks;
-//     use std::ffi::OsStr;
-//     use std::path::Path;
-//
-//     /// Fehler Diagnose.
-//     pub fn dump_diagnostics(
-//         src: &Path,
-//         txt: PSpan<'_>,
-//         err: &PLUParserError<'_>,
-//         msg: &str,
-//         is_err: bool,
-//     ) {
-//         let txt = SpanLines::new(txt);
-//         let text1 = txt.get_lines_around(&err.span, 3);
-//
-//         println!();
-//         if !msg.is_empty() {
-//             println!(
-//                 "{}: {:?}: {}",
-//                 if is_err { "FEHLER" } else { "Achtung" },
-//                 src.file_name().unwrap_or_else(|| OsStr::new("")),
-//                 msg
-//             );
-//         } else {
-//             println!(
-//                 "{}: {:?}: {}",
-//                 if is_err { "FEHLER" } else { "Achtung" },
-//                 src.file_name().unwrap_or_else(|| OsStr::new("")),
-//                 err.code
-//             );
-//         }
-//
-//         let expect = err.expected_grouped_by_line();
-//
-//         for t in &text1 {
-//             if t.location_line() == err.span.location_line() {
-//                 println!("*{:04} {}", t.location_line(), t);
-//             } else {
-//                 println!(" {:04}  {}", t.location_line(), t);
-//             }
-//
-//             if expect.is_empty() {
-//                 if t.location_line() == err.span.location_line() {
-//                     println!("      {}^", " ".repeat(err.span.get_utf8_column() - 1));
-//                     if !msg.is_empty() {
-//                         println!("Erwarted war: {}", msg);
-//                     } else {
-//                         println!("Erwarted war: {}", err.code);
-//                     }
-//                 }
-//             }
-//
-//             for (line, exp) in &expect {
-//                 if t.location_line() == *line {
-//                     for exp in exp {
-//                         println!("      {}^", " ".repeat(exp.span.get_utf8_column() - 1));
-//                         println!("Erwarted war: {}", exp.code);
-//                     }
-//                 }
-//             }
-//         }
-//
-//         for (_line, sugg) in err.suggested_grouped_by_line() {
-//             for sug in sugg {
-//                 println!("Hinweis: {}", sug.code);
-//             }
-//         }
-//
-//         for n in err.nom() {
-//             println!(
-//                 "Parser-Details: {:?} {}:{}:\"{}\"",
-//                 n.kind,
-//                 n.span.location_line(),
-//                 n.span.get_utf8_column(),
-//                 n.span.escape_debug().take(40).collect::<String>()
-//             );
-//         }
-//     }
-//
-//     /// Parser Trace.
-//     pub fn dump_trace(tracks: &Tracks<&'_ str, PLUCode>) {
-//         println!("{:?}", tracks);
-//     }
-// }
+mod debug {
+    use crate::{PLUCode, PLUParserError, PSpan};
+    use kparse::spans::SpanLines;
+    use kparse::std_tracker::Tracks;
+    use kparse::tracking_context::Tracks;
+    use std::ffi::OsStr;
+    use std::path::Path;
+
+    /// Fehler Diagnose.
+    pub fn dump_diagnostics(
+        src: &Path,
+        txt: PSpan<'_>,
+        err: &PLUParserError<'_>,
+        msg: &str,
+        is_err: bool,
+    ) {
+        let txt = SpanLines::new(txt);
+        let text1 = txt.get_lines_around(&err.span, 3);
+
+        println!();
+        if !msg.is_empty() {
+            println!(
+                "{}: {:?}: {}",
+                if is_err { "FEHLER" } else { "Achtung" },
+                src.file_name().unwrap_or_else(|| OsStr::new("")),
+                msg
+            );
+        } else {
+            println!(
+                "{}: {:?}: {}",
+                if is_err { "FEHLER" } else { "Achtung" },
+                src.file_name().unwrap_or_else(|| OsStr::new("")),
+                err.code
+            );
+        }
+
+        let expect = err.expected_grouped_by_line();
+
+        for t in &text1 {
+            if t.location_line() == err.span.location_line() {
+                println!("*{:04} {}", t.location_line(), t);
+            } else {
+                println!(" {:04}  {}", t.location_line(), t);
+            }
+
+            if expect.is_empty() {
+                if t.location_line() == err.span.location_line() {
+                    println!("      {}^", " ".repeat(err.span.get_utf8_column() - 1));
+                    if !msg.is_empty() {
+                        println!("Erwarted war: {}", msg);
+                    } else {
+                        println!("Erwarted war: {}", err.code);
+                    }
+                }
+            }
+
+            for (line, exp) in &expect {
+                if t.location_line() == *line {
+                    for exp in exp {
+                        println!("      {}^", " ".repeat(exp.span.get_utf8_column() - 1));
+                        println!("Erwarted war: {}", exp.code);
+                    }
+                }
+            }
+        }
+
+        for (_line, sugg) in err.suggested_grouped_by_line() {
+            for sug in sugg {
+                println!("Hinweis: {}", sug.code);
+            }
+        }
+
+        for n in err.nom() {
+            println!(
+                "Parser-Details: {:?} {}:{}:\"{}\"",
+                n.kind,
+                n.span.location_line(),
+                n.span.get_utf8_column(),
+                n.span.escape_debug().take(40).collect::<String>()
+            );
+        }
+    }
+
+    /// Parser Trace.
+    pub fn dump_trace(tracks: &Tracks<&'_ str, PLUCode>) {
+        println!("{:?}", tracks);
+    }
+}
 
 mod parser {
     use crate::nom_parser::{

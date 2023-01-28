@@ -122,7 +122,7 @@
 #![warn(missing_abi)]
 // NOT_ACCURATE #![warn(missing_copy_implementations)]
 // #![warn(missing_debug_implementations)]
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 #![warn(non_ascii_idents)]
 #![warn(noop_method_call)]
 // NO #![warn(or_patterns_back_compat)]
@@ -150,7 +150,6 @@ use std::fmt::{Debug, Display, Formatter};
 use std::ops::{RangeFrom, RangeTo};
 
 pub mod error;
-pub mod no_tracker;
 pub mod spans;
 pub mod std_tracker;
 pub mod test;
@@ -181,7 +180,7 @@ pub mod prelude {
 /// Standard input type.
 ///
 /// It holds a dyn ParseContext in the extra field of LocatedSpan to distribute
-/// the context.
+/// the context.  
 pub type TrackSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
 /// Standard result type in conjunction with CtxSpan.
@@ -240,7 +239,7 @@ where
 /// Access the tracking functions via [Context].
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct DynTracker<'c, C, T>(Option<&'c dyn Tracker<C, T>>)
+pub struct DynTracker<'c, C, T>(&'c dyn Tracker<C, T>)
 where
     C: Code;
 
@@ -280,6 +279,7 @@ where
         + Slice<RangeTo<usize>>,
     C: Code,
 {
+    /// Creates an Ok() Result from the parameters and tracks the result.
     fn ok<O, Y>(
         &self,
         remainder: I,
@@ -293,6 +293,7 @@ where
         Ok((remainder, value))
     }
 
+    /// Tracks the error and creates a Result.
     fn err<O, Y, E>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
         E: Into<nom::Err<ParserError<C, I, Y>>>,
@@ -401,8 +402,10 @@ where
         }
     }
 
+    /// Calls exit_ok on the context.
     fn exit_ok(span: I, parsed: I);
 
+    /// Calls exit_ok on the context.
     fn exit_err(span: I, code: C, err: &dyn Error);
 }
 
