@@ -23,8 +23,8 @@ pub type TrackSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
 /// Standard Result type for tracking.
 /// Equivalent to [nom::IResult]<(T, O), Err<ParserError<..>>>
-pub type TrackParserResult<'s, C, T, Y, O> =
-    Result<(TrackSpan<'s, C, T>, O), nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>>; // todo move Y to end
+pub type TrackParserResult<'s, C, T, O, Y> =
+    Result<(TrackSpan<'s, C, T>, O), nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>>;
 
 /// Standard Result type for tracking, if the result is a simple span.
 /// Equivalent to [nom::IResult]<(I,I), Err<ParserError<..>>
@@ -112,7 +112,7 @@ where
 
     // todo: move impl to context directly
     /// Tracks the error and creates a Result.
-    fn err<O, Y, E>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+    fn err<O, E, Y>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
         E: Into<nom::Err<ParserError<C, I, Y>>>,
         Y: Copy,
@@ -160,7 +160,7 @@ where
 /// let (rest, plan) = token_name(rest).track()?;
 /// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
 /// ```
-pub trait TrackParserError<'s, C, I, Y, O, E>
+pub trait TrackParserError<'s, C, I, O, E, Y>
 where
     C: Code,
     I: AsBytes + Copy + Debug,
@@ -228,7 +228,7 @@ where
     fn exit_err(span: I, code: C, err: &dyn Error);
 }
 
-impl<'s, C, Y, O, E> TrackParserError<'s, C, &'s str, Y, O, E> for Result<(&'s str, O), nom::Err<E>>
+impl<'s, C, O, E, Y> TrackParserError<'s, C, &'s str, O, E, Y> for Result<(&'s str, O), nom::Err<E>>
 where
     E: Into<ParserError<C, &'s str, Y>>,
     C: Code,
@@ -239,7 +239,7 @@ where
     fn exit_err(_span: &'s str, _code: C, _err: &dyn Error) {}
 }
 
-impl<'s, C, Y, O, E> TrackParserError<'s, C, &'s [u8], Y, O, E>
+impl<'s, C, O, E, Y> TrackParserError<'s, C, &'s [u8], O, E, Y>
     for Result<(&'s [u8], O), nom::Err<E>>
 where
     E: Into<ParserError<C, &'s [u8], Y>>,
@@ -251,7 +251,7 @@ where
     fn exit_err(_span: &'s [u8], _code: C, _err: &dyn Error) {}
 }
 
-impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, ()>, Y, O, E>
+impl<'s, C, T, O, E, Y> TrackParserError<'s, C, LocatedSpan<T, ()>, O, E, Y>
     for Result<(LocatedSpan<T, ()>, O), nom::Err<E>>
 where
     E: Into<ParserError<C, LocatedSpan<T, ()>, Y>>,
@@ -271,7 +271,7 @@ where
     fn exit_err(_span: LocatedSpan<T, ()>, _code: C, _err: &dyn Error) {}
 }
 
-impl<'s, C, T, Y, O, E> TrackParserError<'s, C, LocatedSpan<T, DynTracker<'s, C, T>>, Y, O, E>
+impl<'s, C, T, O, E, Y> TrackParserError<'s, C, LocatedSpan<T, DynTracker<'s, C, T>>, O, E, Y>
     for Result<(LocatedSpan<T, DynTracker<'s, C, T>>, O), nom::Err<E>>
 where
     E: Into<ParserError<C, LocatedSpan<T, DynTracker<'s, C, T>>, Y>>,

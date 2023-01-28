@@ -144,7 +144,7 @@ mod cmds_parser {
 
     pub type CSpan<'s> = kparse::tracker::TrackSpan<'s, CCode, &'s str>;
     pub type CParserError<'s> = kparse::ParserError<CCode, CSpan<'s>, ()>;
-    pub type CParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, CCode, &'s str, (), O>;
+    pub type CParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, CCode, &'s str, O, ()>;
     pub type CNomResult<'s> = kparse::tracker::TrackParserResultSpan<'s, CCode, &'s str, ()>;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]

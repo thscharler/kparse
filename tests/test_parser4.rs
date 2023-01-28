@@ -412,7 +412,7 @@ mod planung4 {
 
     pub type APSpan<'s> = kparse::tracker::TrackSpan<'s, APCode, &'s str>;
     pub type APParserError<'s> = kparse::ParserError<APCode, APSpan<'s>, ()>;
-    pub type APParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, APCode, &'s str, (), O>;
+    pub type APParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, APCode, &'s str, O, ()>;
     pub type APNomResult<'s> = kparse::tracker::TrackParserResultSpan<'s, APCode, &'s str, ()>;
 
     pub mod diagnostics {

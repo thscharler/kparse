@@ -40,7 +40,7 @@ where
         Ok((remainder, value))
     }
 
-    fn err<O, Y, E>(
+    fn err<O, E, Y>(
         &self,
         err: E,
     ) -> Result<(DynSpan<'s, C, T>, O), nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>>>
@@ -126,7 +126,7 @@ where
         Ok((remainder, value))
     }
 
-    fn err<O, Y, E>(
+    fn err<O, E, Y>(
         &self,
         err: E,
     ) -> Result<(PlainSpan<'s, T>, O), nom::Err<ParserError<C, PlainSpan<'s, T>, Y>>>
@@ -167,7 +167,7 @@ where
         Ok((remainder, value))
     }
 
-    fn err<O, Y, E>(&self, err: E) -> Result<(&'s str, O), nom::Err<ParserError<C, &'s str, Y>>>
+    fn err<O, E, Y>(&self, err: E) -> Result<(&'s str, O), nom::Err<ParserError<C, &'s str, Y>>>
     where
         E: Into<nom::Err<ParserError<C, &'s str, Y>>>,
         Y: Copy,
@@ -205,7 +205,7 @@ where
         Ok((remainder, value))
     }
 
-    fn err<O, Y, E>(&self, err: E) -> Result<(&'s [u8], O), nom::Err<ParserError<C, &'s [u8], Y>>>
+    fn err<O, E, Y>(&self, err: E) -> Result<(&'s [u8], O), nom::Err<ParserError<C, &'s [u8], Y>>>
     where
         E: Into<nom::Err<ParserError<C, &'s [u8], Y>>>,
         Y: Copy,

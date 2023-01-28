@@ -67,7 +67,7 @@ fn test_size2() {
     dbg!(size_of::<Context>());
     dbg!(size_of::<TrackParserResultSpan<ZCode, &str, ()>>());
     dbg!(size_of::<TrackParserResult<ZCode, &str, (), ()>>());
-    dbg!(size_of::<TrackParserResult<ZCode, &str, (), Nummer<'_>>>());
+    dbg!(size_of::<TrackParserResult<ZCode, &str, Nummer<'_>, ()>>());
     dbg!(size_of::<TrackSpan<ZCode, &str>>());
     dbg!(size_of::<LocatedSpan<&str>>());
 

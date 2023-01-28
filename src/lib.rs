@@ -67,7 +67,6 @@ pub mod prelude {
 
 /// Parser error code.
 pub trait Code: Copy + Display + Debug + Eq {
-    // todo: remove display
     /// Default error code for nom-errors.
     const NOM_ERROR: Self;
 }
@@ -191,7 +190,7 @@ where
 //
 // 1. just to call with_code on an existing ParserError.
 // 2. to convert whatever to a ParserError and give it a code.
-impl<C, I, Y, E> WithCode<C, nom::Err<ParserError<C, I, Y>>> for nom::Err<E>
+impl<C, I, E, Y> WithCode<C, nom::Err<ParserError<C, I, Y>>> for nom::Err<E>
 where
     E: Into<ParserError<C, I, Y>>,
     C: Code,
@@ -219,7 +218,7 @@ where
 //
 
 // Any result that wraps an error type that can be converted via with_span is fine.
-impl<C, I, Y, O, E> ResultWithSpan<C, I, Result<O, nom::Err<ParserError<C, I, Y>>>> for Result<O, E>
+impl<C, I, O, E, Y> ResultWithSpan<C, I, Result<O, nom::Err<ParserError<C, I, Y>>>> for Result<O, E>
 where
     E: WithSpan<C, I, ParserError<C, I, Y>>,
     C: Code,
@@ -238,7 +237,7 @@ where
 //
 // 1. this is a ParserResult with a nom::Err with a ParserError.
 // 2. this is a Result with a whatever which has a WithCode<ParserError>
-impl<C, I, Y, O, E> WithCode<C, Result<(I, O), nom::Err<ParserError<C, I, Y>>>>
+impl<C, I, O, E, Y> WithCode<C, Result<(I, O), nom::Err<ParserError<C, I, Y>>>>
     for Result<(I, O), E>
 where
     E: WithCode<C, nom::Err<ParserError<C, I, Y>>>,

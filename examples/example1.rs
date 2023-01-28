@@ -51,7 +51,7 @@ impl Display for ICode {
 }
 
 pub type ISpan<'s> = kparse::tracker::TrackSpan<'s, ICode, &'s str>;
-pub type IParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, ICode, &'s str, (), O>;
+pub type IParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, ICode, &'s str, O, ()>;
 pub type INomResult<'s> = kparse::tracker::TrackParserResultSpan<'s, ICode, &'s str, ()>;
 pub type IParserError<'s> = kparse::ParserError<ICode, ISpan<'s>, ()>;
 
