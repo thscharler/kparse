@@ -78,6 +78,8 @@ pub struct SpanAndCode<C, I> {
     pub span: I,
 }
 
+X
+
 /// Combines two ParserErrors.
 pub trait AppendParserError<Rhs = Self> {
     /// Result of the append. Usually (), but for nom::Err::Incomplete the error is not
