@@ -298,8 +298,13 @@ fn main() {
         let span = trk.span(txt.as_str());
 
         match parse_a_b_star(span) {
-            Ok(_) => {}
-            Err(_) => {}
+            Ok((_rest, val)) => {
+                dbg!(val);
+            }
+            Err(e) => {
+                println!("{:?}", trk.results());
+                println!("{:?}", e);
+            }
         }
     }
 }
@@ -310,54 +315,60 @@ mod tests {
     use kparse::test::{track_parse, CheckTrace};
 
     #[test]
-    #[should_panic]
     fn test_1() {
-        track_parse(&mut None, "ab", parse_ab).okok().q(CheckTrace);
-        track_parse(&mut None, "ab", parse_ab_v2)
-            .okok()
+        track_parse(&mut None, "", parse_ab).err_any().q(CheckTrace);
+        track_parse(&mut None, "ab", parse_ab)
+            .ok_any()
             .q(CheckTrace);
+        track_parse(&mut None, "aba", parse_ab)
+            .rest("a")
+            .q(CheckTrace);
+    }
 
+    #[test]
+    #[should_panic]
+    fn test_2() {
         track_parse(&mut None, "ab", parse_a_or_b)
-            .okok()
+            .ok_any()
             .q(CheckTrace);
         track_parse(&mut None, "a", parse_a_or_b)
-            .okok()
+            .ok_any()
             .q(CheckTrace);
         track_parse(&mut None, "b", parse_a_or_b)
-            .okok()
+            .ok_any()
             .q(CheckTrace);
 
         track_parse(&mut None, "", parse_a_opt_b)
-            .errerr()
+            .err_any()
             .q(CheckTrace);
         track_parse(&mut None, "b", parse_a_opt_b)
-            .okok()
+            .ok_any()
             .rest("")
             .q(CheckTrace);
         track_parse(&mut None, "ab", parse_a_opt_b)
-            .okok()
+            .ok_any()
             .rest("")
             .q(CheckTrace);
         track_parse(&mut None, "bb", parse_a_opt_b)
-            .okok()
+            .ok_any()
             .rest("b")
             .q(CheckTrace);
         track_parse(&mut None, "aab", parse_a_opt_b)
-            .errerr()
+            .err_any()
             .q(CheckTrace);
         track_parse(&mut None, "aab", parse_a_opt_b)
-            .errerr()
+            .err_any()
             .q(CheckTrace);
 
         track_parse(&mut None, "aab", parse_a_star_b)
-            .okok()
+            .ok_any()
             .q(CheckTrace);
 
         track_parse(&mut None, "aab", parse_a_b_star)
-            .okok()
+            .ok_any()
             .q(CheckTrace);
         track_parse(&mut None, "aabc", parse_a_b_star)
-            .okok()
+            .ok_any()
             .q(CheckTrace);
     }
 }

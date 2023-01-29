@@ -1,401 +1,344 @@
+# kparse
 
-# KParse
+Addons for a nom parser.
 
-Outline for a handwritten parser.
+* A error code trait.
+* A richer error type ParserError.
+* Traits to integrate external errors.
+* A tracking system for the parser.
+* A simple framework to test parser functions.
+* SpanLines and SpanBytes to get the context around a span.
 
-_The code can be found as example1.rs._
+The complete code can be found as [examples/example1.rs].
 
-_tests contains two test runs test_parser4 and test_parser_cmds that
- contain a parser impl._
+```rust
+// := ( a | b )*
+fn parse_a_b_star(input: ESpan<'_>) -> EResult<'_, AstABstar> {
+    Context.enter(EABstar, input);
 
-1. Define your function/error codes. They are used interchangeably.
-   Add a variant for nom::error::Error to work with nom.
+    let mut loop_rest = input;
+    let mut res = AstABstar {
+        a: vec![],
+        b: vec![],
+    };
+    let mut err = None;
+
+    loop {
+        let rest2 = loop_rest;
+
+        let rest2 = match parse_a(rest2) {
+            Ok((rest3, a)) => {
+                res.a.push(a);
+                rest3
+            }
+            Err(e) => match parse_b(rest2) {
+                Ok((rest3, b)) => {
+                    res.b.push(b);
+                    rest3
+                }
+                Err(e2) => {
+                    err.append(e)?;
+                    err.append(e2)?;
+                    rest2
+                }
+            },
+        };
+
+        if let Some(err) = err {
+            return Context.err(err);
+        }
+        if rest2.is_empty() {
+            break;
+        }
+
+        loop_rest = rest2;
+    }
+
+    Context.ok(loop_rest, input, res)
+}
+```
+
+# Basics
+
+## Error code
+
+Define the error code enum. The error codes are used in actual error reporting
+and as a marker when tracing the execution of the parser.
+
+All the nom errorkind are mapped to one parser error and it's kept as extra
+info.
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ICode {
-    ICNomError,
+pub enum ECode {
+    ENomError,
 
-    ICTerminalA,
-    ICInt
+    ETagA,
+    ETagB,
+    ENumber,
+
+    EAthenB,
+    EAoptB,
+    EAstarB,
+    EABstar,
+    EAorB,
+    EABNum,
+}
+
+impl Code for ECode {
+    const NOM_ERROR: Self = Self::ENomError;
 }
 ```
 
-2. Mark it as trait Code. This needs Copy + Display + Debug + Eq 
+This crate is very heavy on type variables. The following type aliases
+are recommended.
 
 ```rust
-impl Code for ICode {
-   const NOM_ERROR: Self = Self::ICNomError;
-}
+pub type ESpan<'s> = TrackSpan<'s, ECode, &'s str>;
+pub type EResult<'s, O> = TrackResult<ECode, ESpan<'s>, O, ()>;
+pub type ENomResult<'s> = TrackResult<ECode, ESpan<'s>, ESpan<'s>, ()>;
+pub type EParserError<'s> = ParserError<ECode, ESpan<'s>, ()>;
 
-impl Display for ICode {
-   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-      let name = match self {
-         ICode::ICNomError => "NomError",
-         ICode::ICTerminalA => "TerminalA",
-      };
-      write!(f, "{}", name)
-   }
-}
 ```
 
-3. Add type aliases for 
-   * Span
-   * Result type of the parser fn
-   * Result type for nom parser fn.
-   * The ParserError itself.
+## AST
 
-There is a () type parameter for extra userdata in the ParserError.
+Define your parsers output as you wish. No constraints here.
 
 ```rust
-pub type Span<'s> = kparse::Span<'s, ICode>;
-pub type IParserResult<'s, O> = ParserResult<'s, O, ICode, ()>;
-pub type INomResult<'s> = ParserNomResult<'s, ICode, ()>;
-pub type IParserError<'s> = ParserError<'s, ICode, ()>;
-```
-
-4. Define the AST structs. There are no constraints from IParse.
-
-```rust
-pub struct TerminalA<'s> {
-   pub term: String,
-   pub span: Span<'s>,
+#[derive(Debug)]
+struct AstNumber<'s> {
+    pub number: u32,
+    pub span: ESpan<'s>,
 }
 ```
 
-5. Create the nom parsers for your terminals. 
+## Parser functions
+
+Parser functions are the same as with a plain nom parser, just using
+different input and error types
 
 ```rust
-pub fn nom_parse_a(i: Span<'_>) -> INomResult<'_> {
-   tag("A")(i)
+fn token_number(i: ESpan<'_>) -> EResult<'_, AstNumber<'_>> {
+    match nom_number(i) {
+        Ok((rest, (tok, val))) => Ok((
+            rest,
+            AstNumber {
+                number: val,
+                span: tok,
+            },
+        )),
+        Err(e) => Err(e.with_code(ENumber)),
+    }
 }
 ```
 
-6. Create a transform fn for each nom fn. This translates the nom errors to our parsers errors.
-This is also a good point for conversions from string.
+## IResult
 
-```rust
-pub fn parse_a(rest: Span<'_>) -> IParserResult<'_, TerminalA> {
-   match nom_parse_a(rest) {
-      Ok((rest, token)) => Ok((
-         rest,
-         TerminalA {
-            term: token.to_string(),
-            span: token,
-         },
-      )),
-      Err(nom::Err::Error(e)) if e.is_error_kind(nom::error::ErrorKind::Tag) => {
-         Err(nom::Err::Error(e.with_code(ICTerminalA)))
-      }
-      Err(e) => Err(e.into()),
-   }
-}
-```
+ParserError implements nom::error::ParseError, it can be used instead of
+nom::error::Error.
 
-4. Implement the parser with regular fn's.
+## Error handling
 
-For the parser tracking the Context must be used.
-The first thing should be the call to Context.enter(), and each exit point 
-must be covered.
+### WithSpan
 
-Context.ok() and Context.err() take care of the simple case.
-
-```rust
-fn parse_terminal_a(rest: Span<'_>) -> IParserResult<'_, TerminalA<'_>> {
-   Context.enter(ICTerminalA, &rest);
-
-   let (rest, token) = match parse_a(rest) {
-      Ok((rest, token)) => (rest, token),
-      Err(e) => return Context.err(e),
-   };
-
-   Context.ok(rest, token.span, token)
-}
-```
-
-There is TrackParserError::track() to make everything a bit easier. 
-This tracks the error case with the Context and let's you work with ?.
-
-There is another one track_as() that let's you change the error-code in 
-passing.
-
-```rust
-fn parse_terminal_a2(rest: Span<'_>) -> IParserResult<'_, TerminalA<'_>> {
-   Context.enter(ICTerminalA, &rest);
-
-   let (rest, token) = parse_a(rest).track()?;
-
-   Context.ok(rest, token.span, token)
-}
-```
-
-5. To call the parser use any impl of ParseContext. 
-
-The tracking context is named TrackingContext.
-The const type argument states whether the actual tracking will be done or not.
-
-```rust
-fn run_parser() -> IParserResult<'static, TerminalA<'static>> {
-   let ctx: TrackingContext<'_, &str, ICode> = TrackingContext::new(true);
-   let span = ctx.span("A");
-   let _r = parse_terminal_a(span);
-}
-```
-
-The other interesting one is NoContext which does almost nothing.
-
-```rust
-fn run_parser() -> IParserResult<'static, TerminalA<'static>> {
-   let span = NoContext.span("A");
-   let _r = parse_terminal_a(span);
-}
-```
-
-The current context is added to the LocatedSpan and is propagated this way.
-This is the reason why the span has to created this way.
-
-6. Testing
-
-Use kparse::test::Test. 
-
-It has functions to test a single parser and check the results.
-
-* ok() - Compare the Ok() result with a test fn().
-* err() - Check for a specific error-code.
-* expect() - Check for an additional error-code stored as expected result.
-* rest() - Compare the rest after parse.
-* okok() - Result should be any Ok() value.
-* errerr() - Result should be any Err() value.
-* fail() - Always fail.
-* nom_err() - Result contains this nom error-code.
-* 
-
-The last fn is q() which collects the checks and creates a report.
-There are some reports available
-* Dump - Output the error/success. Doesn't panic.
-* CheckDump - Output the error/success. Panics if any of the test-fn failed.
-* Trace - Output the complete trace. Doesn't panic.
-* CheckTrace - Output the complete trace. Panics if any of the test-fn failed.
-* Timing - Output only the timings. 
-
-```rust
-const R: Trace = Trace;
-
-#[test]
-pub fn test_terminal_a() {
-   track_parse(&mut None, "A", parse_terminal_a).okok().q(R);
-   track_parse(&mut None, "AA", parse_terminal_a).errerr().q(R);
-}
- ```
-
-The output of a trace looks like this (this is from [examples/parser4.rs])
-
-```txt
-when parsing "Content-Type: text/x-zim-wiki\r\nWiki-Form" in 9.4558ms =>
-trace
-  Anbauplan: enter with "Content-Type: text/x"
-    Plan: enter with "====== Plan 2022 ==="
-    Plan: ok -> [ "====== Plan 2022 ===", "\r\n\r\n===== Monat Janu" ]
-    KdNr: enter with "===== Monat January "
-    KdNr: err NomError expects  for span 82 "===== Monat January " 
-    Monat: enter with "===== Monat January "
-    Monat: ok -> [ "===== Monat January ", "\r\n\r\n==== Woche 03.01" ]
-    Woche: enter with "==== Woche 03.01.202"
-    Woche: ok -> [ "==== Woche 03.01.202", "\r\n\r\n\r\n=> Überwintern" ]
-    Aktion: enter with "=> Überwintern\r\n    "
-    Aktion: ok -> [ "=> Überwintern", "\r\n        @ W2 Karot" ]
-    Parzelle: enter with "@ W2 Karotten (+12w)"
-      Wochen: enter with "+12w)\r\nKarotten\r\n   "
-      Wochen: err Nummer expects NomError:"+12w)\r\nKarotten\r\n   " for span 191 "+12w)\r\nKarotten\r\n   " 
-      Plus_Wochen: enter with "+12w)\r\nKarotten\r\n   "
-      Plus_Wochen: ok -> [ "12w", ")\r\nKarotten\r\n       " ]
-    Parzelle: ok -> [ "@ W2 Karotten (+12w)", "\r\nKarotten\r\n        " ]
-    Kultur: enter with "Karotten\r\n        @ "
-    ...
-```
-
-# Appendix A
-
-## Note 1
-
-There is WithSpan that can be implemented to import external errors. It
-should return a nom::Err wrapped ParserError. 
+The trait WithSpan is used to convert an external error to a ParserError
+and add an error code and a span at the same time.
 
 ```rust
 impl<'s, C: Code, Y: Copy> WithSpan<'s, C, nom::Err<ParserError<'s, C, Y>>>
 for std::num::ParseIntError
 {
-   fn with_span(self, code: C, span: Span<'s, C>) -> nom::Err<ParserError<'s, C, Y>> {
-       nom::Err::Failure(ParserError::new(code, span))
-   }
+    fn with_span(self, code: C, span: Span<'s, C>) -> nom::Err<ParserError<'s, C, Y>>
+    {
+        nom::Err::Failure(ParserError::new(code, span))
+    }
 }
 ```
 
-And to use it there is the transform() fn that takes a regular parser,
-applies the closure to the result and converts the error via with_span().
+With the combinator ```transform(...)``` this can be integrated in the
+parser.
 
 ```rust
-fn parse_terminal_c(rest: Span<'_>) -> IParserResult<'_, TerminalC<'_>> {
-   Context.enter(ICTerminalC, &rest);
-
-   let (rest, (tok, v)) =
-           consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
-
-   Context.ok(rest, tok, TerminalC { term: v, span: tok })
+fn nom_number(i: ESpan<'_>) -> EResult<'_, (ESpan<'_>, u32)> {
+    consumed(transform(
+        terminated(digit1, nom_ws),
+        |v| (*v).parse::<u32>(),
+        ENumber,
+    ))(i)
 }
 ```
 
-## Note 2
+### WithCode
 
-The trait kparse::TrackParseResult make the composition of parser 
-easier. It provides a track() function for the parser result, that notes a 
-potential error and returns the result. This in turn can be used for the ? 
-operator. 
-
-It has a second method track_as() that allows to change the error code.
+The trait WithCode allows altering the error code. The previous error code
+is kept as a hint.
 
 ```rust
-fn parse_non_terminal1(rest: Span<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
-   Context.enter(ICNonTerminal1, &input);
-
-   let (rest, a) = parse_terminal_a(input).track()?;
-   let (rest, b) = parse_terminal_b(rest).track()?;
-
-   let span = input.span_union(&a.span, &b.span);
-
-   Context.ok(rest, span, NonTerminal1 { a, b, span })
+fn token_number(i: ESpan<'_>) -> EResult<'_, AstNumber<'_>> {
+    match nom_number(i) {
+        Ok((rest, (tok, val))) => Ok((
+            rest,
+            AstNumber {
+                number: val,
+                span: tok,
+            },
+        )),
+        Err(e) => Err(e.with_code(ENumber)),
+    }
 }
 ```
 
-Or you can use the nom combinators.
+# Parser tracking
+
+## Inside the parser
+
+The tracker is added as the LocatedSpan.extra field, this way no extra
+parameters are needed.
+
+To access the tracker the Context struct is used.
 
 ```rust
-fn parse_non_terminal1_1(rest: Span<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
-    Context.enter(ICNonTerminal1, &rest);
+fn parse_a(input: ESpan<'_>) -> EResult<'_, AstA> {
+    Context.enter(ETagA, input);
+    let (rest, tok) = nom_parse_a(input).track()?;
 
-    let (rest, (token, (a, b))) =
-        consumed(tuple((parse_terminal_a, parse_terminal_b)))(rest).track()?;
+    if false {
+        return Context.err(EParserError::new(EAorB, input));
+    }
 
-   Context.ok(rest, token, NonTerminal1 { a, b, span: token })
+    Context.ok(rest, tok, AstA { span: tok })
 }
 ```
 
-## Note 3
+enter() and ok() and err() capture the normal control flow of the
+parser.
 
-It is often useful to keep the parsed span. With SpanExt::span_union() you
-can glue together two fragments of the original span.
+track() acts on Result to allow easy error propagation.
 
-Or you can use consumed().
+Note: There are track_as() and track_ok() too.
+
+## Calling the parser
+
+Create a StdTracker and call the parser with an annotated span.
 
 ```rust
-fn sample() {
-   let _span = input.span_union(&a.span, &b.span);
+fn main() {
+    for txt in env::args() {
+        let trk = StdTracker::new();
+        let span = trk.span(txt.as_str());
+
+        match parse_a_b_star(span) {
+            Ok((rest, val)) => {}
+            Err(e) => {
+                println!("{:?}", trk.results());
+                println!("{:?}", e);
+            }
+        }
+    }
 }
 ```
 
-## Note 4
+Tracking only works if a TrackSpan is used in the parser.
 
-Handling optional terms is using opt() from nom.
+If the type alias points to a &str, a &[u8] or any LocatedSpan<T, ()>
+everything still works, just without tracking.
+
+
+
+
+
+
+## Getting the tracking data
+
+The call to StdTracker::results() returns the tracking data.
+
+# Testing the parser
+
+The test module has several functions to run a test for one parser function
+and to evaluate the result.
+
+track_parse() runs the parser and returns a Test struct with a variety of
+builder like functions to check the results. If any check went wrong the
+q() call reports this as failed test.
+
+q() takes one parameter that defines the actual report done.
+CheckTrace is one of them, it dumps the trace and the error and panics.
 
 ```rust
-fn parse_non_terminal_2(rest: Span<'_>) -> IParserResult<'_, NonTerminal2<'_>> {
-   Context.enter(ICNonTerminal1, &input);
-
-   let (rest, a) = opt(parse_terminal_a)(input).track()?;
-   let (rest, b) = parse_terminal_b(rest).track()?;
-   let (rest, c) = parse_terminal_c(rest).track()?;
-
-   let span = if let Some(a) = &a {
-      input.span_union(&a.span, &c.span)
-   } else {
-      c.span
-   };
-
-   Context.ok(rest, span, NonTerminal2 { a, b, c, span })
+#[test]
+fn test_1() {
+    track_parse(&mut None, "", parse_ab).err_any().q(CheckTrace);
+    track_parse(&mut None, "ab", parse_ab)
+        .ok_any()
+        .q(CheckTrace);
+    track_parse(&mut None, "aba", parse_ab)
+        .rest("a")
+        .q(CheckTrace);
 }
 ```
 
-## Note 5
+The result looks like this.
 
-Some example for a loop. 
-Looks solid to use a mut loop-variable but only modify it at the border.
+```txt
+FAIL: Expected ok, but was an error.
 
-Note ```err.append(e)``` as a way to collect multiple errors.
+when parsing LocatedSpan { offset: 0, line: 1, fragment: "aabc", extra:  } in 43.4µs =>
+trace
+  (A | B)*: enter with "aabc"
+    a: enter with "aabc"
+    a: ok -> [ "a", "abc" ]
+    a: enter with "abc"
+    a: ok -> [ "a", "bc" ]
+    a: enter with "bc"
+    a: err ENomError  errorkind Tag for span LocatedSpan { offset: 2, line: 1, fragment: "bc", extra:  } 
+    b: enter with "bc"
+    b: ok -> [ "b", "c" ]
+    a: enter with "c"
+    a: err ENomError  errorkind Tag for span LocatedSpan { offset: 3, line: 1, fragment: "c", extra:  } 
+    b: enter with "c"
+    b: err ENomError  errorkind Tag for span LocatedSpan { offset: 3, line: 1, fragment: "c", extra:  } 
+  (A | B)*: err ENomError  errorkind Tag for span LocatedSpan { offset: 3, line: 1, fragment: "c", extra:  } 
 
-```rust
-fn parse_non_terminal_3(rest: Span<'_>) -> IParserResult<'_, ()> {
-   Context.enter(ICNonTerminal3, &rest);
-
-   let mut loop_rest = rest;
-   let mut err = None;
-   loop {
-      let rest2 = loop_rest;
-      let (rest2, _a) = opt(parse_terminal_a)(rest2).track()?;
-      let (rest2, _b) = match parse_terminal_b(rest2) {
-         Ok((rest3, b)) => (rest3, Some(b)),
-         Err(e) => {
-            err.append(e)?;
-            (rest2, None)
-         }
-      };
-
-      if rest2.is_empty() {
-         break;
-      }
-
-      // endless loop
-      if loop_rest == rest2 {
-         return Context.err(ParserError::new(ICNonTerminal3, rest2));
-      }
-
-      loop_rest = rest2;
-   }
-
-   Context.ok(rest, rest.take(0), ())
-}
+error
+ParserError nom for LocatedSpan { offset: 3, line: 1, fragment: "c", extra:  }
+errorkind=Tag
 ```
 
-## Note 5
+# Combinators
 
-There is SpanLines and SpanBytes that make the diagnostics easier.
+Just some things I have been missing.
 
-Both start with the original buffer and accept a parsed fragment for
+## transform()
 
-* ascii_column(), utf8_column() similar to LocatedSpan.
-* current() - Extract the full text line for a fragment.
-* forward_from(), backward_from() - Iterate surrounding text lines.
-* get_lines_around() - retrieve context lines for a fragment.
+Combines parsing and value conversion. If the external error type implements
+WithSpan this looks quite smooth.
 
-# Appendix B
+## error_code()
 
-## Noteworthy 1
+Change the error_code of a partial parser.
 
-These are the conversion traits.
-* WithSpan
-* WithCode
-* std::convert::From
+## conditional()
 
-The std::convert::From is implemented for nom types to do a 
-default conversion into ParserError.
+Runs a condition function on the input and only runs the parser function
+if it succeeds. There is nom::cond(), but it's not the the same.
 
-WithCode and WithSpan for conversion of external errors and adding 
-context.
 
-## Noteworthy 2
+# Error reporting
 
-There are two parser combinators
+# SpanExt
 
-* error_code
+This trait is kind of a undo of parsing. It takes two output spans and
+can create a span that covers both of them and anything between.
 
-Wraps another parser and sets the errorcode on error.
+nom has consumed() and recognize() for this, which work fine too.
 
-* transform
+# SpanLines and SpanBytes
 
-Wraps a parser and a conversion fn. Transforms the conversion error
-via with_span and every parser error via with_code.
+"Ok, so now I got the error, but what was the context?"
 
-## Noteworthy 3
+SpanLines can help. It contains the complete parser input and can
+find the text lines surrounding any given span returned by the error.
 
-ParserErrors can be combined via the trait AppendParserError.
-It exists for ParserError, Option<ParserError> and can take ParserError 
-itself or wrapped in a nom::Err.
+SpanBytes does the same with &[u8]. 
+

@@ -198,7 +198,7 @@ where
     /// Checks for ok.
     /// Any result that is not Err is ok.
     #[must_use]
-    pub fn okok(&self) -> &Self {
+    pub fn ok_any(&self) -> &Self {
         match &self.result {
             Ok(_) => {}
             Err(_) => {
@@ -213,7 +213,7 @@ where
     ///
     /// Finish the test with q()
     #[must_use]
-    pub fn errerr(&self) -> &Self {
+    pub fn err_any(&self) -> &Self {
         match &self.result {
             Ok(_) => {
                 println!("FAIL: Expected error, but was ok!");

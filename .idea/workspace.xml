@@ -22,10 +22,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="rename examples">
+      <change afterPath="$PROJECT_DIR$/readme2.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/plan.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plan.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plumap.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/combinators.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/combinators.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_plumap.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" afterDir="false" />
@@ -77,20 +82,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "TODO_SCOPE": "Module 'kparse'",
-    "jdk.selected.JAVA_MODULE": "17",
-    "last_opened_file_path": "C:/Users/stommy/Documents/IdeaProjects/kparse/examples",
-    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15078124",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "language.rust.cargo"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;TODO_SCOPE&quot;: &quot;Module 'kparse'&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;17&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/stommy/Documents/IdeaProjects/kparse/examples&quot;,
+    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15078124&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;language.rust.cargo&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\stommy\Documents\IdeaProjects\kparse\examples" />
@@ -111,7 +116,7 @@
       <command value="cargo tree" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Test tests::test_1">
+  <component name="RunManager" selected="Cargo.Test tests::test_2">
     <configuration name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -231,8 +236,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test_parser_cmds" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_parser_cmds &quot;&quot;" />
+    <configuration name="Test tests::test_1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --example example1 tests::test_1 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -248,8 +253,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests::test_1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --example example1 tests::test_1 -- --exact" />
+    <configuration name="Test tests::test_2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --example example1 tests::test_2 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -288,19 +293,19 @@
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Doc" />
+      <item itemvalue="Cargo.Test tests::test_2" />
       <item itemvalue="Cargo.Run example1" />
       <item itemvalue="Cargo.Run example2" />
       <item itemvalue="Cargo.Test test_1" />
       <item itemvalue="Cargo.Test tests::test_1" />
-      <item itemvalue="Cargo.Test test_parser_cmds" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::test_2" />
         <item itemvalue="Cargo.Test tests::test_1" />
         <item itemvalue="Cargo.Run example1" />
         <item itemvalue="Cargo.Run example2" />
         <item itemvalue="Cargo.Test test_1" />
-        <item itemvalue="Cargo.Test test_parser_cmds" />
       </list>
     </recent_temporary>
   </component>
@@ -320,13 +325,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00044" summary="remove original() from ParseContext.&#10;replace Context.span_union with SpanExt.span_union which can be implemented based on LocatedSpan and thus safer.&#10;&#10;New module spans:&#10;SpanExt - allow merging subspans of a span. Cuts off the result at the margins of the buffer instead of panicking.&#10;&#10; SpanLines: deconstructs the old DataFrame et al to a safer construct.">
-      <created>1674377897606</created>
-      <option name="number" value="00044" />
-      <option name="presentableId" value="LOCAL-00044" />
-      <option name="project" value="LOCAL" />
-      <updated>1674377897606</updated>
     </task>
     <task id="LOCAL-00045" summary="make SpanLines compile.">
       <created>1674382946964</created>
@@ -664,7 +662,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674985378798</updated>
     </task>
-    <option name="localTasksCounter" value="93" />
+    <task id="LOCAL-00093" summary="rename examples">
+      <created>1674986076406</created>
+      <option name="number" value="00093" />
+      <option name="presentableId" value="LOCAL-00093" />
+      <option name="project" value="LOCAL" />
+      <updated>1674986076406</updated>
+    </task>
+    <option name="localTasksCounter" value="94" />
     <servers />
   </component>
   <component name="UnloadedModulesList">

@@ -16,7 +16,7 @@ pub use parser::*;
 
 #[test]
 fn test_plumap() {
-    span_parse("1 -> 2\n", parse_plumap).okok().q(CheckDump);
+    span_parse("1 -> 2\n", parse_plumap).ok_any().q(CheckDump);
 }
 
 /// Parser Codes

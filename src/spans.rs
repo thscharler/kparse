@@ -521,17 +521,13 @@ pub struct SpanBytes<'s> {
 }
 
 impl<'s> SpanBytes<'s> {
-    /// Create a new SpanLines buffer.
+    /// Create a new SpanBytes buffer.
     pub fn new(buf: &'s [u8]) -> Self {
         Self { sep: b'\n', buf }
     }
 
-    /// Create a new SpanLines buffer.
-    ///
-    /// # Panics
-    /// The separator must be an ASCII value (<128).
+    /// Create a new SpanBytes buffer.
     pub fn with_separator(buf: &'s [u8], sep: u8) -> Self {
-        assert!(sep < 128);
         Self { sep, buf }
     }
 

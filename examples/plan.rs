@@ -6,7 +6,7 @@ pub fn main() {
     let s = read_to_string("tests/2022_Anbauplan.txt").unwrap();
     println!("TRACK=true");
     track_parse(&mut None, s.as_str(), parse)
-        .okok()
+        .ok_any()
         .rest("")
         .q(Trace);
 
@@ -14,7 +14,7 @@ pub fn main() {
     println!();
     println!("TRACK=false");
     track_parse_ext(&mut None, false, s.as_str(), parse)
-        .okok()
+        .ok_any()
         .rest("")
         .q(Timing(1));
 }

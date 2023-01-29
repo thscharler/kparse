@@ -22,7 +22,7 @@ pub fn timing() {
     let s = read_to_string("tests/2022_Anbauplan.txt").unwrap();
     println!("TRACK=true");
     track_parse(&mut None, s.as_str(), parse)
-        .okok()
+        .ok_any()
         .rest("")
         .q(Trace);
 
@@ -30,7 +30,7 @@ pub fn timing() {
     println!();
     println!("TRACK=false");
     track_parse_ext(&mut None, false, s.as_str(), parse)
-        .okok()
+        .ok_any()
         .rest("")
         .q(Timing(1));
 }
@@ -38,30 +38,30 @@ pub fn timing() {
 #[test]
 pub fn test_metadata() {
     track_parse(&mut None, "Content-Type: text/x-zim-wiki\n", nom_metadata)
-        .okok()
+        .ok_any()
         .q(RT);
 }
 
 #[test]
 pub fn test_pflanzort() {
     track_parse(&mut None, "@ N1/1  Salate 1W + 6W", parse_pflanzort)
-        .okok()
+        .ok_any()
         .q(R);
     track_parse(&mut None, "@ N1/1  1W + 6W", parse_pflanzort)
-        .okok()
+        .ok_any()
         .q(R);
 }
 
 #[test]
 pub fn test_kunde() {
     track_parse(&mut None, "** Kunde Test Kunde **", parse_kunde)
-        .okok()
+        .ok_any()
         .q(R);
     track_parse(&mut None, " ** Kunde Test Kunde ** ", parse_kunde)
-        .errerr()
+        .err_any()
         .q(R);
     track_parse(&mut None, "Kunde Test Kunde ", parse_kunde)
-        .okok()
+        .ok_any()
         .rest("")
         .q(R);
 }
@@ -69,13 +69,13 @@ pub fn test_kunde() {
 #[test]
 pub fn test_markt() {
     track_parse(&mut None, "** Markt Graz **", parse_markt)
-        .okok()
+        .ok_any()
         .q(R);
     track_parse(&mut None, " ** Markt Graz ** ", parse_markt)
-        .errerr()
+        .err_any()
         .q(R);
     track_parse(&mut None, "Markt Graz ", parse_markt)
-        .okok()
+        .ok_any()
         .rest("")
         .q(R);
 }
@@ -83,16 +83,16 @@ pub fn test_markt() {
 #[test]
 pub fn test_kultur() {
     track_parse(&mut None, "Salat: 1 GKH\n", parse_kultur)
-        .okok()
+        .ok_any()
         .q(R);
     track_parse(&mut None, " Salat : 1 GKH \n", parse_kultur)
-        .okok()
+        .ok_any()
         .q(R);
     track_parse(&mut None, "Salat : \n", parse_kultur)
-        .errerr()
+        .err_any()
         .q(R);
     track_parse(&mut None, "Salat  \n", parse_kultur)
-        .okok()
+        .ok_any()
         .q(R);
 
     track_parse(&mut None, ": 1 GKH\n", parse_kultur)
@@ -100,29 +100,29 @@ pub fn test_kultur() {
         .q(R);
 
     track_parse(&mut None, " : 1 GKH\n", parse_kultur)
-        .okok()
+        .ok_any()
         .q(R);
 }
 
 #[test]
 pub fn test_einheit() {
-    track_parse(&mut None, "(K)", parse_einheit).okok().q(R);
+    track_parse(&mut None, "(K)", parse_einheit).ok_any().q(R);
     track_parse(&mut None, " (K)", parse_einheit)
         .err(APCBracketOpen)
         .q(R);
     track_parse(&mut None, "( K ) ", parse_einheit)
-        .okok()
+        .ok_any()
         .rest("")
         .q(R);
     track_parse(&mut None, "K ) ", parse_einheit)
-        .errerr()
+        .err_any()
         .err(APCBracketOpen)
         .q(R);
     track_parse(&mut None, "( ) ", parse_einheit)
         .err(APCName)
         .q(R);
     track_parse(&mut None, "( K ", parse_einheit)
-        .errerr()
+        .err_any()
         .err(APCBracketClose)
         .q(R);
 }
@@ -134,7 +134,7 @@ pub fn test_sorten() {
         "25 Treviso, 15 Castel Franco, 10 Di Luisa\n",
         parse_sorten,
     )
-    .okok()
+    .ok_any()
     .q(R);
 
     track_parse(
@@ -142,7 +142,7 @@ pub fn test_sorten() {
         "25 Treviso, 15 Castel Franco, \n    10 Di Luisa",
         parse_sorten,
     )
-    .errerr()
+    .err_any()
     .q(R);
 
     track_parse(
@@ -150,7 +150,7 @@ pub fn test_sorten() {
         "25 Treviso, 15 Castel Franco, \n    10 Di Luisa\n",
         parse_sorten,
     )
-    .okok()
+    .ok_any()
     .q(R);
 
     track_parse(
@@ -158,7 +158,7 @@ pub fn test_sorten() {
         "25 Treviso, 15 Castel Franco, # Kommentar \n 10 Di Luisa",
         parse_sorten,
     )
-    .errerr()
+    .err_any()
     .err(APCMenge)
     .q(R);
 
@@ -167,11 +167,11 @@ pub fn test_sorten() {
         "25 Treviso, 15 Castel Franco, \n 10 Di Luisa # Kommentar \n",
         parse_sorten,
     )
-    .okok()
+    .ok_any()
     .q(R);
 
     track_parse(&mut None, "25 Treviso, 15 Castel Franco, ", parse_sorten)
-        .errerr()
+        .err_any()
         .err(APCMenge)
         .q(R);
 }
@@ -179,10 +179,10 @@ pub fn test_sorten() {
 #[test]
 pub fn test_sorte() {
     track_parse(&mut None, "25 Treviso", parse_sorte)
-        .okok()
+        .ok_any()
         .q(R);
     track_parse(&mut None, "25 Treviso ", parse_sorte)
-        .okok()
+        .ok_any()
         .rest("")
         .q(R);
     track_parse(&mut None, " 25 Treviso, ", parse_sorte)
@@ -190,10 +190,10 @@ pub fn test_sorte() {
         .q(R);
     track_parse(&mut None, "25 ", parse_sorte).err(APCName).q(R);
     track_parse(&mut None, "25 Rouge huif d'Etampes", parse_sorte)
-        .okok()
+        .ok_any()
         .q(R);
     track_parse(&mut None, "25 Rouge huif d'Etampes   ", parse_sorte)
-        .okok()
+        .ok_any()
         .q(R);
 }
 
@@ -203,40 +203,42 @@ pub fn test_name() {
         *name.span == val
     }
 
-    track_parse(&mut None, "ab cd  ", token_name).okok().q(RT);
+    track_parse(&mut None, "ab cd  ", token_name).ok_any().q(RT);
     track_parse(&mut None, " ab cd  ", token_name)
-        .okok()
+        .ok_any()
         .ok(tok, " ab cd")
         .q(RT);
     track_parse(&mut None, "ab cd  ", token_name)
-        .okok()
+        .ok_any()
         .rest("")
         .q(RT);
 }
 
 #[test]
 pub fn test_name_kurz() {
-    track_parse(&mut None, "abc", token_name_kurz).okok().q(RT);
+    track_parse(&mut None, "abc", token_name_kurz)
+        .ok_any()
+        .q(RT);
     track_parse(&mut None, " abc ", token_name_kurz)
         .err(APCNameKurz)
         .q(RT);
     track_parse(&mut None, "abc\'+-²/_.", token_name_kurz)
-        .okok()
+        .ok_any()
         .q(RT);
     track_parse(&mut None, "abc ", token_name_kurz)
-        .okok()
+        .ok_any()
         .rest("")
         .q(RT);
 }
 
 #[test]
 pub fn test_nummer() {
-    track_parse(&mut None, "1234", token_nummer).okok().q(RT);
+    track_parse(&mut None, "1234", token_nummer).ok_any().q(RT);
     track_parse(&mut None, " 1234 ", token_nummer)
         .err(APCNummer)
         .q(RT);
     track_parse(&mut None, "1234 ", token_nummer)
-        .okok()
+        .ok_any()
         .rest("")
         .q(RT);
     track_parse(&mut None, "X", token_nummer)
@@ -246,7 +248,7 @@ pub fn test_nummer() {
 
 #[test]
 pub fn test_menge() {
-    track_parse(&mut None, "1234", token_menge).okok().q(RT);
+    track_parse(&mut None, "1234", token_menge).ok_any().q(RT);
     track_parse(&mut None, "1234", token_menge)
         .ok(|v: &APMenge<'_>, w: i32| v.menge == w, 1234i32)
         .q(RT);
@@ -254,7 +256,7 @@ pub fn test_menge() {
         .err(APCMenge)
         .q(RT);
     track_parse(&mut None, "1234 ", token_menge)
-        .okok()
+        .ok_any()
         .rest("")
         .q(RT);
     track_parse(&mut None, "X", token_menge).err(APCMenge).q(RT);
@@ -263,13 +265,13 @@ pub fn test_menge() {
 #[test]
 pub fn test_date() {
     track_parse(&mut None, "28.2.2023", token_datum)
-        .okok()
+        .ok_any()
         .q(RT);
     track_parse(&mut None, " 28.2.2023 ", token_datum)
         .err(APCDay)
         .q(RT);
     track_parse(&mut None, "28.2.2023 ", token_datum)
-        .okok()
+        .ok_any()
         .rest("")
         .q(RT);
     track_parse(&mut None, " 28. 2. 2023 ", token_datum)

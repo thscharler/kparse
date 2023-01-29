@@ -17,7 +17,7 @@ pub use parser::*;
 fn main() {
     // call into test framework
     track_parse(&mut None, "1 -> 2\n", parse_plumap)
-        .okok()
+        .ok_any()
         .q(CheckDump);
 }
 
