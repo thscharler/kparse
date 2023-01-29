@@ -1,6 +1,6 @@
 [package]
 name = "kparse"
-version = "1.0.0"
+version = "1.0.1"
 authors = [ "thomasscharler <thscharler@gmail.com>" ]
 edition = "2021"
 description = "Tracking and better error handling for nom parsers"
@@ -8,7 +8,7 @@ readme = "readme.md"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/thscharler/kparse"
 keywords = [ "parser", "nom" ]
-categories = [ "Parsing tools" ]
+categories = [ "parsing" ]
 exclude = [".idea/*", ".gitignore"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
