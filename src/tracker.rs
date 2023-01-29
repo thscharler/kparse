@@ -35,7 +35,7 @@ pub type TrackSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
 /// Standard Result type for tracking.
 /// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
-pub type TrackParserResult2<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+pub type TrackResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
 
 /// This trait defines the tracker functions.
 /// Create an [StdTracker] and use it's span() function to get the input for your

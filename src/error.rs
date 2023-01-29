@@ -231,19 +231,26 @@ where
     Y: Copy,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} expects ", self.code)?;
+        write!(f, "{:?} ", self.code)?;
 
+        if self.iter_expected().next().is_some() {
+            write!(f, " expected ")?;
+        }
         for (i, exp) in self.iter_expected().enumerate() {
             if i > 0 {
                 write!(f, " ")?;
             }
-            write!(
-                f,
-                "{}:{:?}",
-                exp.code,
-                restrict(DebugWidth::Short, exp.span)
-            )?;
+            write!(f, "{}", exp.code,)?;
         }
+
+        if let Some(nom) = self.nom() {
+            if let Some(ch) = nom.ch {
+                write!(f, " errorkind {:?} {:?}", nom.kind, ch)?
+            } else {
+                write!(f, " errorkind {:?}", nom.kind)?
+            }
+        }
+
         // no suggest
         write!(f, " for span {:?}", restrict(DebugWidth::Short, self.span))?;
         Ok(())
@@ -400,6 +407,17 @@ where
         self
     }
 
+    /// Finds the first (only) nom error.
+    pub fn nom(&self) -> Option<&Nom<C, I>> {
+        self.hints
+            .iter()
+            .find(|v| matches!(v, Hints::Nom(_)))
+            .and_then(|v| match v {
+                Hints::Nom(e) => Some(e),
+                _ => None,
+            })
+    }
+
     /// Finds the first (single) cause.
     pub fn cause(&self) -> Option<&dyn Error> {
         self.hints
@@ -427,16 +445,18 @@ where
     /// Adds the others code and span as expect values.
     /// Adds all the others expect values.
     pub fn append(&mut self, other: ParserError<C, I, Y>) {
-        self.expect(other.code, other.span);
-        for expect in other.iter_expected() {
-            self.expect(expect.code, expect.span);
+        if other.code != C::NOM_ERROR {
+            self.expect(other.code, other.span);
+        }
+        for hint in other.hints {
+            self.hints.push(hint);
         }
     }
 
     /// Convert to a new error code.
     /// If the old one differs, it is added to the expect list.
     pub fn with_code(mut self, code: C) -> Self {
-        if self.code != code {
+        if self.code != code && self.code != C::NOM_ERROR {
             self.hints.push(Hints::Expect(SpanAndCode {
                 code: self.code,
                 span: self.span,
@@ -456,17 +476,6 @@ where
             }
         }
         false
-    }
-
-    /// Return any nom error codes.
-    pub fn nom(&self) -> Vec<&Nom<C, I>> {
-        self.hints
-            .iter()
-            .filter_map(|v| match v {
-                Hints::Nom(n) => Some(n),
-                _ => None,
-            })
-            .collect()
     }
 
     /// Was this one of the expected errors.

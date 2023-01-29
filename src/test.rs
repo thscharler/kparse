@@ -683,9 +683,16 @@ mod report {
                 );
                 println!("{:0?}", token);
             }
-            Err(e) => {
+            Err(nom::Err::Error(e)) => {
                 println!("error");
                 println!("{:1?}", e);
+            }
+            Err(nom::Err::Failure(e)) => {
+                println!("failure");
+                println!("{:1?}", e);
+            }
+            Err(nom::Err::Incomplete(e)) => {
+                println!("incomplete {:1?}", e);
             }
         }
     }

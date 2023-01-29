@@ -51,18 +51,15 @@ where
         restrict(DebugWidth::Short, err.span)
     )?;
 
-    let nom = err.nom();
-    if !nom.is_empty() {
-        write!(f, " nom errs ")?;
-        for n in &nom {
-            write!(f, " {:?}:{:?}", n.kind, restrict(DebugWidth::Short, n.span))?;
-        }
+    if let Some(nom) = err.nom() {
+        write!(f, " errorkind=")?;
+        write!(f, " {:?}", nom.kind,)?;
     }
 
     let mut expected: Vec<_> = err.iter_expected().collect();
     expected.reverse();
     if !expected.is_empty() {
-        write!(f, " expected ")?;
+        write!(f, " expected=")?;
         for exp in expected {
             write!(
                 f,
@@ -93,33 +90,27 @@ where
 {
     writeln!(
         f,
-        "ParserError {} {:?}",
+        "ParserError {} for {:?}",
         err.code,
         restrict(DebugWidth::Medium, err.span)
     )?;
 
-    let nom = err.nom();
-    if !nom.is_empty() {
-        writeln!(f, "nom=")?;
-        for n in &nom {
-            indent(f, 1)?;
-            writeln!(f, "{:?}:{:?}", n.kind, restrict(DebugWidth::Medium, n.span))?;
-        }
+    if let Some(nom) = err.nom() {
+        writeln!(f, "errorkind={:?}", nom.kind,)?;
     }
 
     let mut expected: Vec<_> = err.iter_expected().collect();
     expected.reverse();
     if !expected.is_empty() {
-        writeln!(f, "expect=")?;
+        writeln!(f, "expected=")?;
         for exp in expected {
             indent(f, 1)?;
-            write!(
+            writeln!(
                 f,
                 "{}:{:?}",
                 exp.code,
                 restrict(DebugWidth::Medium, exp.span)
             )?;
-            writeln!(f)?;
         }
     }
 
@@ -143,28 +134,22 @@ where
 {
     writeln!(
         f,
-        "ParserError {} {:?}",
+        "ParserError {} for {:?}",
         err.code,
         restrict(DebugWidth::Long, err.span)
     )?;
 
-    let nom = err.nom();
-    if !nom.is_empty() {
-        writeln!(f, "nom=")?;
-        for n in &nom {
-            indent(f, 1)?;
-            writeln!(f, "{:?}:{:?}", n.kind, restrict(DebugWidth::Long, n.span))?;
-        }
+    if let Some(nom) = err.nom() {
+        writeln!(f, " errorkind={:?}", nom.kind,)?;
     }
 
     let mut expected: Vec<_> = err.iter_expected().collect();
     expected.reverse();
     if !expected.is_empty() {
-        writeln!(f, "expect=")?;
+        writeln!(f, "expected=")?;
         for exp in expected {
             indent(f, 1)?;
-            write!(f, "{}:{:?}", exp.code, restrict(DebugWidth::Long, exp.span))?;
-            writeln!(f)?;
+            writeln!(f, "{}:{:?}", exp.code, restrict(DebugWidth::Long, exp.span))?;
         }
     }
 
