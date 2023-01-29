@@ -2,7 +2,7 @@
 //! Provides [Context] to access the tracker.
 //!
 
-use crate::tracker::{ContextTrait, DynTracker};
+use crate::tracker::{DynTracker, FindTracker};
 use crate::{Code, ParserError};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
@@ -15,7 +15,7 @@ pub struct Context;
 
 type DynSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
-impl<'s, T, C> ContextTrait<C, DynSpan<'s, C, T>> for Context
+impl<'s, T, C> FindTracker<C, DynSpan<'s, C, T>> for Context
 where
     T: Copy + Debug,
     T: Offset
@@ -102,7 +102,7 @@ where
 
 type PlainSpan<'s, T> = LocatedSpan<T, ()>;
 
-impl<'s, T, C> ContextTrait<C, PlainSpan<'s, T>> for Context
+impl<'s, T, C> FindTracker<C, PlainSpan<'s, T>> for Context
 where
     T: Copy + Debug,
     T: Offset
@@ -150,7 +150,7 @@ where
     fn exit_err(&self, _span: PlainSpan<'s, T>, _code: C, _err: &dyn Error) {}
 }
 
-impl<'s, C> ContextTrait<C, &'s str> for Context
+impl<'s, C> FindTracker<C, &'s str> for Context
 where
     C: Code,
 {
@@ -188,7 +188,7 @@ where
     fn exit_err(&self, _span: &'s str, _code: C, _err: &dyn Error) {}
 }
 
-impl<'s, C> ContextTrait<C, &'s [u8]> for Context
+impl<'s, C> FindTracker<C, &'s [u8]> for Context
 where
     C: Code,
 {

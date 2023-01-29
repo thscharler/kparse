@@ -61,7 +61,7 @@ pub use crate::error::ParserError;
 pub mod prelude {
     pub use crate::error::{AppendParserError, LocatedSpanExt};
     pub use crate::spans::SpanExt;
-    pub use crate::tracker::{ContextTrait, TrackParserError};
+    pub use crate::tracker::{FindTracker, TrackError};
     pub use crate::{ResultWithSpan, WithCode, WithSpan};
 }
 

@@ -306,7 +306,8 @@ mod planung4 {
         dump_diagnostics as dump_diagnostics_v4, dump_diagnostics_info as dump_diagnostics_info_v4,
         dump_trace as dump_trace_v4,
     };
-    use kparse::Code;
+    use kparse::tracker::{TrackParserResult2, TrackSpan};
+    use kparse::{Code, ParserError};
 
     #[allow(clippy::enum_variant_names)]
     #[allow(dead_code)]
@@ -409,10 +410,10 @@ mod planung4 {
         }
     }
 
-    pub type APSpan<'s> = kparse::tracker::TrackSpan<'s, APCode, &'s str>;
-    pub type APParserError<'s> = kparse::ParserError<APCode, APSpan<'s>, ()>;
-    pub type APParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, APCode, &'s str, O, ()>;
-    pub type APNomResult<'s> = kparse::tracker::TrackParserResultSpan<'s, APCode, &'s str, ()>;
+    pub type APSpan<'s> = TrackSpan<'s, APCode, &'s str>;
+    pub type APParserError<'s> = ParserError<APCode, APSpan<'s>, ()>;
+    pub type APParserResult<'s, O> = TrackParserResult2<APCode, APSpan<'s>, O, ()>;
+    pub type APNomResult<'s> = TrackParserResult2<APCode, APSpan<'s>, APSpan<'s>, ()>;
 
     pub mod diagnostics {
         use crate::planung4::{APCode, APParserError, APSpan};

@@ -21,17 +21,21 @@ pub use std_tracker::*;
 /// through the parser.
 pub type TrackSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
-/// Standard Result type for tracking.
-/// Equivalent to [nom::IResult]<(T, O), Err<ParserError<..>>>
-pub type TrackParserResult<'s, C, T, O, Y> =
-    Result<(TrackSpan<'s, C, T>, O), nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>>;
+// /// Standard Result type for tracking.
+// /// Equivalent to [nom::IResult]<(T, O), Err<ParserError<..>>>
+// pub type TrackParserResult<'s, C, T, O, Y> =
+//     Result<(TrackSpan<'s, C, T>, O), nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>>;
+//
+// /// Standard Result type for tracking, if the result is a simple span.
+// /// Equivalent to [nom::IResult]<(I,I), Err<ParserError<..>>
+// pub type TrackParserResultSpan<'s, C, T, Y> = Result<
+//     (TrackSpan<'s, C, T>, TrackSpan<'s, C, T>),
+//     nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>,
+// >;
 
-/// Standard Result type for tracking, if the result is a simple span.
-/// Equivalent to [nom::IResult]<(I,I), Err<ParserError<..>>
-pub type TrackParserResultSpan<'s, C, T, Y> = Result<
-    (TrackSpan<'s, C, T>, TrackSpan<'s, C, T>),
-    nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>,
->;
+/// Standard Result type for tracking.
+/// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
+pub type TrackParserResult2<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
 
 /// This trait defines the tracker functions.
 /// Create an [StdTracker] and use it's span() function to get the input for your
@@ -83,7 +87,7 @@ where
 
 /// This trait is implemented on Context for various input types.
 /// This allows it to switch seamlessly between input types.
-pub trait ContextTrait<C, I>
+pub trait FindTracker<C, I>
 where
     I: Copy + Debug,
     I: Offset
@@ -144,7 +148,7 @@ where
 /// let (rest, plan) = token_name(rest).track()?;
 /// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
 /// ```
-pub trait TrackParserError<'s, C, I, O, E, Y>
+pub trait TrackError<'s, C, I, O, E, Y>
 where
     C: Code,
     I: AsBytes + Copy + Debug,
@@ -212,7 +216,7 @@ where
     fn exit_err(span: I, code: C, err: &dyn Error);
 }
 
-impl<'s, C, O, E, Y> TrackParserError<'s, C, &'s str, O, E, Y> for Result<(&'s str, O), nom::Err<E>>
+impl<'s, C, O, E, Y> TrackError<'s, C, &'s str, O, E, Y> for Result<(&'s str, O), nom::Err<E>>
 where
     E: Into<ParserError<C, &'s str, Y>>,
     C: Code,
@@ -223,8 +227,7 @@ where
     fn exit_err(_span: &'s str, _code: C, _err: &dyn Error) {}
 }
 
-impl<'s, C, O, E, Y> TrackParserError<'s, C, &'s [u8], O, E, Y>
-    for Result<(&'s [u8], O), nom::Err<E>>
+impl<'s, C, O, E, Y> TrackError<'s, C, &'s [u8], O, E, Y> for Result<(&'s [u8], O), nom::Err<E>>
 where
     E: Into<ParserError<C, &'s [u8], Y>>,
     C: Code,
@@ -235,7 +238,7 @@ where
     fn exit_err(_span: &'s [u8], _code: C, _err: &dyn Error) {}
 }
 
-impl<'s, C, T, O, E, Y> TrackParserError<'s, C, LocatedSpan<T, ()>, O, E, Y>
+impl<'s, C, T, O, E, Y> TrackError<'s, C, LocatedSpan<T, ()>, O, E, Y>
     for Result<(LocatedSpan<T, ()>, O), nom::Err<E>>
 where
     E: Into<ParserError<C, LocatedSpan<T, ()>, Y>>,
@@ -255,7 +258,7 @@ where
     fn exit_err(_span: LocatedSpan<T, ()>, _code: C, _err: &dyn Error) {}
 }
 
-impl<'s, C, T, O, E, Y> TrackParserError<'s, C, LocatedSpan<T, DynTracker<'s, C, T>>, O, E, Y>
+impl<'s, C, T, O, E, Y> TrackError<'s, C, LocatedSpan<T, DynTracker<'s, C, T>>, O, E, Y>
     for Result<(LocatedSpan<T, DynTracker<'s, C, T>>, O), nom::Err<E>>
 where
     E: Into<ParserError<C, LocatedSpan<T, DynTracker<'s, C, T>>, Y>>,
@@ -274,13 +277,13 @@ where
         span: LocatedSpan<T, DynTracker<'s, C, T>>,
         parsed: LocatedSpan<T, DynTracker<'s, C, T>>,
     ) {
-        <Context as ContextTrait<C, LocatedSpan<T, DynTracker<'s, C, T>>>>::exit_ok(
+        <Context as FindTracker<C, LocatedSpan<T, DynTracker<'s, C, T>>>>::exit_ok(
             &Context, span, parsed,
         );
     }
 
     fn exit_err(span: LocatedSpan<T, DynTracker<'s, C, T>>, code: C, err: &dyn Error) {
-        <Context as ContextTrait<C, LocatedSpan<T, DynTracker<'s, C, T>>>>::exit_err(
+        <Context as FindTracker<C, LocatedSpan<T, DynTracker<'s, C, T>>>>::exit_err(
             &Context, span, code, err,
         );
     }

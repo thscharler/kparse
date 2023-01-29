@@ -129,7 +129,8 @@ mod cmds_parser {
     use glob::PatternError;
     use kparse::combinators::{error_code, transform};
     use kparse::prelude::*;
-    use kparse::{Code, Context};
+    use kparse::tracker::{TrackParserResult2, TrackSpan};
+    use kparse::{Code, Context, ParserError};
     use nom::bytes::complete::{tag, take_till1, take_while1};
     use nom::character::complete::{char as nchar, digit1};
     use nom::combinator::{consumed, recognize};
@@ -142,10 +143,10 @@ mod cmds_parser {
     use std::{fs, io};
     use CCode::*;
 
-    pub type CSpan<'s> = kparse::tracker::TrackSpan<'s, CCode, &'s str>;
-    pub type CParserError<'s> = kparse::ParserError<CCode, CSpan<'s>, ()>;
-    pub type CParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, CCode, &'s str, O, ()>;
-    pub type CNomResult<'s> = kparse::tracker::TrackParserResultSpan<'s, CCode, &'s str, ()>;
+    pub type CSpan<'s> = TrackSpan<'s, CCode, &'s str>;
+    pub type CParserError<'s> = ParserError<CCode, CSpan<'s>, ()>;
+    pub type CParserResult<'s, O> = TrackParserResult2<CCode, CSpan<'s>, O, ()>;
+    pub type CNomResult<'s> = TrackParserResult2<CCode, CSpan<'s>, CSpan<'s>, ()>;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum CCode {

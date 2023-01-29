@@ -21,13 +21,13 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="tinkering with the conversion traits.">
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="split off SpanExt from LocatedSpanExt and move the latter to error module. &#10;That's where it is used.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/context.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/context.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -320,13 +320,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00039" summary="DataFrame impl can be repr(transparent)">
-      <created>1674072168803</created>
-      <option name="number" value="00039" />
-      <option name="presentableId" value="LOCAL-00039" />
-      <option name="project" value="LOCAL" />
-      <updated>1674072168803</updated>
     </task>
     <task id="LOCAL-00040" summary="Replace the fixed &amp;str with T.">
       <created>1674107140670</created>
@@ -664,7 +657,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674947075873</updated>
     </task>
-    <option name="localTasksCounter" value="88" />
+    <task id="LOCAL-00088" summary="split off SpanExt from LocatedSpanExt and move the latter to error module. &#10;That's where it is used.">
+      <created>1674947892213</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1674947892213</updated>
+    </task>
+    <option name="localTasksCounter" value="89" />
     <servers />
   </component>
   <component name="UnloadedModulesList">
@@ -704,7 +704,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="doc" />
     <MESSAGE value="doc + clippy" />
     <MESSAGE value="simplified type parameters for ParserError.&#10;&#10;Add location_offset and location_line to the trait LocatedSpanExt.&#10;Which was renamed from SpanExt." />
     <MESSAGE value="Test" />
@@ -729,7 +728,8 @@
     <MESSAGE value="clippy" />
     <MESSAGE value="add with_nom() too." />
     <MESSAGE value="tinkering with the conversion traits." />
-    <option name="LAST_COMMIT_MESSAGE" value="tinkering with the conversion traits." />
+    <MESSAGE value="split off SpanExt from LocatedSpanExt and move the latter to error module. &#10;That's where it is used." />
+    <option name="LAST_COMMIT_MESSAGE" value="split off SpanExt from LocatedSpanExt and move the latter to error module. &#10;That's where it is used." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

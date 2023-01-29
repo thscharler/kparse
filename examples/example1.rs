@@ -4,8 +4,8 @@ use crate::ICode::*;
 use kparse::combinators::transform;
 use kparse::prelude::*;
 use kparse::test::{track_parse, Trace};
-use kparse::tracker::StdTracker;
-use kparse::{Code, Context};
+use kparse::tracker::{StdTracker, TrackParserResult2, TrackSpan};
+use kparse::{Code, Context, ParserError};
 use nom::bytes::complete::{tag, tag_no_case};
 use nom::character::complete::{char as nchar, digit1};
 use nom::combinator::{consumed, opt, recognize};
@@ -50,10 +50,10 @@ impl Display for ICode {
     }
 }
 
-pub type ISpan<'s> = kparse::tracker::TrackSpan<'s, ICode, &'s str>;
-pub type IParserResult<'s, O> = kparse::tracker::TrackParserResult<'s, ICode, &'s str, O, ()>;
-pub type INomResult<'s> = kparse::tracker::TrackParserResultSpan<'s, ICode, &'s str, ()>;
-pub type IParserError<'s> = kparse::ParserError<ICode, ISpan<'s>, ()>;
+pub type ISpan<'s> = TrackSpan<'s, ICode, &'s str>;
+pub type IParserResult<'s, O> = TrackParserResult2<ICode, ISpan<'s>, O, ()>;
+pub type INomResult<'s> = TrackParserResult2<ICode, ISpan<'s>, ISpan<'s>, ()>;
+pub type IParserError<'s> = ParserError<ICode, ISpan<'s>, ()>;
 
 #[derive(Debug)]
 pub struct TerminalA<'s> {
