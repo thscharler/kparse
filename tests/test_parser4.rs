@@ -6,30 +6,26 @@ use crate::planung4::tokens::{
     token_datum, token_menge, token_name, token_name_kurz, token_nummer,
 };
 use crate::planung4::APCode::*;
-use kparse::test::{track_parse, track_parse_ext, CheckDump, Timing, Trace};
+use kparse::test::{span_parse, span_parsex, CheckDump, Timing};
 use std::fs::read_to_string;
 
 const R: ReportDiagnostics = ReportDiagnostics;
+// const R: CheckDump = CheckDump;
 const RT: CheckDump = CheckDump;
-
-// #[test]
-// pub fn test_anbauplan0() {
-//     Anbauplan::read_v4("tests/2022_Anbauplan.txt").unwrap();
-// }
 
 #[test]
 pub fn timing() {
     let s = read_to_string("tests/2022_Anbauplan.txt").unwrap();
     println!("TRACK=true");
-    track_parse(&mut None, s.as_str(), parse)
+    span_parse(&mut None, s.as_str(), parse)
         .ok_any()
         .rest("")
-        .q(Trace);
+        .q(Timing(1));
 
     println!();
     println!();
     println!("TRACK=false");
-    track_parse_ext(&mut None, false, s.as_str(), parse)
+    span_parse(&mut None, s.as_str(), parse)
         .ok_any()
         .rest("")
         .q(Timing(1));
@@ -37,30 +33,30 @@ pub fn timing() {
 
 #[test]
 pub fn test_metadata() {
-    track_parse(&mut None, "Content-Type: text/x-zim-wiki\n", nom_metadata)
+    span_parsex(&mut None, "Content-Type: text/x-zim-wiki\n", nom_metadata)
         .ok_any()
         .q(RT);
 }
 
 #[test]
 pub fn test_pflanzort() {
-    track_parse(&mut None, "@ N1/1  Salate 1W + 6W", parse_pflanzort)
+    span_parsex(&mut None, "@ N1/1  Salate 1W + 6W", parse_pflanzort)
         .ok_any()
         .q(R);
-    track_parse(&mut None, "@ N1/1  1W + 6W", parse_pflanzort)
+    span_parsex(&mut None, "@ N1/1  1W + 6W", parse_pflanzort)
         .ok_any()
         .q(R);
 }
 
 #[test]
 pub fn test_kunde() {
-    track_parse(&mut None, "** Kunde Test Kunde **", parse_kunde)
+    span_parsex(&mut None, "** Kunde Test Kunde **", parse_kunde)
         .ok_any()
         .q(R);
-    track_parse(&mut None, " ** Kunde Test Kunde ** ", parse_kunde)
+    span_parsex(&mut None, " ** Kunde Test Kunde ** ", parse_kunde)
         .err_any()
         .q(R);
-    track_parse(&mut None, "Kunde Test Kunde ", parse_kunde)
+    span_parsex(&mut None, "Kunde Test Kunde ", parse_kunde)
         .ok_any()
         .rest("")
         .q(R);
@@ -68,13 +64,13 @@ pub fn test_kunde() {
 
 #[test]
 pub fn test_markt() {
-    track_parse(&mut None, "** Markt Graz **", parse_markt)
+    span_parsex(&mut None, "** Markt Graz **", parse_markt)
         .ok_any()
         .q(R);
-    track_parse(&mut None, " ** Markt Graz ** ", parse_markt)
+    span_parsex(&mut None, " ** Markt Graz ** ", parse_markt)
         .err_any()
         .q(R);
-    track_parse(&mut None, "Markt Graz ", parse_markt)
+    span_parsex(&mut None, "Markt Graz ", parse_markt)
         .ok_any()
         .rest("")
         .q(R);
@@ -82,46 +78,46 @@ pub fn test_markt() {
 
 #[test]
 pub fn test_kultur() {
-    track_parse(&mut None, "Salat: 1 GKH\n", parse_kultur)
+    span_parsex(&mut None, "Salat: 1 GKH\n", parse_kultur)
         .ok_any()
         .q(R);
-    track_parse(&mut None, " Salat : 1 GKH \n", parse_kultur)
+    span_parsex(&mut None, " Salat : 1 GKH \n", parse_kultur)
         .ok_any()
         .q(R);
-    track_parse(&mut None, "Salat : \n", parse_kultur)
+    span_parsex(&mut None, "Salat : \n", parse_kultur)
         .err_any()
         .q(R);
-    track_parse(&mut None, "Salat  \n", parse_kultur)
+    span_parsex(&mut None, "Salat  \n", parse_kultur)
         .ok_any()
         .q(R);
 
-    track_parse(&mut None, ": 1 GKH\n", parse_kultur)
+    span_parsex(&mut None, ": 1 GKH\n", parse_kultur)
         .err(APCName)
         .q(R);
 
-    track_parse(&mut None, " : 1 GKH\n", parse_kultur)
+    span_parsex(&mut None, " : 1 GKH\n", parse_kultur)
         .ok_any()
         .q(R);
 }
 
 #[test]
 pub fn test_einheit() {
-    track_parse(&mut None, "(K)", parse_einheit).ok_any().q(R);
-    track_parse(&mut None, " (K)", parse_einheit)
+    span_parsex(&mut None, "(K)", parse_einheit).ok_any().q(R);
+    span_parsex(&mut None, " (K)", parse_einheit)
         .err(APCBracketOpen)
         .q(R);
-    track_parse(&mut None, "( K ) ", parse_einheit)
+    span_parsex(&mut None, "( K ) ", parse_einheit)
         .ok_any()
         .rest("")
         .q(R);
-    track_parse(&mut None, "K ) ", parse_einheit)
+    span_parsex(&mut None, "K ) ", parse_einheit)
         .err_any()
         .err(APCBracketOpen)
         .q(R);
-    track_parse(&mut None, "( ) ", parse_einheit)
+    span_parsex(&mut None, "( ) ", parse_einheit)
         .err(APCName)
         .q(R);
-    track_parse(&mut None, "( K ", parse_einheit)
+    span_parsex(&mut None, "( K ", parse_einheit)
         .err_any()
         .err(APCBracketClose)
         .q(R);
@@ -129,7 +125,7 @@ pub fn test_einheit() {
 
 #[test]
 pub fn test_sorten() {
-    track_parse(
+    span_parsex(
         &mut None,
         "25 Treviso, 15 Castel Franco, 10 Di Luisa\n",
         parse_sorten,
@@ -137,7 +133,7 @@ pub fn test_sorten() {
     .ok_any()
     .q(R);
 
-    track_parse(
+    span_parsex(
         &mut None,
         "25 Treviso, 15 Castel Franco, \n    10 Di Luisa",
         parse_sorten,
@@ -145,7 +141,7 @@ pub fn test_sorten() {
     .err_any()
     .q(R);
 
-    track_parse(
+    span_parsex(
         &mut None,
         "25 Treviso, 15 Castel Franco, \n    10 Di Luisa\n",
         parse_sorten,
@@ -153,7 +149,7 @@ pub fn test_sorten() {
     .ok_any()
     .q(R);
 
-    track_parse(
+    span_parsex(
         &mut None,
         "25 Treviso, 15 Castel Franco, # Kommentar \n 10 Di Luisa",
         parse_sorten,
@@ -162,7 +158,7 @@ pub fn test_sorten() {
     .err(APCMenge)
     .q(R);
 
-    track_parse(
+    span_parsex(
         &mut None,
         "25 Treviso, 15 Castel Franco, \n 10 Di Luisa # Kommentar \n",
         parse_sorten,
@@ -170,7 +166,7 @@ pub fn test_sorten() {
     .ok_any()
     .q(R);
 
-    track_parse(&mut None, "25 Treviso, 15 Castel Franco, ", parse_sorten)
+    span_parsex(&mut None, "25 Treviso, 15 Castel Franco, ", parse_sorten)
         .err_any()
         .err(APCMenge)
         .q(R);
@@ -178,21 +174,21 @@ pub fn test_sorten() {
 
 #[test]
 pub fn test_sorte() {
-    track_parse(&mut None, "25 Treviso", parse_sorte)
+    span_parsex(&mut None, "25 Treviso", parse_sorte)
         .ok_any()
         .q(R);
-    track_parse(&mut None, "25 Treviso ", parse_sorte)
+    span_parsex(&mut None, "25 Treviso ", parse_sorte)
         .ok_any()
         .rest("")
         .q(R);
-    track_parse(&mut None, " 25 Treviso, ", parse_sorte)
+    span_parsex(&mut None, " 25 Treviso, ", parse_sorte)
         .err(APCMenge)
         .q(R);
-    track_parse(&mut None, "25 ", parse_sorte).err(APCName).q(R);
-    track_parse(&mut None, "25 Rouge huif d'Etampes", parse_sorte)
+    span_parsex(&mut None, "25 ", parse_sorte).err(APCName).q(R);
+    span_parsex(&mut None, "25 Rouge huif d'Etampes", parse_sorte)
         .ok_any()
         .q(R);
-    track_parse(&mut None, "25 Rouge huif d'Etampes   ", parse_sorte)
+    span_parsex(&mut None, "25 Rouge huif d'Etampes   ", parse_sorte)
         .ok_any()
         .q(R);
 }
@@ -203,12 +199,12 @@ pub fn test_name() {
         *name.span == val
     }
 
-    track_parse(&mut None, "ab cd  ", token_name).ok_any().q(RT);
-    track_parse(&mut None, " ab cd  ", token_name)
+    span_parsex(&mut None, "ab cd  ", token_name).ok_any().q(RT);
+    span_parsex(&mut None, " ab cd  ", token_name)
         .ok_any()
         .ok(tok, " ab cd")
         .q(RT);
-    track_parse(&mut None, "ab cd  ", token_name)
+    span_parsex(&mut None, "ab cd  ", token_name)
         .ok_any()
         .rest("")
         .q(RT);
@@ -216,16 +212,16 @@ pub fn test_name() {
 
 #[test]
 pub fn test_name_kurz() {
-    track_parse(&mut None, "abc", token_name_kurz)
+    span_parsex(&mut None, "abc", token_name_kurz)
         .ok_any()
         .q(RT);
-    track_parse(&mut None, " abc ", token_name_kurz)
+    span_parsex(&mut None, " abc ", token_name_kurz)
         .err(APCNameKurz)
         .q(RT);
-    track_parse(&mut None, "abc\'+-²/_.", token_name_kurz)
+    span_parsex(&mut None, "abc\'+-²/_.", token_name_kurz)
         .ok_any()
         .q(RT);
-    track_parse(&mut None, "abc ", token_name_kurz)
+    span_parsex(&mut None, "abc ", token_name_kurz)
         .ok_any()
         .rest("")
         .q(RT);
@@ -233,77 +229,78 @@ pub fn test_name_kurz() {
 
 #[test]
 pub fn test_nummer() {
-    track_parse(&mut None, "1234", token_nummer).ok_any().q(RT);
-    track_parse(&mut None, " 1234 ", token_nummer)
+    span_parsex(&mut None, "1234", token_nummer).ok_any().q(RT);
+    span_parsex(&mut None, " 1234 ", token_nummer)
         .err(APCNummer)
         .q(RT);
-    track_parse(&mut None, "1234 ", token_nummer)
+    span_parsex(&mut None, "1234 ", token_nummer)
         .ok_any()
         .rest("")
         .q(RT);
-    track_parse(&mut None, "X", token_nummer)
+    span_parsex(&mut None, "X", token_nummer)
         .err(APCNummer)
         .q(RT);
 }
 
 #[test]
 pub fn test_menge() {
-    track_parse(&mut None, "1234", token_menge).ok_any().q(RT);
-    track_parse(&mut None, "1234", token_menge)
+    span_parsex(&mut None, "1234", token_menge).ok_any().q(RT);
+    span_parsex(&mut None, "1234", token_menge)
         .ok(|v: &APMenge<'_>, w: i32| v.menge == w, 1234i32)
         .q(RT);
-    track_parse(&mut None, " 1234 ", token_menge)
+    span_parsex(&mut None, " 1234 ", token_menge)
         .err(APCMenge)
         .q(RT);
-    track_parse(&mut None, "1234 ", token_menge)
+    span_parsex(&mut None, "1234 ", token_menge)
         .ok_any()
         .rest("")
         .q(RT);
-    track_parse(&mut None, "X", token_menge).err(APCMenge).q(RT);
+    span_parsex(&mut None, "X", token_menge).err(APCMenge).q(RT);
 }
 
 #[test]
 pub fn test_date() {
-    track_parse(&mut None, "28.2.2023", token_datum)
+    span_parsex(&mut None, "28.2.2023", token_datum)
         .ok_any()
         .q(RT);
-    track_parse(&mut None, " 28.2.2023 ", token_datum)
+    span_parsex(&mut None, " 28.2.2023 ", token_datum)
         .err(APCDay)
         .q(RT);
-    track_parse(&mut None, "28.2.2023 ", token_datum)
+    span_parsex(&mut None, "28.2.2023 ", token_datum)
         .ok_any()
         .rest("")
         .q(RT);
-    track_parse(&mut None, " 28. 2. 2023 ", token_datum)
+    span_parsex(&mut None, " 28. 2. 2023 ", token_datum)
         .err(APCDay)
         .q(RT);
-    track_parse(&mut None, "X", token_datum).err(APCDay).q(RT);
-    track_parse(&mut None, "2.2023", token_datum)
+    span_parsex(&mut None, "X", token_datum).err(APCDay).q(RT);
+    span_parsex(&mut None, "2.2023", token_datum)
         .err(APCDot)
         .q(RT);
-    track_parse(&mut None, "2023", token_datum)
+    span_parsex(&mut None, "2023", token_datum)
         .err(APCDot)
         .q(RT);
-    track_parse(&mut None, "28.2.", token_datum)
+    span_parsex(&mut None, "28.2.", token_datum)
         .err(APCYear)
         .q(RT);
-    track_parse(&mut None, "28.2", token_datum)
+    span_parsex(&mut None, "28.2", token_datum)
         .err(APCDot)
         .q(RT);
-    track_parse(&mut None, "28.", token_datum)
+    span_parsex(&mut None, "28.", token_datum)
         .err(APCMonth)
         .q(RT);
-    track_parse(&mut None, "28", token_datum).err(APCDot).q(RT);
+    span_parsex(&mut None, "28", token_datum).err(APCDot).q(RT);
 }
 
 mod planung4 {
+    use nom_locate::LocatedSpan;
     use std::fmt::{Display, Formatter};
 
     pub use diagnostics::{
         dump_diagnostics as dump_diagnostics_v4, dump_diagnostics_info as dump_diagnostics_info_v4,
         dump_trace as dump_trace_v4,
     };
-    use kparse::tracker::{TrackResult, TrackSpan};
+    use kparse::tracker::TrackResult;
     use kparse::{Code, ParserError};
 
     #[allow(clippy::enum_variant_names)]
@@ -407,7 +404,8 @@ mod planung4 {
         }
     }
 
-    pub type APSpan<'s> = TrackSpan<'s, APCode, &'s str>;
+    // pub type APSpan<'s> = TrackSpan<'s, APCode, &'s str>;
+    pub type APSpan<'s> = LocatedSpan<&'s str, ()>;
     pub type APParserError<'s> = ParserError<APCode, APSpan<'s>, ()>;
     pub type APParserResult<'s, O> = TrackResult<APCode, APSpan<'s>, O, ()>;
     pub type APNomResult<'s> = TrackResult<APCode, APSpan<'s>, APSpan<'s>, ()>;
@@ -416,8 +414,7 @@ mod planung4 {
         use crate::planung4::{APCode, APParserError, APSpan};
         use kparse::spans::SpanLines;
         use kparse::test::{Report, Test};
-        use kparse::tracker::{StdTracker, Tracks};
-        use kparse::Code;
+        use kparse::tracker::Tracks;
         use nom_locate::LocatedSpan;
         use std::ffi::OsStr;
         use std::fmt::Debug;
@@ -433,17 +430,12 @@ mod planung4 {
         #[derive(Clone, Copy)]
         pub struct ReportDiagnostics;
 
-        impl<'s, C, O> Report<Test<'s, StdTracker<C, &'s str>, APSpan<'s>, O, APParserError<'_>>>
-            for ReportDiagnostics
+        impl<'s, P, O> Report<Test<'s, P, APSpan<'s>, O, APParserError<'s>>> for ReportDiagnostics
         where
-            C: Code,
             O: Debug,
         {
             #[track_caller]
-            fn report(
-                &self,
-                test: &Test<'s, StdTracker<C, &'s str>, APSpan<'s>, O, APParserError<'_>>,
-            ) {
+            fn report(&self, test: &Test<'s, P, APSpan<'s>, O, APParserError<'s>>) {
                 if test.failed.get() {
                     match &test.result {
                         Ok(_v) => {}
@@ -460,9 +452,9 @@ mod planung4 {
         /// Write some diagnostics.
         #[allow(clippy::collapsible_else_if)]
         #[allow(clippy::collapsible_if)]
-        pub fn dump_diagnostics<X: Copy>(
+        pub fn dump_diagnostics(
             src: &Path,
-            orig: LocatedSpan<&str, X>,
+            orig: APSpan<'_>,
             err: &APParserError<'_>,
             msg: &str,
             is_err: bool,
@@ -1713,7 +1705,6 @@ mod planung4 {
         use chrono::NaiveDate;
         use kparse::combinators::transform;
         use kparse::prelude::*;
-        use kparse::tracker::TrackSpan;
         use kparse::ParserError;
         use nom::combinator::recognize;
         use nom::sequence::tuple;
@@ -1778,11 +1769,7 @@ mod planung4 {
         }
 
         impl<'s> WithSpan<APCode, APSpan<'s>, APParserError<'s>> for chrono::ParseError {
-            fn with_span(
-                self,
-                code: APCode,
-                span: TrackSpan<'s, APCode, &'s str>,
-            ) -> nom::Err<APParserError<'s>> {
+            fn with_span(self, code: APCode, span: APSpan<'s>) -> nom::Err<APParserError<'s>> {
                 nom::Err::Failure(ParserError::new(code, span))
             }
         }

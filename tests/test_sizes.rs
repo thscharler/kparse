@@ -59,6 +59,7 @@ fn test_size2() {
     dbg!(size_of::<ZCode>());
     dbg!(size_of::<TrackSpan<'_, ZCode, &str>>());
 
+    dbg!(size_of::<nom::error::Error<&str>>());
     dbg!(size_of::<ParserError<ZCode, &str, ()>>());
     dbg!(size_of::<Vec<Hints<ZCode, &str, ()>>>());
 

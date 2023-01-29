@@ -10,13 +10,15 @@ use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
 
 // pub use debug::*;
-use kparse::test::{span_parse, CheckDump};
+use kparse::test::{span_parsex, CheckDump};
 use kparse::{Code, ParserError};
 pub use parser::*;
 
 #[test]
 fn test_plumap() {
-    span_parse("1 -> 2\n", parse_plumap).ok_any().q(CheckDump);
+    span_parsex(&mut None, "1 -> 2\n", parse_plumap)
+        .ok_any()
+        .q(CheckDump);
 }
 
 /// Parser Codes

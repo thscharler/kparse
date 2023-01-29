@@ -244,11 +244,6 @@ Tracking only works if a TrackSpan is used in the parser.
 If the type alias points to a &str, a &[u8] or any LocatedSpan<T, ()>
 everything still works, just without tracking.
 
-
-
-
-
-
 ## Getting the tracking data
 
 The call to StdTracker::results() returns the tracking data.
@@ -342,3 +337,13 @@ find the text lines surrounding any given span returned by the error.
 
 SpanBytes does the same with &[u8]. 
 
+
+# Performance 
+
+Expect some overhead when tracking is enabled. 
+When disabled with a different Span type the calls to Context etc boil down
+to no-ops, so there should be no difference to a equivalent nom-only parser.
+
+The size of ParserError is a bit larger than nom::error::Error, the difference
+is the size of the Vec used to store all the extra data. That still amounts
+only to 48 bytes on x64, so it's not too worrisome.

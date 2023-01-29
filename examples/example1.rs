@@ -2,7 +2,9 @@
 
 use kparse::combinators::transform;
 use kparse::prelude::*;
-use kparse::tracker::{StdTracker, TrackResult, TrackSpan};
+use kparse::tracker::TrackResult;
+#[cfg(debug_assertions)]
+use kparse::tracker::{StdTracker, TrackSpan};
 use kparse::{Code, Context, ParserError};
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;

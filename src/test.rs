@@ -116,6 +116,8 @@ impl Code for NoCode {
     const NOM_ERROR: Self = NoCode;
 }
 
+// -----------------------------------------------------------------------
+
 /// Runs a parser for LocatedSpan and records the results.
 /// Use ok(), err(), ... to check specifics.
 /// Finish the test with q().
@@ -162,6 +164,35 @@ where
 #[must_use]
 #[cfg(not(debug_assertions))]
 pub fn span_parse<'s, T, O, E>(
+    _buf: &'s mut Option<StdTracker<NoCode, &'s str>>,
+    text: T,
+    fn_test: impl Fn(LocatedSpan<T, ()>) -> Result<(LocatedSpan<T, ()>, O), nom::Err<E>>,
+) -> Test<'s, (), LocatedSpan<T, ()>, O, E>
+where
+    T: AsBytes + Copy + 's,
+{
+    let span = LocatedSpan::new(text);
+
+    let now = Instant::now();
+    let result = fn_test(span);
+    let duration = now.elapsed();
+
+    Test {
+        span,
+        context: &(),
+        result,
+        duration,
+        failed: Cell::new(false),
+    }
+}
+
+/// Runs a parser for LocatedSpan and records the results.
+/// Use ok(), err(), ... to check specifics.
+/// Finish the test with q().
+///
+/// This method does the same in debug and release builds.
+#[must_use]
+pub fn span_parsex<'s, T, O, E>(
     _buf: &'s mut Option<StdTracker<NoCode, &'s str>>,
     text: T,
     fn_test: impl Fn(LocatedSpan<T, ()>) -> Result<(LocatedSpan<T, ()>, O), nom::Err<E>>,
@@ -246,6 +277,30 @@ pub fn str_parse<'s, O, E>(
     }
 }
 
+/// Runs a parser for &str and records the results.
+/// Use ok(), err(), ... to check specifics.
+/// Finish the test with q().
+///
+/// This method does the same in debug and release builds.
+#[must_use]
+pub fn str_parsex<'s, O, E>(
+    _buf: &'s mut Option<StdTracker<NoCode, &'s str>>,
+    text: &'s str,
+    fn_test: impl Fn(&'s str) -> Result<(&'s str, O), nom::Err<E>>,
+) -> Test<'s, (), &'s str, O, E> {
+    let now = Instant::now();
+    let result = fn_test(text);
+    let duration = now.elapsed();
+
+    Test {
+        span: text,
+        context: &(),
+        result,
+        duration,
+        failed: Cell::new(false),
+    }
+}
+
 /// Runs a parser for &[u8] and records the results.
 /// Use ok(), err(), ... to check specifics.
 /// Finish the test with q().
@@ -307,6 +362,32 @@ pub fn byte_parse<'s, O, E>(
         failed: Cell::new(false),
     }
 }
+
+/// Runs a parser for &[u8] and records the results.
+/// Use ok(), err(), ... to check specifics.
+/// Finish the test with q().
+///
+/// This method does the same in debug and release builds.
+#[must_use]
+pub fn byte_parsex<'s, O, E>(
+    _buf: &'s mut Option<StdTracker<NoCode, &'s [u8]>>,
+    text: &'s [u8],
+    fn_test: impl Fn(&'s [u8]) -> Result<(&'s [u8], O), nom::Err<E>>,
+) -> Test<'s, (), &'s [u8], O, E> {
+    let now = Instant::now();
+    let result = fn_test(text);
+    let duration = now.elapsed();
+
+    Test {
+        span: text,
+        context: &(),
+        result,
+        duration,
+        failed: Cell::new(false),
+    }
+}
+
+// -----------------------------------------------------------------------
 
 impl<'s, P, I, O, E> Test<'s, P, I, O, E>
 where
