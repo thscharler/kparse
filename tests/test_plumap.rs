@@ -221,7 +221,7 @@ mod debug {
             }
         }
 
-        for n in err.nom() {
+        if let Some(n) = err.nom() {
             println!(
                 "Parser-Details: {:?} {}:{}:\"{}\"",
                 n.kind,

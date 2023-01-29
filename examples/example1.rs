@@ -1,319 +1,363 @@
 #![allow(dead_code)]
 
-use crate::ICode::*;
 use kparse::combinators::transform;
 use kparse::prelude::*;
-use kparse::test::{track_parse, Trace};
 use kparse::tracker::{StdTracker, TrackResult, TrackSpan};
 use kparse::{Code, Context, ParserError};
-use nom::bytes::complete::{tag, tag_no_case};
-use nom::character::complete::{char as nchar, digit1};
-use nom::combinator::{consumed, opt, recognize};
+use nom::bytes::complete::tag;
+use nom::character::complete::digit1;
+use nom::combinator::{consumed, opt};
+use nom::multi::many0;
 use nom::sequence::{terminated, tuple};
-use nom::{AsChar, InputTake, InputTakeAtPosition};
+use nom::{AsChar, InputTakeAtPosition};
+use std::env;
 use std::fmt::{Display, Formatter};
 
+//
+// example parser
+//
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ICode {
-    ICNomError,
+pub enum ECode {
+    ENomError,
 
-    ICTerminalA,
-    ICTerminalB,
-    ICTerminalC,
-    ICTerminalD,
-    ICNonTerminal1,
-    ICNonTerminal2,
-    ICNonTerminal3,
-    ICInteger,
-    ICNummer,
+    ETagA,
+    ETagB,
+    ENumber,
+
+    EAthenB,
+    EAoptB,
+    EAstarB,
+    EABstar,
+    EAorB,
+    EABNum,
 }
 
-impl Code for ICode {
-    const NOM_ERROR: Self = ICNomError;
-}
+pub use ECode::*;
 
-impl Display for ICode {
+impl Display for ECode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            ICNomError => "NomError",
-            ICTerminalA => "TerminalA",
-            ICInteger => "Int",
-            ICTerminalB => "TerminalB",
-            ICNonTerminal1 => "NonTerminal1",
-            ICNonTerminal2 => "NonTerminal2",
-            ICNonTerminal3 => "NonTerminal3",
-            ICTerminalC => "TerminalC",
-            ICTerminalD => "TerminalD",
-            ICNummer => "Nummer",
-        };
-        write!(f, "{}", name)
+        write!(
+            f,
+            "{}",
+            match self {
+                ENomError => "nom",
+                ETagA => "a",
+                ETagB => "b",
+                ENumber => "number",
+                EAthenB => "A B",
+                EAoptB => "A? B",
+                EAstarB => "A* B",
+                EABstar => "(A | B)*",
+                EAorB => "A | B",
+                EABNum => "A B Number",
+            }
+        )
     }
 }
 
-pub type ISpan<'s> = TrackSpan<'s, ICode, &'s str>;
-pub type IParserResult<'s, O> = TrackResult<ICode, ISpan<'s>, O, ()>;
-pub type INomResult<'s> = TrackResult<ICode, ISpan<'s>, ISpan<'s>, ()>;
-pub type IParserError<'s> = ParserError<ICode, ISpan<'s>, ()>;
-
-#[derive(Debug)]
-pub struct TerminalA<'s> {
-    pub term: String,
-    pub span: ISpan<'s>,
+impl Code for ECode {
+    const NOM_ERROR: Self = Self::ENomError;
 }
 
+pub type ESpan<'s> = TrackSpan<'s, ECode, &'s str>;
+pub type EResult<'s, O> = TrackResult<ECode, ESpan<'s>, O, ()>;
+pub type ENomResult<'s> = TrackResult<ECode, ESpan<'s>, ESpan<'s>, ()>;
+pub type EParserError<'s> = ParserError<ECode, ESpan<'s>, ()>;
+
 #[derive(Debug)]
-pub struct TerminalB<'s> {
-    pub term: String,
-    pub span: ISpan<'s>,
+struct AstA<'s> {
+    pub span: ESpan<'s>,
 }
 
 #[derive(Debug)]
-pub struct TerminalC<'s> {
-    pub term: u32,
-    pub span: ISpan<'s>,
+struct AstB<'s> {
+    pub span: ESpan<'s>,
 }
 
 #[derive(Debug)]
-pub struct TerminalD<'s> {
-    pub term: INummer<'s>,
-    pub span: ISpan<'s>,
+struct AstAthenB<'s> {
+    pub a: AstA<'s>,
+    pub b: AstB<'s>,
 }
 
 #[derive(Debug)]
-pub struct NonTerminal1<'s> {
-    pub a: TerminalA<'s>,
-    pub b: TerminalB<'s>,
-    pub span: ISpan<'s>,
+struct AstAoptB<'s> {
+    pub a: Option<AstA<'s>>,
+    pub b: AstB<'s>,
 }
 
 #[derive(Debug)]
-pub struct NonTerminal2<'s> {
-    pub a: Option<TerminalA<'s>>,
-    pub b: TerminalB<'s>,
-    pub c: TerminalC<'s>,
-    pub span: ISpan<'s>,
+struct AstAstarB<'s> {
+    pub a: Vec<AstA<'s>>,
+    pub b: AstB<'s>,
 }
 
 #[derive(Debug)]
-pub struct INummer<'s> {
-    pub nummer: u32,
-    pub span: ISpan<'s>,
+struct AstABstar<'s> {
+    pub a: Vec<AstA<'s>>,
+    pub b: Vec<AstB<'s>>,
 }
 
-pub fn nom_parse_a(i: ISpan<'_>) -> INomResult<'_> {
-    tag("A")(i)
+#[derive(Debug)]
+struct AstAorB<'s> {
+    pub a: Option<AstA<'s>>,
+    pub b: Option<AstB<'s>>,
 }
 
-pub fn nom_parse_b(i: ISpan<'_>) -> INomResult<'_> {
-    tag("B")(i)
+#[derive(Debug)]
+struct AstABNum<'s> {
+    pub a: Option<AstA<'s>>,
+    pub b: Option<AstB<'s>>,
+    pub num: AstNumber<'s>,
 }
 
-pub fn nom_parse_c(i: ISpan<'_>) -> INomResult<'_> {
+#[derive(Debug)]
+struct AstNumber<'s> {
+    pub number: u32,
+    pub span: ESpan<'s>,
+}
+
+fn nom_parse_a(i: ESpan<'_>) -> ENomResult<'_> {
+    tag("a")(i)
+}
+
+fn nom_parse_b(i: ESpan<'_>) -> ENomResult<'_> {
+    tag("b")(i)
+}
+
+fn nom_digits(i: ESpan<'_>) -> ENomResult<'_> {
     digit1(i)
 }
 
-pub fn parse_a(rest: ISpan<'_>) -> IParserResult<'_, TerminalA> {
-    match nom_parse_a(rest) {
-        Ok((rest, token)) => Ok((
-            rest,
-            TerminalA {
-                term: token.to_string(),
-                span: token,
-            },
-        )),
-        Err(nom::Err::Error(e)) if e.is_error_kind(nom::error::ErrorKind::Tag) => {
-            Err(nom::Err::Error(e.with_code(ICTerminalA)))
-        }
-        Err(e) => Err(e.into()),
-    }
-}
-
-pub fn nom_star_star(i: ISpan<'_>) -> INomResult<'_> {
-    terminated(recognize(tuple((nchar('*'), nchar('*')))), nom_ws)(i)
-}
-
-pub fn nom_tag_kdnr(i: ISpan<'_>) -> INomResult<'_> {
-    terminated(recognize(tag_no_case("kdnr")), nom_ws)(i)
-}
-
-pub fn nom_ws(i: ISpan<'_>) -> INomResult<'_> {
+fn nom_ws(i: ESpan<'_>) -> ENomResult<'_> {
     i.split_at_position_complete(|item| {
         let c = item.as_char();
         !(c == ' ' || c == '\t')
     })
 }
 
-pub fn nom_number(i: ISpan<'_>) -> INomResult<'_> {
-    terminated(digit1, nom_ws)(i)
+fn nom_number(i: ESpan<'_>) -> EResult<'_, (ESpan<'_>, u32)> {
+    consumed(transform(
+        terminated(digit1, nom_ws),
+        |v| (*v).parse::<u32>(),
+        ENumber,
+    ))(i)
 }
 
-pub fn token_nummer(rest: ISpan<'_>) -> IParserResult<'_, INummer<'_>> {
-    match nom_number(rest) {
-        Ok((rest, tok)) => Ok((
+fn token_number(i: ESpan<'_>) -> EResult<'_, AstNumber<'_>> {
+    match nom_number(i) {
+        Ok((rest, (tok, val))) => Ok((
             rest,
-            INummer {
-                nummer: tok.parse::<u32>().with_span(ICNummer, rest)?,
+            AstNumber {
+                number: val,
                 span: tok,
             },
         )),
-        Err(e) => Err(e.with_code(ICNummer)),
+        Err(e) => Err(e.with_code(ENumber)),
     }
 }
 
-fn parse_terminal_a(rest: ISpan<'_>) -> IParserResult<'_, TerminalA<'_>> {
-    Context.enter(ICTerminalA, rest);
-
-    let (rest, token) = match parse_a(rest) {
-        Ok((rest, token)) => (rest, token),
-        Err(e) => return Context.err(e),
-    };
-
-    Context.ok(rest, token.span, token)
+fn parse_a(input: ESpan<'_>) -> EResult<'_, AstA> {
+    Context.enter(ETagA, input);
+    let (rest, tok) = nom_parse_a(input).track()?;
+    Context.ok(rest, tok, AstA { span: tok })
 }
 
-fn parse_terminal_a2(rest: ISpan<'_>) -> IParserResult<'_, TerminalA<'_>> {
-    Context.enter(ICTerminalA, rest);
-
-    let (rest, token) = parse_a(rest).track()?;
-
-    Context.ok(rest, token.span, token)
+fn parse_b(input: ESpan<'_>) -> EResult<'_, AstB> {
+    Context.enter(ETagB, input);
+    let (rest, tok) = nom_parse_b(input).track()?;
+    Context.ok(rest, tok, AstB { span: tok })
 }
 
-fn parse_terminal_b(rest: ISpan<'_>) -> IParserResult<'_, TerminalB<'_>> {
-    Context.enter(ICTerminalB, rest);
+// := a b
+fn parse_ab(input: ESpan<'_>) -> EResult<'_, AstAthenB> {
+    Context.enter(EAthenB, input);
 
-    let (rest, token) = nom_parse_b(rest).track()?;
+    let rest = input;
 
-    Context.ok(
-        rest,
-        token,
-        TerminalB {
-            term: token.to_string(),
-            span: token,
-        },
-    )
-}
-
-fn parse_terminal_c(rest: ISpan<'_>) -> IParserResult<'_, TerminalC<'_>> {
-    Context.enter(ICTerminalC, rest);
-
-    let (rest, (tok, v)) =
-        consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
-
-    Context.ok(rest, tok, TerminalC { term: v, span: tok })
-}
-
-fn parse_terminal_d(input: ISpan<'_>) -> IParserResult<'_, TerminalD<'_>> {
-    Context.enter(ICTerminalD, input);
-
-    let (rest, _) = opt(nom_star_star)(input).track()?;
-    let (rest, tag) = nom_tag_kdnr(rest).track()?;
-    let (rest, term) = token_nummer(rest).track()?;
-    let (rest, _) = opt(nom_star_star)(rest).track()?;
-
-    let span = input.span_union(&tag, &term.span);
-    Context.ok(rest, span, TerminalD { term, span })
-}
-
-fn parse_non_terminal1(input: ISpan<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
-    Context.enter(ICNonTerminal1, input);
-
-    let (rest, a) = parse_terminal_a(input).track()?;
-    let (rest, b) = parse_terminal_b(rest).track()?;
+    let (rest, a) = parse_a(rest).track()?;
+    let (rest, b) = parse_b(rest).track()?;
 
     let span = input.span_union(&a.span, &b.span);
 
-    Context.ok(rest, span, NonTerminal1 { a, b, span })
+    Context.ok(rest, span, AstAthenB { a, b })
 }
 
-fn parse_non_terminal1_1(rest: ISpan<'_>) -> IParserResult<'_, NonTerminal1<'_>> {
-    Context.enter(ICNonTerminal1, rest);
-
-    let (rest, (token, (a, b))) =
-        consumed(tuple((parse_terminal_a, parse_terminal_b)))(rest).track()?;
-
-    Context.ok(rest, token, NonTerminal1 { a, b, span: token })
+// := a b
+fn parse_ab_v2(input: ESpan<'_>) -> EResult<'_, AstAthenB> {
+    Context.enter(EAthenB, input);
+    let (rest, (span, (a, b))) = consumed(tuple((parse_a, parse_b)))(input).track()?;
+    Context.ok(rest, span, AstAthenB { a, b })
 }
 
-fn parse_non_terminal_2(input: ISpan<'_>) -> IParserResult<'_, NonTerminal2<'_>> {
-    Context.enter(ICNonTerminal1, input);
+// := a? b
+fn parse_a_opt_b(input: ESpan<'_>) -> EResult<'_, AstAoptB> {
+    Context.enter(EAoptB, input);
+    let (rest, (span, val)) = consumed(tuple((opt(parse_a), parse_b)))(input).track()?;
+    Context.ok(rest, span, AstAoptB { a: val.0, b: val.1 })
+}
 
-    let (rest, a) = opt(parse_terminal_a)(input).track()?;
-    let (rest, b) = parse_terminal_b(rest).track()?;
-    let (rest, c) = parse_terminal_c(rest).track()?;
+// := a* b
+fn parse_a_star_b(input: ESpan<'_>) -> EResult<'_, AstAstarB> {
+    Context.enter(EAstarB, input);
+    let (rest, (span, val)) = consumed(tuple((many0(parse_a), parse_b)))(input).track()?;
+    Context.ok(rest, span, AstAstarB { a: val.0, b: val.1 })
+}
 
-    let span = if let Some(a) = &a {
-        input.span_union(&a.span, &c.span)
-    } else {
-        c.span
+// := ( a | b )*
+fn parse_a_b_star(input: ESpan<'_>) -> EResult<'_, AstABstar> {
+    Context.enter(EABstar, input);
+
+    let mut loop_rest = input;
+    let mut res = AstABstar {
+        a: vec![],
+        b: vec![],
     };
-
-    Context.ok(rest, span, NonTerminal2 { a, b, c, span })
-}
-
-fn parse_non_terminal_3(rest: ISpan<'_>) -> IParserResult<'_, ()> {
-    Context.enter(ICNonTerminal3, rest);
-
-    let mut loop_rest = rest;
     let mut err = None;
+
     loop {
         let rest2 = loop_rest;
-        let (rest2, _a) = opt(parse_terminal_a)(rest2).track()?;
-        let (rest2, _b) = match parse_terminal_b(rest2) {
-            Ok((rest3, b)) => (rest3, Some(b)),
-            Err(e) => {
-                err.append(e)?;
-                (rest2, None)
+
+        let rest2 = match parse_a(rest2) {
+            Ok((rest3, a)) => {
+                res.a.push(a);
+                rest3
             }
+            Err(e) => match parse_b(rest2) {
+                Ok((rest3, b)) => {
+                    res.b.push(b);
+                    rest3
+                }
+                Err(e2) => {
+                    err.append(e)?;
+                    err.append(e2)?;
+                    rest2
+                }
+            },
         };
 
+        if let Some(err) = err {
+            return Context.err(err);
+        }
         if rest2.is_empty() {
             break;
-        }
-
-        // endless loop
-        if loop_rest == rest2 {
-            return Context.err(IParserError::new(ICNonTerminal3, rest2));
         }
 
         loop_rest = rest2;
     }
 
-    Context.ok(rest, rest.take(0), ())
+    Context.ok(loop_rest, input, res)
 }
 
-fn run_parser() {
-    let ctx: StdTracker<ICode, &str> = StdTracker::new();
-    let span = ctx.span("A");
+fn parse_a_or_b(input: ESpan<'_>) -> EResult<'_, AstAorB> {
+    Context.enter(EAorB, input);
 
-    let _r = parse_terminal_a(span);
+    let rest = input;
+
+    let (rest, a) = opt(parse_a)(rest).track()?;
+    let (rest, b) = if a.is_none() {
+        opt(parse_b)(input).track()?
+    } else {
+        (rest, None)
+    };
+
+    let span = if let Some(a) = &a {
+        a.span
+    } else if let Some(b) = &b {
+        b.span
+    } else {
+        return Context.err(EParserError::new(EAorB, input));
+    };
+
+    Context.ok(rest, span, AstAorB { a, b })
 }
 
-fn run_parser2() {
-    let ctx: StdTracker<ICode, &str> = StdTracker::new().tracking(false);
-    let span = ctx.span("A");
+fn parse_a_b_num(input: ESpan<'_>) -> EResult<'_, AstABNum> {
+    Context.enter(EABNum, input);
 
-    let _r = parse_terminal_a(span);
+    let rest = input;
+
+    let (rest, a) = opt(parse_a)(rest).track()?;
+    let (rest, b) = opt(parse_b)(rest).track()?;
+    let (rest, num) = token_number(rest).track()?;
+
+    let span = if let Some(a) = &a {
+        input.span_union(&a.span, &num.span)
+    } else if let Some(b) = &b {
+        input.span_union(&b.span, &num.span)
+    } else {
+        num.span
+    };
+
+    Context.ok(rest, span, AstABNum { a, b, num })
 }
 
 fn main() {
-    run_parser();
+    for txt in env::args() {
+        let trk = StdTracker::new();
+        let span = trk.span(txt.as_str());
 
-    // don't know if tests in examples are a thing. simulate.
-    test_terminal_a();
-    test_nonterminal2();
+        match parse_a_b_star(span) {
+            Ok(_) => {}
+            Err(_) => {}
+        }
+    }
 }
 
-const R: Trace = Trace;
+#[cfg(test)]
+mod tests {
+    use crate::*;
+    use kparse::test::{track_parse, CheckTrace};
 
-// #[test]
-pub fn test_terminal_a() {
-    track_parse(&mut None, "A", parse_terminal_a).okok().q(R);
-    track_parse(&mut None, "AA", parse_terminal_a).errerr().q(R);
-}
+    #[test]
+    #[should_panic]
+    fn test_1() {
+        track_parse(&mut None, "ab", parse_ab).okok().q(CheckTrace);
+        track_parse(&mut None, "ab", parse_ab_v2)
+            .okok()
+            .q(CheckTrace);
 
-pub fn test_nonterminal2() {
-    track_parse(&mut None, "AAA", parse_non_terminal_2)
-        .errerr()
-        .q(R);
+        track_parse(&mut None, "ab", parse_a_or_b)
+            .okok()
+            .q(CheckTrace);
+        track_parse(&mut None, "a", parse_a_or_b)
+            .okok()
+            .q(CheckTrace);
+        track_parse(&mut None, "b", parse_a_or_b)
+            .okok()
+            .q(CheckTrace);
+
+        track_parse(&mut None, "", parse_a_opt_b)
+            .errerr()
+            .q(CheckTrace);
+        track_parse(&mut None, "b", parse_a_opt_b)
+            .okok()
+            .rest("")
+            .q(CheckTrace);
+        track_parse(&mut None, "ab", parse_a_opt_b)
+            .okok()
+            .rest("")
+            .q(CheckTrace);
+        track_parse(&mut None, "bb", parse_a_opt_b)
+            .okok()
+            .rest("b")
+            .q(CheckTrace);
+        track_parse(&mut None, "aab", parse_a_opt_b)
+            .errerr()
+            .q(CheckTrace);
+        track_parse(&mut None, "aab", parse_a_opt_b)
+            .errerr()
+            .q(CheckTrace);
+
+        track_parse(&mut None, "aab", parse_a_star_b)
+            .okok()
+            .q(CheckTrace);
+
+        track_parse(&mut None, "aab", parse_a_b_star)
+            .okok()
+            .q(CheckTrace);
+        track_parse(&mut None, "aabc", parse_a_b_star)
+            .okok()
+            .q(CheckTrace);
+    }
 }

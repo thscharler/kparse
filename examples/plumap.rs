@@ -6,18 +6,19 @@
 //!
 
 use chrono::NaiveDate;
-use nom_locate::LocatedSpan;
 use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
 
-use kparse::test::{span_parse, CheckDump};
+use kparse::test::{track_parse, CheckDump};
 use kparse::tracker::{TrackResult, TrackSpan};
 use kparse::{Code, ParserError};
 pub use parser::*;
 
 fn main() {
     // call into test framework
-    span_parse("1 -> 2\n", parse_plumap).okok().q(CheckDump);
+    track_parse(&mut None, "1 -> 2\n", parse_plumap)
+        .okok()
+        .q(CheckDump);
 }
 
 /// Parser Codes
@@ -216,7 +217,7 @@ mod debug {
             }
         }
 
-        for n in err.nom() {
+        if let Some(n) = err.nom() {
             println!(
                 "parser details: {:?} {}:{}:\"{}\"",
                 n.kind,
@@ -355,10 +356,8 @@ mod token {
     use crate::nom_parser::{nom_float, nom_minus, nom_number};
     use crate::PLUCode::*;
     use crate::{PDate, PFactor, PLUCode, PLUParserError, PLUParserResult, PNumber, PSpan};
-    use kparse::combinators::transform;
     use kparse::prelude::*;
     use kparse::ParserError;
-    use rust_decimal::Decimal;
 
     // convert external error
     impl<'s> WithSpan<PLUCode, PSpan<'s>, PLUParserError<'s>> for rust_decimal::Error {
@@ -421,7 +420,7 @@ mod nom_parser {
     use nom::branch::alt;
     use nom::bytes::complete::{tag, take_till, take_while1};
     use nom::character::complete::{char as nchar, digit1, one_of};
-    use nom::combinator::{opt, recognize};
+    use nom::combinator::{consumed, opt, recognize};
     use nom::multi::many1;
     use nom::sequence::{terminated, tuple};
     use nom::InputTake;
@@ -441,7 +440,7 @@ mod nom_parser {
 
     /// numeric value.
     pub fn nom_float(input: PSpan<'_>) -> PLUParserResult<'_, (PSpan<'_>, Decimal)> {
-        transform(
+        consumed(transform(
             terminated(
                 alt((
                     // Case one: .42
@@ -469,9 +468,9 @@ mod nom_parser {
                 )),
                 nom_ws,
             ),
-            |v| Ok((v, (*v).parse::<Decimal>()?)),
+            |v| (*v).parse::<Decimal>(),
             PLUFactor,
-        )(input)
+        ))(input)
     }
 
     /// sequence of digits.
@@ -484,11 +483,11 @@ mod nom_parser {
     }
 
     pub fn nom_number(i: PSpan<'_>) -> PLUParserResult<'_, (PSpan<'_>, u32)> {
-        transform(
+        consumed(transform(
             terminated(digit1, nom_ws),
-            |v| Ok((v, (*v).parse::<u32>()?)),
+            |v| (*v).parse::<u32>(),
             PLUNumber,
-        )(i)
+        ))(i)
     }
 
     pub fn nom_star_op(i: PSpan<'_>) -> PLUNomResult<'_> {

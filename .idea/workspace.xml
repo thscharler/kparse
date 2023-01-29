@@ -21,19 +21,13 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="Remove track boolean from StdTracker::new. Replace with setter+builder.">
-      <change afterPath="$PROJECT_DIR$/examples/example2.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/examples/plumap.rs" afterDir="false" />
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="rename examples">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/plan.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plan.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plumap.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser_cmds.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_cmds.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_sizes.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_sizes.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_plumap.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -117,7 +111,7 @@
       <command value="cargo tree" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Test test_1">
+  <component name="RunManager" selected="Cargo.Test tests::test_1">
     <configuration name="Build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="command" value="build" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -186,6 +180,23 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Run example1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="run --package kparse --example example1" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Run example2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="run --package kparse --example example2" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -220,23 +231,6 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test test_parser4" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_parser4 &quot;&quot;" />
-      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
-      <option name="channel" value="DEFAULT" />
-      <option name="requiredFeatures" value="true" />
-      <option name="allFeatures" value="false" />
-      <option name="emulateTerminal" value="false" />
-      <option name="withSudo" value="false" />
-      <option name="buildTarget" value="REMOTE" />
-      <option name="backtrace" value="SHORT" />
-      <envs />
-      <option name="isRedirectInput" value="false" />
-      <option name="redirectInputPath" value="" />
-      <method v="2">
-        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Test test_parser_cmds" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package kparse --test test_parser_cmds &quot;&quot;" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -254,8 +248,8 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Test tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --test test_plumap2 tests -- --exact" />
+    <configuration name="Test tests::test_1" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package kparse --example example1 tests::test_1 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -294,19 +288,19 @@
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Doc" />
+      <item itemvalue="Cargo.Run example1" />
       <item itemvalue="Cargo.Run example2" />
       <item itemvalue="Cargo.Test test_1" />
-      <item itemvalue="Cargo.Test test_parser4" />
+      <item itemvalue="Cargo.Test tests::test_1" />
       <item itemvalue="Cargo.Test test_parser_cmds" />
-      <item itemvalue="Cargo.Test tests" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Cargo.Test test_1" />
+        <item itemvalue="Cargo.Test tests::test_1" />
+        <item itemvalue="Cargo.Run example1" />
         <item itemvalue="Cargo.Run example2" />
+        <item itemvalue="Cargo.Test test_1" />
         <item itemvalue="Cargo.Test test_parser_cmds" />
-        <item itemvalue="Cargo.Test test_parser4" />
-        <item itemvalue="Cargo.Test tests" />
       </list>
     </recent_temporary>
   </component>
@@ -326,20 +320,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00042" summary="Pack the free functions from data_frame in the two new traits Fragment and BufferFragments. Makes them a bit nicer to use. Especially the str one eliminates a lot from_ut8_unchecked. &#10;&#10;Context uses this now. NoContext too.&#10;&#10;Dataframe got rid of the unsafe fn. Move delim from const type parameter to field. makes more sense. Use the new traits.">
-      <created>1674160096197</created>
-      <option name="number" value="00042" />
-      <option name="presentableId" value="LOCAL-00042" />
-      <option name="project" value="LOCAL" />
-      <updated>1674160096197</updated>
-    </task>
-    <task id="LOCAL-00043" summary="new impl for&#10;&#10;next_fragment, prev_fragment, subslice_offset.&#10;&#10;still not completely clear where the safe/unsafe boundary lies. &#10;&#10;need more tests &amp; reading.">
-      <created>1674248200930</created>
-      <option name="number" value="00043" />
-      <option name="presentableId" value="LOCAL-00043" />
-      <option name="project" value="LOCAL" />
-      <updated>1674248200930</updated>
     </task>
     <task id="LOCAL-00044" summary="remove original() from ParseContext.&#10;replace Context.span_union with SpanExt.span_union which can be implemented based on LocatedSpan and thus safer.&#10;&#10;New module spans:&#10;SpanExt - allow merging subspans of a span. Cuts off the result at the margins of the buffer instead of panicking.&#10;&#10; SpanLines: deconstructs the old DataFrame et al to a safer construct.">
       <created>1674377897606</created>
@@ -670,7 +650,21 @@
       <option name="project" value="LOCAL" />
       <updated>1674974000056</updated>
     </task>
-    <option name="localTasksCounter" value="91" />
+    <task id="LOCAL-00091" summary="fine tuning for error messages.&#10;&#10;&#10;with_code and append now look for C::NOM_ERROR to avoid duplicated messages.&#10;&#10;renamed TrackParserResult to TrackResult">
+      <created>1674985296722</created>
+      <option name="number" value="00091" />
+      <option name="presentableId" value="LOCAL-00091" />
+      <option name="project" value="LOCAL" />
+      <updated>1674985296722</updated>
+    </task>
+    <task id="LOCAL-00092" summary="rename examples">
+      <created>1674985378798</created>
+      <option name="number" value="00092" />
+      <option name="presentableId" value="LOCAL-00092" />
+      <option name="project" value="LOCAL" />
+      <updated>1674985378798</updated>
+    </task>
+    <option name="localTasksCounter" value="93" />
     <servers />
   </component>
   <component name="UnloadedModulesList">
@@ -710,8 +704,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Test" />
-    <MESSAGE value="TrackParserError T-&gt;I" />
     <MESSAGE value="ParseContext: Eliminate the self reference via Span and take a naked span. We can sort this out in Context.&#10;&#10;Replace Span with LocatedSpan in TrackingContext." />
     <MESSAGE value="Remove type constraints from the structs.&#10;&#10;Normalize." />
     <MESSAGE value="Renamed Span -&gt; CtxSpan.&#10;&#10;add str_parse, byte_parse functions." />
@@ -735,7 +727,9 @@
     <MESSAGE value="split off SpanExt from LocatedSpanExt and move the latter to error module. &#10;That's where it is used." />
     <MESSAGE value="Rename ContextTrait to FindTracker.&#10;Rename TrackParserError to TrackError&#10;&#10;Simplify type defs Track*" />
     <MESSAGE value="Remove track boolean from StdTracker::new. Replace with setter+builder." />
-    <option name="LAST_COMMIT_MESSAGE" value="Remove track boolean from StdTracker::new. Replace with setter+builder." />
+    <MESSAGE value="fine tuning for error messages.&#10;&#10;&#10;with_code and append now look for C::NOM_ERROR to avoid duplicated messages.&#10;&#10;renamed TrackParserResult to TrackResult" />
+    <MESSAGE value="rename examples" />
+    <option name="LAST_COMMIT_MESSAGE" value="rename examples" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

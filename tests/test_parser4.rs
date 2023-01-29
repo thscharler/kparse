@@ -522,7 +522,7 @@ mod planung4 {
                 }
             }
 
-            for n in err.nom() {
+            if let Some(n) = err.nom() {
                 println!(
                     "Parser-Details: {:?} {}:{}:{:?}",
                     n.kind,
