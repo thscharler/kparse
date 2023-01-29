@@ -81,11 +81,27 @@ where
     C: Code,
 {
     /// Creates a context for a given span.
-    pub fn new(track: bool) -> Self {
+    pub fn new() -> Self {
         Self {
-            track,
+            track: true,
             data: Default::default(),
         }
+    }
+
+    /// Allows to switch off tracking.
+    pub fn tracking(mut self, track: bool) -> Self {
+        self.track = track;
+        self
+    }
+
+    /// Allows to switch off tracking.
+    pub fn set_tracking(&mut self, track: bool) {
+        self.track = track;
+    }
+
+    /// Is tracking enabled.
+    pub fn is_tracking(&self) -> bool {
+        self.track
     }
 
     /// Create a new Span from this context using the original str.

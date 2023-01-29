@@ -283,14 +283,14 @@ fn parse_non_terminal_3(rest: ISpan<'_>) -> IParserResult<'_, ()> {
 }
 
 fn run_parser() {
-    let ctx: StdTracker<ICode, &str> = StdTracker::new(true);
+    let ctx: StdTracker<ICode, &str> = StdTracker::new();
     let span = ctx.span("A");
 
     let _r = parse_terminal_a(span);
 }
 
 fn run_parser2() {
-    let ctx: StdTracker<ICode, &str> = StdTracker::new(false);
+    let ctx: StdTracker<ICode, &str> = StdTracker::new().tracking(false);
     let span = ctx.span("A");
 
     let _r = parse_terminal_a(span);

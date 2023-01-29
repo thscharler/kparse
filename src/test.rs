@@ -65,22 +65,7 @@ where
     T: AsBytes + Copy,
     C: Code,
 {
-    buf.replace(StdTracker::new(true));
-    let context = buf.as_ref().expect("yes");
-
-    let span = context.span(text);
-
-    let now = Instant::now();
-    let result = fn_test(span);
-    let duration = now.elapsed();
-
-    Test {
-        span,
-        context,
-        result,
-        duration,
-        failed: Cell::new(false),
-    }
+    track_parse_ext(buf, true, text, fn_test)
 }
 
 /// Runs the parser and records the results.
@@ -88,8 +73,9 @@ where
 ///
 /// Finish the test with q().
 #[must_use]
-pub fn notrack_parse<'s, C, T, O, E>(
+pub fn track_parse_ext<'s, C, T, O, E>(
     buf: &'s mut Option<StdTracker<C, T>>,
+    track: bool,
     text: T,
     fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
 ) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
@@ -97,7 +83,7 @@ where
     T: AsBytes + Copy,
     C: Code,
 {
-    buf.replace(StdTracker::new(false));
+    buf.replace(StdTracker::new().tracking(track));
     let context = buf.as_ref().expect("yes");
 
     let span = context.span(text);

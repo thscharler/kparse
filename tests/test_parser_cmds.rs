@@ -1,5 +1,5 @@
 pub use cmds_parser::*;
-use kparse::test::{notrack_parse, CheckDump};
+use kparse::test::{track_parse, CheckDump};
 use std::time::Instant;
 
 #[test]
@@ -113,7 +113,7 @@ fn test_1() {
     let now = Instant::now();
     for t in tests {
         for _i in 1..100 {
-            notrack_parse(&mut None, t, parse_cmds).q(r);
+            track_parse(&mut None, t, parse_cmds).q(r);
         }
     }
     let elapsed = now.elapsed();

@@ -1,5 +1,5 @@
 use crate::planung4::parser::*;
-use kparse::test::{notrack_parse, track_parse, Timing, Trace};
+use kparse::test::{track_parse, track_parse_ext, Timing, Trace};
 use std::fs::read_to_string;
 
 pub fn main() {
@@ -13,7 +13,7 @@ pub fn main() {
     println!();
     println!();
     println!("TRACK=false");
-    notrack_parse(&mut None, s.as_str(), parse)
+    track_parse_ext(&mut None, false, s.as_str(), parse)
         .okok()
         .rest("")
         .q(Timing(1));

@@ -6,7 +6,7 @@ use crate::planung4::tokens::{
     token_datum, token_menge, token_name, token_name_kurz, token_nummer,
 };
 use crate::planung4::APCode::*;
-use kparse::test::{notrack_parse, track_parse, CheckDump, Timing, Trace};
+use kparse::test::{track_parse, track_parse_ext, CheckDump, Timing, Trace};
 use std::fs::read_to_string;
 
 const R: ReportDiagnostics = ReportDiagnostics;
@@ -29,15 +29,10 @@ pub fn timing() {
     println!();
     println!();
     println!("TRACK=false");
-    notrack_parse(&mut None, s.as_str(), parse)
+    track_parse_ext(&mut None, false, s.as_str(), parse)
         .okok()
         .rest("")
         .q(Timing(1));
-
-    // println!();
-    // println!();
-    // println!("NOCTX");
-    // span_parse(s.as_str(), parse).okok().rest("").q(Timing(1));
 }
 
 #[test]
