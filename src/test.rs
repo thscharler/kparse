@@ -16,11 +16,12 @@
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::cell::Cell;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::{RangeFrom, RangeTo};
 use std::time::{Duration, Instant};
 
 use crate::debug::{restrict, DebugWidth};
+use crate::spans::Fragment;
 use crate::tracker::{StdTracker, TrackSpan};
 use crate::{Code, ParserError};
 pub use report::*;
@@ -101,12 +102,67 @@ where
     }
 }
 
-/// Runs the parser and records the results.
+/// Not an error code.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NoCode;
+
+impl Display for NoCode {
+    fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+        Ok(())
+    }
+}
+
+impl Code for NoCode {
+    const NOM_ERROR: Self = NoCode;
+}
+
+/// Runs a parser for LocatedSpan and records the results.
 /// Use ok(), err(), ... to check specifics.
-///
 /// Finish the test with q().
+///
+/// This method changes behaviour between debug and release build.
+/// In debug build the StdTracker is active and expects a TrackSpan for the parser function.
+/// In release mode no tracking is active and it expects a LocatedSpan for the parser function.
 #[must_use]
+#[cfg(debug_assertions)]
+pub fn span_parse<'s, C, T, O, E>(
+    buf: &'s mut Option<StdTracker<C, T>>,
+    text: T,
+    fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
+) -> Test<'s, (), TrackSpan<'s, C, T>, O, E>
+where
+    T: AsBytes + Copy + 's,
+    C: Code,
+{
+    buf.replace(StdTracker::new());
+    let context = buf.as_ref().expect("yes");
+
+    let span = context.span(text);
+
+    let now = Instant::now();
+    let result = fn_test(span);
+    let duration = now.elapsed();
+
+    Test {
+        span,
+        context: &(),
+        result,
+        duration,
+        failed: Cell::new(false),
+    }
+}
+
+/// Runs a parser for LocatedSpan and records the results.
+/// Use ok(), err(), ... to check specifics.
+/// Finish the test with q().
+///
+/// This method changes behaviour between debug and release build.
+/// In debug build the StdTracker is active and expects a TrackSpan for the parser function.
+/// In release mode no tracking is active and it expects a LocatedSpan for the parser function.
+#[must_use]
+#[cfg(not(debug_assertions))]
 pub fn span_parse<'s, T, O, E>(
+    _buf: &'s mut Option<StdTracker<NoCode, &'s str>>,
     text: T,
     fn_test: impl Fn(LocatedSpan<T, ()>) -> Result<(LocatedSpan<T, ()>, O), nom::Err<E>>,
 ) -> Test<'s, (), LocatedSpan<T, ()>, O, E>
@@ -128,58 +184,135 @@ where
     }
 }
 
-/// Runs the parser and records the results.
+/// Runs a parser for &str and records the results.
 /// Use ok(), err(), ... to check specifics.
-///
 /// Finish the test with q().
-#[must_use]
-pub fn str_parse<'s, O, E>(
-    text: &str,
-    fn_test: impl Fn(&str) -> Result<(&str, O), nom::Err<E>>,
-) -> Test<'s, (), &str, O, E> {
-    let now = Instant::now();
-    let result = fn_test(text);
-    let duration = now.elapsed();
-
-    Test {
-        span: text,
-        context: &(),
-        result,
-        duration,
-        failed: Cell::new(false),
-    }
-}
-
-/// Runs the parser and records the results.
-/// Use ok(), err(), ... to check specifics.
 ///
-/// Finish the test with q().
+/// This method changes behaviour between debug and release build.
+/// In debug build the StdTracker is active and expects a TrackSpan for the parser function.
+/// In release mode no tracking is active and it expects a &str for the parser function.
 #[must_use]
-pub fn byte_parse<'s, O, E>(
-    text: &[u8],
-    fn_test: impl Fn(&[u8]) -> Result<(&[u8], O), nom::Err<E>>,
-) -> Test<'s, (), &[u8], O, E> {
-    let now = Instant::now();
-    let result = fn_test(text);
-    let duration = now.elapsed();
-
-    Test {
-        span: text,
-        context: &(),
-        result,
-        duration,
-        failed: Cell::new(false),
-    }
-}
-
-type TestSpan<T, X> = LocatedSpan<T, X>;
-
-impl<'s, P, T, O, E, X> Test<'s, P, TestSpan<T, X>, O, E>
+#[cfg(debug_assertions)]
+pub fn str_parse<'s, C, O, E>(
+    buf: &'s mut Option<StdTracker<C, &'s str>>,
+    text: &'s str,
+    fn_test: impl Fn(TrackSpan<'s, C, &'s str>) -> Result<(TrackSpan<'s, C, &'s str>, O), nom::Err<E>>,
+) -> Test<'s, StdTracker<C, &'s str>, TrackSpan<'s, C, &'s str>, O, E>
 where
-    T: AsBytes + Copy + Debug + 's,
+    C: Code,
+{
+    buf.replace(StdTracker::new());
+    let context = buf.as_ref().expect("yes");
+
+    let span = context.span(text);
+
+    let now = Instant::now();
+    let result = fn_test(span);
+    let duration = now.elapsed();
+
+    Test {
+        span,
+        context,
+        result,
+        duration,
+        failed: Cell::new(false),
+    }
+}
+
+/// Runs a parser for &str and records the results.
+/// Use ok(), err(), ... to check specifics.
+/// Finish the test with q().
+///
+/// This method changes behaviour between debug and release build.
+/// In debug build the StdTracker is active and expects a TrackSpan for the parser function.
+/// In release mode no tracking is active and it expects a &str for the parser function.
+#[must_use]
+#[cfg(not(debug_assertions))]
+pub fn str_parse<'s, O, E>(
+    _buf: &'s mut Option<StdTracker<NoCode, &'s str>>,
+    text: &'s str,
+    fn_test: impl Fn(&'s str) -> Result<(&'s str, O), nom::Err<E>>,
+) -> Test<'s, (), &'s str, O, E> {
+    let now = Instant::now();
+    let result = fn_test(text);
+    let duration = now.elapsed();
+
+    Test {
+        span: text,
+        context: &(),
+        result,
+        duration,
+        failed: Cell::new(false),
+    }
+}
+
+/// Runs a parser for &[u8] and records the results.
+/// Use ok(), err(), ... to check specifics.
+/// Finish the test with q().
+///
+/// This method changes behaviour between debug and release build.
+/// In debug build the StdTracker is active and expects a TrackSpan for the parser function.
+/// In release mode no tracking is active and it expects a &[u8] for the parser function.
+#[must_use]
+#[cfg(debug_assertions)]
+pub fn byte_parse<'s, C, O, E>(
+    buf: &'s mut Option<StdTracker<C, &'s [u8]>>,
+    text: &'s [u8],
+    fn_test: impl Fn(TrackSpan<'s, C, &'s [u8]>) -> Result<(TrackSpan<'s, C, &'s [u8]>, O), nom::Err<E>>,
+) -> Test<'s, (), TrackSpan<'s, C, &'s [u8]>, O, E>
+where
+    C: Code,
+{
+    buf.replace(StdTracker::new());
+    let context = buf.as_ref().expect("yes");
+
+    let span = context.span(text);
+
+    let now = Instant::now();
+    let result = fn_test(span);
+    let duration = now.elapsed();
+
+    Test {
+        span: span,
+        context: &(),
+        result,
+        duration,
+        failed: Cell::new(false),
+    }
+}
+
+/// Runs a parser for &[u8] and records the results.
+/// Use ok(), err(), ... to check specifics.
+/// Finish the test with q().
+///
+/// This method changes behaviour between debug and release build.
+/// In debug build the StdTracker is active and expects a TrackSpan for the parser function.
+/// In release mode no tracking is active and it expects a &[u8] for the parser function.
+#[must_use]
+#[cfg(not(debug_assertions))]
+pub fn byte_parse<'s, O, E>(
+    _buf: &'s mut Option<StdTracker<NoCode, &'s [u8]>>,
+    text: &'s [u8],
+    fn_test: impl Fn(&'s [u8]) -> Result<(&'s [u8], O), nom::Err<E>>,
+) -> Test<'s, (), &'s [u8], O, E> {
+    let now = Instant::now();
+    let result = fn_test(text);
+    let duration = now.elapsed();
+
+    Test {
+        span: text,
+        context: &(),
+        result,
+        duration,
+        failed: Cell::new(false),
+    }
+}
+
+impl<'s, P, I, O, E> Test<'s, P, I, O, E>
+where
+    I: AsBytes + Copy + Debug + 's,
     O: Debug,
     E: Debug,
-    X: Copy,
 {
     /// Sets the failed flag.
     pub fn flag_fail(&self) {
@@ -237,10 +370,10 @@ where
 }
 
 // works for any fn that uses a Span as input and returns a (Span, X) pair.
-impl<'s, P, T, O, E, X> Test<'s, P, TestSpan<T, X>, O, E>
+impl<'s, P, I, O, E> Test<'s, P, I, O, E>
 where
-    T: AsBytes + Copy + Debug + PartialEq + 's,
-    T: Offset
+    I: AsBytes + Copy + Debug + PartialEq + 's,
+    I: Offset
         + InputTake
         + InputIter
         + InputLength
@@ -248,7 +381,6 @@ where
         + Slice<RangeTo<usize>>,
     O: Debug,
     E: Debug,
-    X: Copy,
 {
     /// Checks for ok results.
     ///
@@ -281,13 +413,18 @@ where
     ///
     /// Finish the test with q()
     #[must_use]
-    pub fn rest(&self, test: T) -> &Self {
+    pub fn rest<'a, T>(&'a self, test: T) -> &Self
+    where
+        &'a I: Fragment<Result = T>,
+        I: 'a,
+        T: PartialEq + Debug,
+    {
         match &self.result {
             Ok((rest, _)) => {
-                if **rest != test {
+                if rest.fragment() != test {
                     println!(
                         "FAIL: Rest mismatch {:?} <> {:?}",
-                        restrict(DebugWidth::Medium, *rest).fragment(),
+                        restrict(DebugWidth::Medium, *rest),
                         test
                     );
                     self.flag_fail();
@@ -303,17 +440,16 @@ where
 }
 
 // works for any NomFn.
-impl<'s, P, T, O, X> Test<'s, P, TestSpan<T, X>, O, nom::error::Error<TestSpan<T, X>>>
+impl<'s, P, I, O> Test<'s, P, I, O, nom::error::Error<I>>
 where
-    T: AsBytes + Copy + Debug + 's,
-    T: Offset
+    I: AsBytes + Copy + Debug + 's,
+    I: Offset
         + InputTake
         + InputIter
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
     O: Debug,
-    X: Copy + Debug,
 {
     /// Test for a nom error that occurred.
     #[must_use]
@@ -338,10 +474,10 @@ where
     }
 }
 
-impl<'s, P, C, T, O, X> Test<'s, P, TestSpan<T, X>, O, ParserError<C, TestSpan<T, X>>>
+impl<'s, P, C, I, O> Test<'s, P, I, O, ParserError<C, I>>
 where
-    T: AsBytes + Copy + Debug + 's,
-    T: Offset
+    I: AsBytes + Copy + Debug + 's,
+    I: Offset
         + InputTake
         + InputIter
         + InputLength
@@ -349,7 +485,6 @@ where
         + Slice<RangeTo<usize>>,
     C: Code,
     O: Debug,
-    X: Copy + Debug,
 {
     /// Checks for an error.
     ///
@@ -475,7 +610,7 @@ mod span {
 
 mod report {
     use crate::debug::{restrict, restrict_str, DebugWidth};
-    use crate::test::{Report, Test, TestSpan};
+    use crate::test::{Report, Test};
     use crate::tracker::{StdTracker, TrackSpan};
     use crate::Code;
     use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
@@ -486,18 +621,18 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct NoReport;
 
-    impl<'s, P, T, O, E, X> Report<Test<'s, P, TestSpan<T, X>, O, E>> for NoReport {
-        fn report(&self, _: &Test<'s, P, TestSpan<T, X>, O, E>) {}
+    impl<'s, P, I, O, E> Report<Test<'s, P, I, O, E>> for NoReport {
+        fn report(&self, _: &Test<'s, P, I, O, E>) {}
     }
 
     /// Dumps the Result data if any test failed.
     #[derive(Clone, Copy)]
     pub struct CheckDump;
 
-    impl<'s, P, T, O, E, X> Report<Test<'s, P, TestSpan<T, X>, O, E>> for CheckDump
+    impl<'s, P, I, O, E> Report<Test<'s, P, I, O, E>> for CheckDump
     where
-        T: AsBytes + Copy + Debug,
-        T: Offset
+        I: AsBytes + Copy + Debug,
+        I: Offset
             + InputTake
             + InputIter
             + InputLength
@@ -505,10 +640,9 @@ mod report {
             + Slice<RangeTo<usize>>,
         O: Debug,
         E: Debug,
-        X: Copy + Debug,
     {
         #[track_caller]
-        fn report(&self, test: &Test<'s, P, TestSpan<T, X>, O, E>) {
+        fn report(&self, test: &Test<'s, P, I, O, E>) {
             if test.failed.get() {
                 dump(test);
                 panic!("test failed")
@@ -520,10 +654,10 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct Timing(pub u32);
 
-    impl<'s, P, T, O, E, X> Report<Test<'s, P, TestSpan<T, X>, O, E>> for Timing
+    impl<'s, P, I, O, E> Report<Test<'s, P, I, O, E>> for Timing
     where
-        T: AsBytes + Copy + Debug,
-        T: Offset
+        I: AsBytes + Copy + Debug,
+        I: Offset
             + InputTake
             + InputIter
             + InputLength
@@ -531,9 +665,8 @@ mod report {
             + Slice<RangeTo<usize>>,
         O: Debug,
         E: Debug,
-        X: Copy + Debug,
     {
-        fn report(&self, test: &Test<'s, P, TestSpan<T, X>, O, E>) {
+        fn report(&self, test: &Test<'s, P, I, O, E>) {
             println!(
                 "when parsing {:?} in {:?} =>",
                 restrict_str(DebugWidth::Medium, test.span),
@@ -554,10 +687,10 @@ mod report {
     #[derive(Clone, Copy)]
     pub struct Dump;
 
-    impl<'s, P, T, O, E, X> Report<Test<'s, P, TestSpan<T, X>, O, E>> for Dump
+    impl<'s, P, I, O, E> Report<Test<'s, P, I, O, E>> for Dump
     where
-        T: AsBytes + Copy + Debug,
-        T: Offset
+        I: AsBytes + Copy + Debug,
+        I: Offset
             + InputTake
             + InputIter
             + InputLength
@@ -565,17 +698,16 @@ mod report {
             + Slice<RangeTo<usize>>,
         O: Debug,
         E: Debug,
-        X: Copy + Debug,
     {
-        fn report(&self, test: &Test<'s, P, TestSpan<T, X>, O, E>) {
+        fn report(&self, test: &Test<'s, P, I, O, E>) {
             dump(test)
         }
     }
 
-    fn dump<P, T, O, E, X>(test: &Test<'_, P, TestSpan<T, X>, O, E>)
+    fn dump<P, I, O, E>(test: &Test<'_, P, I, O, E>)
     where
-        T: AsBytes + Copy + Debug,
-        T: Offset
+        I: AsBytes + Copy + Debug,
+        I: Offset
             + InputTake
             + InputIter
             + InputLength
@@ -583,7 +715,6 @@ mod report {
             + Slice<RangeTo<usize>>,
         O: Debug,
         E: Debug,
-        X: Copy + Debug,
     {
         println!();
         println!(
@@ -593,7 +724,7 @@ mod report {
         );
         match &test.result {
             Ok((rest, token)) => {
-                println!("rest {}:{:?}", rest.location_offset(), rest);
+                println!("rest {}:{:?}", test.span.offset(rest), rest);
                 println!("{:0?}", token);
             }
             Err(e) => {

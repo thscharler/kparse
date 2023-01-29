@@ -59,7 +59,10 @@ impl Code for ECode {
     const NOM_ERROR: Self = Self::ENomError;
 }
 
+#[cfg(debug_assertions)]
 pub type ESpan<'s> = TrackSpan<'s, ECode, &'s str>;
+#[cfg(not(debug_assertions))]
+pub type ESpan<'s> = &'s str;
 pub type EResult<'s, O> = TrackResult<ECode, ESpan<'s>, O, ()>;
 pub type ENomResult<'s> = TrackResult<ECode, ESpan<'s>, ESpan<'s>, ()>;
 pub type EParserError<'s> = ParserError<ECode, ESpan<'s>, ()>;
@@ -293,6 +296,7 @@ fn parse_a_b_num(input: ESpan<'_>) -> EResult<'_, AstABNum> {
 }
 
 fn main() {
+    #[cfg(debug_assertions)]
     for txt in env::args() {
         let trk = StdTracker::new();
         let span = trk.span(txt.as_str());
@@ -307,68 +311,76 @@ fn main() {
             }
         }
     }
+    #[cfg(not(debug_assertions))]
+    for txt in env::args() {
+        let span = txt.as_str();
+
+        match parse_a_b_star(span) {
+            Ok((_rest, val)) => {
+                dbg!(val);
+            }
+            Err(e) => {
+                println!("{:?}", e);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use kparse::test::{track_parse, CheckTrace};
+    use kparse::test::{str_parse, Timing};
 
     #[test]
     fn test_1() {
-        track_parse(&mut None, "", parse_ab).err_any().q(CheckTrace);
-        track_parse(&mut None, "ab", parse_ab)
-            .ok_any()
-            .q(CheckTrace);
-        track_parse(&mut None, "aba", parse_ab)
-            .rest("a")
-            .q(CheckTrace);
+        str_parse(&mut None, "", parse_ab).err_any().q(Timing(1));
+        str_parse(&mut None, "ab", parse_ab).ok_any().q(Timing(1));
+        str_parse(&mut None, "aba", parse_ab).rest("a").q(Timing(1));
     }
 
     #[test]
-    #[should_panic]
     fn test_2() {
-        track_parse(&mut None, "ab", parse_a_or_b)
+        str_parse(&mut None, "ab", parse_a_or_b)
             .ok_any()
-            .q(CheckTrace);
-        track_parse(&mut None, "a", parse_a_or_b)
+            .q(Timing(1));
+        str_parse(&mut None, "a", parse_a_or_b)
             .ok_any()
-            .q(CheckTrace);
-        track_parse(&mut None, "b", parse_a_or_b)
+            .q(Timing(1));
+        str_parse(&mut None, "b", parse_a_or_b)
             .ok_any()
-            .q(CheckTrace);
+            .q(Timing(1));
 
-        track_parse(&mut None, "", parse_a_opt_b)
+        str_parse(&mut None, "", parse_a_opt_b)
             .err_any()
-            .q(CheckTrace);
-        track_parse(&mut None, "b", parse_a_opt_b)
+            .q(Timing(1));
+        str_parse(&mut None, "b", parse_a_opt_b)
             .ok_any()
             .rest("")
-            .q(CheckTrace);
-        track_parse(&mut None, "ab", parse_a_opt_b)
+            .q(Timing(1));
+        str_parse(&mut None, "ab", parse_a_opt_b)
             .ok_any()
             .rest("")
-            .q(CheckTrace);
-        track_parse(&mut None, "bb", parse_a_opt_b)
+            .q(Timing(1));
+        str_parse(&mut None, "bb", parse_a_opt_b)
             .ok_any()
             .rest("b")
-            .q(CheckTrace);
-        track_parse(&mut None, "aab", parse_a_opt_b)
+            .q(Timing(1));
+        str_parse(&mut None, "aab", parse_a_opt_b)
             .err_any()
-            .q(CheckTrace);
-        track_parse(&mut None, "aab", parse_a_opt_b)
+            .q(Timing(1));
+        str_parse(&mut None, "aab", parse_a_opt_b)
             .err_any()
-            .q(CheckTrace);
+            .q(Timing(1));
 
-        track_parse(&mut None, "aab", parse_a_star_b)
+        str_parse(&mut None, "aab", parse_a_star_b)
             .ok_any()
-            .q(CheckTrace);
+            .q(Timing(1));
 
-        track_parse(&mut None, "aab", parse_a_b_star)
+        str_parse(&mut None, "aab", parse_a_b_star)
             .ok_any()
-            .q(CheckTrace);
-        track_parse(&mut None, "aabc", parse_a_b_star)
-            .ok_any()
-            .q(CheckTrace);
+            .q(Timing(1));
+        str_parse(&mut None, "aabc", parse_a_b_star)
+            .err_any()
+            .q(Timing(1));
     }
 }

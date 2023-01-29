@@ -21,18 +21,6 @@ pub use std_tracker::*;
 /// through the parser.
 pub type TrackSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
-// /// Standard Result type for tracking.
-// /// Equivalent to [nom::IResult]<(T, O), Err<ParserError<..>>>
-// pub type TrackParserResult<'s, C, T, O, Y> =
-//     Result<(TrackSpan<'s, C, T>, O), nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>>;
-//
-// /// Standard Result type for tracking, if the result is a simple span.
-// /// Equivalent to [nom::IResult]<(I,I), Err<ParserError<..>>
-// pub type TrackParserResultSpan<'s, C, T, Y> = Result<
-//     (TrackSpan<'s, C, T>, TrackSpan<'s, C, T>),
-//     nom::Err<ParserError<C, TrackSpan<'s, C, T>, Y>>,
-// >;
-
 /// Standard Result type for tracking.
 /// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
 pub type TrackResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;

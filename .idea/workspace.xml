@@ -21,18 +21,14 @@
     <cargoProject FILE="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="rename examples">
-      <change afterPath="$PROJECT_DIR$/readme2.md" afterDir="false" />
+    <list default="true" id="e53035aa-13b2-435a-bbc0-d3deab09b7d7" name="Changes" comment="conditional() combinator.&#10;&#10;Rename test fn okok() to ok_any(), and errerr() to err_any().">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/example1.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/example1.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/plan.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plan.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/examples/plumap.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/combinators.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/combinators.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/error.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/error.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/spans.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/spans.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/test.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser4.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_plumap.rs" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_plumap.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tracker.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tracker.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../../StableProjects/core2/src/planung/io/parser4.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -253,8 +249,25 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test tests::test_2 (debug)" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="command" value="test  --package kparse --example example1 tests::test_2 -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="Test tests::test_2" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
-      <option name="command" value="test --package kparse --example example1 tests::test_2 -- --exact" />
+      <option name="command" value="test --release --package kparse --example example1 tests::test_2 -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
       <option name="channel" value="DEFAULT" />
       <option name="requiredFeatures" value="true" />
@@ -293,6 +306,7 @@
       <item itemvalue="Cargo.Clippy" />
       <item itemvalue="Cargo.Build" />
       <item itemvalue="Cargo.Doc" />
+      <item itemvalue="Cargo.Test tests::test_2 (debug)" />
       <item itemvalue="Cargo.Test tests::test_2" />
       <item itemvalue="Cargo.Run example1" />
       <item itemvalue="Cargo.Run example2" />
@@ -325,13 +339,6 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673211594649</updated>
-    </task>
-    <task id="LOCAL-00045" summary="make SpanLines compile.">
-      <created>1674382946964</created>
-      <option name="number" value="00045" />
-      <option name="presentableId" value="LOCAL-00045" />
-      <option name="project" value="LOCAL" />
-      <updated>1674382946964</updated>
     </task>
     <task id="LOCAL-00046" summary="make SpanLines compile.&#10;&#10;current tests run ok :-)">
       <created>1674383678507</created>
@@ -669,7 +676,14 @@
       <option name="project" value="LOCAL" />
       <updated>1674986076406</updated>
     </task>
-    <option name="localTasksCounter" value="94" />
+    <task id="LOCAL-00094" summary="conditional() combinator.&#10;&#10;Rename test fn okok() to ok_any(), and errerr() to err_any().">
+      <created>1674999065988</created>
+      <option name="number" value="00094" />
+      <option name="presentableId" value="LOCAL-00094" />
+      <option name="project" value="LOCAL" />
+      <updated>1674999065988</updated>
+    </task>
+    <option name="localTasksCounter" value="95" />
     <servers />
   </component>
   <component name="UnloadedModulesList">
@@ -709,7 +723,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="ParseContext: Eliminate the self reference via Span and take a naked span. We can sort this out in Context.&#10;&#10;Replace Span with LocatedSpan in TrackingContext." />
     <MESSAGE value="Remove type constraints from the structs.&#10;&#10;Normalize." />
     <MESSAGE value="Renamed Span -&gt; CtxSpan.&#10;&#10;add str_parse, byte_parse functions." />
     <MESSAGE value="Renamed Span -&gt; CtxSpan." />
@@ -734,7 +747,8 @@
     <MESSAGE value="Remove track boolean from StdTracker::new. Replace with setter+builder." />
     <MESSAGE value="fine tuning for error messages.&#10;&#10;&#10;with_code and append now look for C::NOM_ERROR to avoid duplicated messages.&#10;&#10;renamed TrackParserResult to TrackResult" />
     <MESSAGE value="rename examples" />
-    <option name="LAST_COMMIT_MESSAGE" value="rename examples" />
+    <MESSAGE value="conditional() combinator.&#10;&#10;Rename test fn okok() to ok_any(), and errerr() to err_any()." />
+    <option name="LAST_COMMIT_MESSAGE" value="conditional() combinator.&#10;&#10;Rename test fn okok() to ok_any(), and errerr() to err_any()." />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

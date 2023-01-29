@@ -82,6 +82,67 @@ impl<'s> SpanExt for &'s [u8] {
     }
 }
 
+/// Trait for two functions of LocatedSpan.
+pub trait LocatedSpanExt {
+    /// The offset represents the position of the fragment relatively to
+    /// the input of the parser. It starts at offset 0.
+    fn location_offset(&self) -> usize;
+
+    /// The line number of the fragment relatively to the input of the
+    /// parser. It starts at line 1.
+    fn location_line(&self) -> u32;
+}
+
+impl<T, X> LocatedSpanExt for LocatedSpan<T, X>
+where
+    T: AsBytes,
+    X: Copy,
+{
+    fn location_offset(&self) -> usize {
+        LocatedSpan::location_offset(self)
+    }
+
+    fn location_line(&self) -> u32 {
+        LocatedSpan::location_line(self)
+    }
+}
+
+/// Get the fragment from a span.
+pub trait Fragment {
+    /// Type of the fragment.
+    type Result;
+
+    /// Equivalent to LocatedSpan::fragment()
+    fn fragment(self) -> Self::Result;
+}
+
+impl<T, X> Fragment for &LocatedSpan<T, X>
+where
+    T: Copy + AsBytes,
+{
+    type Result = T;
+
+    fn fragment(self) -> T {
+        *LocatedSpan::fragment(self)
+    }
+}
+
+impl<'s> Fragment for &'s &'s str {
+    type Result = &'s str;
+
+    fn fragment(self) -> &'s str {
+        *self
+    }
+}
+
+impl<'s> Fragment for &'s &'s [u8] {
+    type Result = &'s [u8];
+
+    fn fragment(self) -> &'s [u8] {
+        self
+    }
+}
+
 impl<T, X> SpanExt for LocatedSpan<T, X>
 where
     T: AsBytes,
