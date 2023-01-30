@@ -46,7 +46,7 @@ where
     ) -> Result<(DynSpan<'s, C, T>, O), nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>>>
     where
         E: Into<nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>>>,
-        Y: Copy,
+        Y: Copy + Debug,
     {
         let err: nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>> = err.into();
         match &err {

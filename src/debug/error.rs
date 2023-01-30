@@ -10,7 +10,7 @@ pub(crate) fn debug_parse_error<C, I, Y>(
 ) -> fmt::Result
 where
     C: Code,
-    Y: Copy,
+    Y: Copy + Debug,
     I: Copy + Debug,
     I: Offset
         + InputTake
@@ -35,7 +35,7 @@ fn debug_parse_error_short<C, I, Y>(
 ) -> fmt::Result
 where
     C: Code,
-    Y: Copy,
+    Y: Copy + Debug,
     I: Copy + Debug,
     I: Offset
         + InputTake
@@ -46,28 +46,25 @@ where
 {
     write!(
         f,
-        "ParserError {} for {:?}",
+        "parse error [{}] for {:?}",
         err.code,
         restrict(DebugWidth::Short, err.span)
     )?;
 
     if let Some(nom) = err.nom() {
-        write!(f, " errorkind=")?;
-        write!(f, " {:?}", nom.kind,)?;
+        write!(f, "nom={:0?}, ", nom)?;
     }
-
-    let mut expected: Vec<_> = err.iter_expected().collect();
-    expected.reverse();
-    if !expected.is_empty() {
-        write!(f, " expected=")?;
-        for exp in expected {
-            write!(
-                f,
-                "{}:{:?} ",
-                exp.code,
-                restrict(DebugWidth::Short, exp.span)
-            )?;
-        }
+    for v in err.iter_expected() {
+        write!(f, "expect={:0?}, ", v)?;
+    }
+    for v in err.iter_suggested() {
+        write!(f, "suggest={:0?}, ", v)?;
+    }
+    if let Some(cause) = err.cause() {
+        write!(f, "cause={:0?}, ", cause)?;
+    }
+    if let Some(user_data) = err.user_data() {
+        write!(f, "user_data={:0?}, ", user_data)?;
     }
 
     Ok(())
@@ -79,7 +76,7 @@ fn debug_parse_error_medium<C, I, Y>(
 ) -> fmt::Result
 where
     C: Code,
-    Y: Copy,
+    Y: Copy + Debug,
     I: Copy + Debug,
     I: Offset
         + InputTake
@@ -96,22 +93,33 @@ where
     )?;
 
     if let Some(nom) = err.nom() {
-        writeln!(f, "errorkind={:?}", nom.kind,)?;
+        writeln!(f, "nom")?;
+        indent(f, 1)?;
+        writeln!(f, "{:1?}, ", nom)?;
     }
-
-    let mut expected: Vec<_> = err.iter_expected().collect();
-    expected.reverse();
-    if !expected.is_empty() {
-        writeln!(f, "expected=")?;
-        for exp in expected {
-            indent(f, 1)?;
-            writeln!(
-                f,
-                "{}:{:?}",
-                exp.code,
-                restrict(DebugWidth::Medium, exp.span)
-            )?;
-        }
+    if err.iter_expected().next().is_some() {
+        writeln!(f, "expected")?;
+    }
+    for v in err.iter_expected() {
+        indent(f, 1)?;
+        writeln!(f, "{:1?}, ", v)?;
+    }
+    if err.iter_suggested().next().is_some() {
+        writeln!(f, "suggested")?;
+    }
+    for v in err.iter_suggested() {
+        indent(f, 1)?;
+        writeln!(f, "{:1?}, ", v)?;
+    }
+    if let Some(cause) = err.cause() {
+        writeln!(f, "cause")?;
+        indent(f, 1)?;
+        writeln!(f, "{:1?}, ", cause)?;
+    }
+    if let Some(user_data) = err.user_data() {
+        writeln!(f, "user_data")?;
+        indent(f, 1)?;
+        writeln!(f, "{:1?}, ", user_data)?;
     }
 
     Ok(())
@@ -123,7 +131,7 @@ fn debug_parse_error_long<C, I, Y>(
 ) -> fmt::Result
 where
     C: Code,
-    Y: Copy,
+    Y: Copy + Debug,
     I: Copy + Debug,
     I: Offset
         + InputTake
@@ -140,17 +148,33 @@ where
     )?;
 
     if let Some(nom) = err.nom() {
-        writeln!(f, " errorkind={:?}", nom.kind,)?;
+        writeln!(f, "nom")?;
+        indent(f, 1)?;
+        writeln!(f, "{:2?}, ", nom)?;
     }
-
-    let mut expected: Vec<_> = err.iter_expected().collect();
-    expected.reverse();
-    if !expected.is_empty() {
-        writeln!(f, "expected=")?;
-        for exp in expected {
-            indent(f, 1)?;
-            writeln!(f, "{}:{:?}", exp.code, restrict(DebugWidth::Long, exp.span))?;
-        }
+    if !err.iter_expected().next().is_some() {
+        writeln!(f, "expected")?;
+    }
+    for v in err.iter_expected() {
+        indent(f, 1)?;
+        writeln!(f, "{:2?}, ", v)?;
+    }
+    if !err.iter_suggested().next().is_some() {
+        writeln!(f, "suggested")?;
+    }
+    for v in err.iter_suggested() {
+        indent(f, 1)?;
+        writeln!(f, "{:2?}, ", v)?;
+    }
+    if let Some(cause) = err.cause() {
+        writeln!(f, "cause")?;
+        indent(f, 1)?;
+        writeln!(f, "{:2?}, ", cause)?;
+    }
+    if let Some(user_data) = err.user_data() {
+        writeln!(f, "user_data")?;
+        indent(f, 1)?;
+        writeln!(f, "{:2?}, ", user_data)?;
     }
 
     Ok(())

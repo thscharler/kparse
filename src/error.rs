@@ -111,7 +111,7 @@ where
     fn append(&mut self, err: ParserError<C, I, Y>) {
         match self {
             None => *self = Some(err),
-            Some(v) => v.append(err),
+            Some(self_err) => self_err.append(err),
         }
     }
 }
@@ -134,10 +134,10 @@ where
                 nom::Err::Error(e) => *self = Some(e),
                 nom::Err::Failure(e) => *self = Some(e),
             },
-            Some(v) => match err {
+            Some(self_err) => match err {
                 nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(e)),
-                nom::Err::Error(e) => v.append(e),
-                nom::Err::Failure(e) => v.append(e),
+                nom::Err::Error(e) => self_err.append(e),
+                nom::Err::Failure(e) => self_err.append(e),
             },
         };
         Ok(())
@@ -242,7 +242,7 @@ where
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
-    Y: Copy,
+    Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         debug_parse_error(f, self)
@@ -319,7 +319,7 @@ where
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
-    Y: Copy,
+    Y: Copy + Debug,
 {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.hints

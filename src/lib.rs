@@ -43,6 +43,7 @@
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::type_complexity)]
 use nom::AsBytes;
+use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Display};
 
 pub mod combinators;
@@ -64,6 +65,14 @@ pub mod prelude {
     pub use crate::tracker::{FindTracker, TrackError};
     pub use crate::{ResultWithSpan, WithCode, WithSpan};
 }
+
+/// Alias for LocatedSpan.
+/// No special properties, just for completeness.
+pub type ParserSpan<T, X> = LocatedSpan<T, X>;
+
+/// ParserResult without tracking.  
+/// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
+pub type ParserResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
 
 /// Parser error code.
 pub trait Code: Copy + Display + Debug + Eq {

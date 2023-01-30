@@ -101,7 +101,7 @@ where
     fn err<O, E, Y>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
         E: Into<nom::Err<ParserError<C, I, Y>>>,
-        Y: Copy,
+        Y: Copy + Debug,
         C: Code;
 
     /// Enter a parser function.
@@ -147,7 +147,7 @@ where
         + AsBytes
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
-    Y: Copy,
+    Y: Copy + Debug,
     E: Into<ParserError<C, I, Y>>,
     Self: Into<Result<(I, O), nom::Err<E>>>,
 {
@@ -208,7 +208,7 @@ impl<'s, C, O, E, Y> TrackError<'s, C, &'s str, O, E, Y> for Result<(&'s str, O)
 where
     E: Into<ParserError<C, &'s str, Y>>,
     C: Code,
-    Y: Copy,
+    Y: Copy + Debug,
 {
     fn exit_ok(_span: &'s str, _parsed: &'s str) {}
 
@@ -219,7 +219,7 @@ impl<'s, C, O, E, Y> TrackError<'s, C, &'s [u8], O, E, Y> for Result<(&'s [u8], 
 where
     E: Into<ParserError<C, &'s [u8], Y>>,
     C: Code,
-    Y: Copy,
+    Y: Copy + Debug,
 {
     fn exit_ok(_span: &'s [u8], _parsed: &'s [u8]) {}
 
@@ -231,7 +231,7 @@ impl<'s, C, T, O, E, Y> TrackError<'s, C, LocatedSpan<T, ()>, O, E, Y>
 where
     E: Into<ParserError<C, LocatedSpan<T, ()>, Y>>,
     C: Code,
-    Y: Copy,
+    Y: Copy + Debug,
     T: Copy + Debug,
     T: Offset
         + InputTake
@@ -251,7 +251,7 @@ impl<'s, C, T, O, E, Y> TrackError<'s, C, LocatedSpan<T, DynTracker<'s, C, T>>, 
 where
     E: Into<ParserError<C, LocatedSpan<T, DynTracker<'s, C, T>>, Y>>,
     C: Code,
-    Y: Copy,
+    Y: Copy + Debug,
     T: Copy + Debug,
     T: Offset
         + InputTake
