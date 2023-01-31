@@ -454,7 +454,11 @@ where
     }
 
     /// Was this one of the expected errors.
+    /// The main error code is one of the tested values.
     pub fn is_expected(&self, code: C) -> bool {
+        if self.code == code {
+            return true;
+        }
         for exp in &self.hints {
             if let Hints::Expect(exp) = exp {
                 if exp.code == code {
@@ -478,6 +482,10 @@ where
     }
 
     /// Returns the expected codes.
+    ///
+    /// # Beware
+    ///
+    /// The main error code is not included here.
     pub fn iter_expected(&self) -> impl Iterator<Item = &SpanAndCode<C, I>> {
         self.hints.iter().rev().filter_map(|v| match v {
             Hints::Expect(n) => Some(n),
@@ -485,7 +493,6 @@ where
         })
     }
 
-    // maybe: move to standalone fn
     /// Get Expect grouped by offset into the string, starting with max first.
     pub fn expected_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<C, I>>)>
     where
@@ -516,7 +523,6 @@ where
         grp
     }
 
-    // maybe: move to standalone fn
     /// Get Expect grouped by line number, starting with max first.
     pub fn expected_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<C, I>>)>
     where
