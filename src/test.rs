@@ -13,19 +13,19 @@
 //!
 //! Note: The &mut None is because lifetimes.
 
-use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
-use nom_locate::LocatedSpan;
-use std::cell::Cell;
-use std::fmt::{Debug, Display, Formatter};
-use std::ops::{RangeFrom, RangeTo};
-use std::time::{Duration, Instant};
-
 use crate::debug::{restrict, DebugWidth};
 use crate::spans::Fragment;
 use crate::tracker::{StdTracker, TrackSpan};
 use crate::{Code, ParserError};
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
+use nom_locate::LocatedSpan;
 pub use report::*;
 pub use span::*;
+use std::cell::Cell;
+use std::fmt::{Debug, Display, Formatter};
+use std::ops::{RangeFrom, RangeTo};
+use std::time::{Duration, Instant};
+use std::vec::Vec;
 
 /// Value comparison.
 pub type CompareFn<O, V> = for<'a> fn(parsed: &'a O, test: V) -> bool;
@@ -328,7 +328,7 @@ where
     let duration = now.elapsed();
 
     Test {
-        span: span,
+        span,
         context: &(),
         result,
         duration,

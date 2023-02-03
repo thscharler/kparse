@@ -3,6 +3,7 @@ use crate::{Code, ParserError};
 use nom::{InputIter, InputLength, InputTake, Offset, Slice};
 use std::fmt;
 use std::fmt::Debug;
+
 /// impl of debug for ParserError.
 pub(crate) fn debug_parse_error<C, I, Y>(
     f: &mut fmt::Formatter<'_>,

@@ -9,7 +9,6 @@ use nom_locate::LocatedSpan;
 use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
 
-// pub use debug::*;
 use kparse::test::{span_parsex, CheckDump};
 use kparse::{Code, ParserError};
 pub use parser::*;
@@ -370,7 +369,7 @@ mod token {
 
     impl<'s> WithSpan<PLUCode, PSpan<'s>, PLUParserError<'s>> for rust_decimal::Error {
         fn with_span(self, code: PLUCode, span: PSpan<'s>) -> nom::Err<PLUParserError<'s>> {
-            nom::Err::Failure(ParserError::new(code, span).with_cause(Box::new(self)))
+            nom::Err::Failure(ParserError::new(code, span).with_cause(self))
         }
     }
 

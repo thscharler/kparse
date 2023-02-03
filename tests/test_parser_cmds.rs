@@ -1264,7 +1264,9 @@ mod cmds_parser {
                 match nom_last_token(rest) {
                     Ok((rest, last)) => {
                         let err = if tok.starts_with(&last.to_lowercase()) {
-                            CParserError::new_suggest(code, last)
+                            let mut err = CParserError::new(code, last);
+                            err.suggest(code, last);
+                            err
                         } else {
                             CParserError::new(CIgnore, rest)
                         };

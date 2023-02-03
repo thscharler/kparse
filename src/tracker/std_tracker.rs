@@ -18,7 +18,6 @@ use crate::Code;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::cell::RefCell;
-use std::error::Error;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::ops::{RangeFrom, RangeTo};
@@ -163,8 +162,8 @@ where
         self.pop_func();
     }
 
-    fn exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err: &dyn Error) {
-        self.track_exit_err(span, code, err);
+    fn exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String) {
+        self.track_exit_err(span, code, err_str);
         self.pop_func()
     }
 }
@@ -273,14 +272,8 @@ where
         }
     }
 
-    fn track_exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err: &dyn Error) {
+    fn track_exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String) {
         if self.track {
-            let err_str = if let Some(cause) = err.source() {
-                cause.to_string()
-            } else {
-                err.to_string()
-            };
-
             let parent = self.parent_vec();
             let func = self.func();
             self.data.borrow_mut().track.push(Track::Err(ErrTrack {

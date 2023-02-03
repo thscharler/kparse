@@ -7,7 +7,6 @@ use crate::error::ParserError;
 use crate::Code;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
-use std::error::Error;
 use std::fmt::{Debug, Formatter};
 use std::ops::{RangeFrom, RangeTo};
 
@@ -51,7 +50,7 @@ where
     fn exit_ok(&self, span: &LocatedSpan<T, ()>, parsed: &LocatedSpan<T, ()>);
 
     /// Tracks an Err result of a parser function.    
-    fn exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err: &dyn Error);
+    fn exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String);
 }
 
 /// An instance of this struct ist kept in the extra field of LocatedSpan.
@@ -120,7 +119,7 @@ where
     fn exit_ok(&self, span: I, parsed: I);
 
     /// Calls exit_err() on the ParseContext. You might want to use err() instead.
-    fn exit_err(&self, span: I, code: C, err: &dyn Error);
+    fn exit_err(&self, span: I, code: C, err: String);
 }
 
 /// This trait is used for error tracking.
@@ -201,7 +200,7 @@ where
     fn exit_ok(span: I, parsed: I);
 
     /// Used to implement the bridge to [Context].
-    fn exit_err(span: I, code: C, err: &dyn Error);
+    fn exit_err(span: I, code: C, err: &ParserError<C, I, Y>);
 }
 
 impl<'s, C, O, E, Y> TrackError<'s, C, &'s str, O, E, Y> for Result<(&'s str, O), nom::Err<E>>
@@ -212,7 +211,7 @@ where
 {
     fn exit_ok(_span: &'s str, _parsed: &'s str) {}
 
-    fn exit_err(_span: &'s str, _code: C, _err: &dyn Error) {}
+    fn exit_err(_span: &'s str, _code: C, _err: &ParserError<C, &'s str, Y>) {}
 }
 
 impl<'s, C, O, E, Y> TrackError<'s, C, &'s [u8], O, E, Y> for Result<(&'s [u8], O), nom::Err<E>>
@@ -223,7 +222,7 @@ where
 {
     fn exit_ok(_span: &'s [u8], _parsed: &'s [u8]) {}
 
-    fn exit_err(_span: &'s [u8], _code: C, _err: &dyn Error) {}
+    fn exit_err(_span: &'s [u8], _code: C, _err: &ParserError<C, &'s [u8], Y>) {}
 }
 
 impl<'s, C, T, O, E, Y> TrackError<'s, C, LocatedSpan<T, ()>, O, E, Y>
@@ -243,7 +242,8 @@ where
 {
     fn exit_ok(_span: LocatedSpan<T, ()>, _parsed: LocatedSpan<T, ()>) {}
 
-    fn exit_err(_span: LocatedSpan<T, ()>, _code: C, _err: &dyn Error) {}
+    fn exit_err(_span: LocatedSpan<T, ()>, _code: C, _err: &ParserError<C, LocatedSpan<T, ()>, Y>) {
+    }
 }
 
 impl<'s, C, T, O, E, Y> TrackError<'s, C, LocatedSpan<T, DynTracker<'s, C, T>>, O, E, Y>
@@ -270,9 +270,16 @@ where
         );
     }
 
-    fn exit_err(span: LocatedSpan<T, DynTracker<'s, C, T>>, code: C, err: &dyn Error) {
+    fn exit_err(
+        span: LocatedSpan<T, DynTracker<'s, C, T>>,
+        code: C,
+        err: &ParserError<C, LocatedSpan<T, DynTracker<'s, C, T>>, Y>,
+    ) {
         <Context as FindTracker<C, LocatedSpan<T, DynTracker<'s, C, T>>>>::exit_err(
-            &Context, span, code, err,
+            &Context,
+            span,
+            code,
+            err.to_string(),
         );
     }
 }

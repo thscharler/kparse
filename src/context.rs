@@ -6,7 +6,6 @@ use crate::tracker::{DynTracker, FindTracker};
 use crate::{Code, ParserError};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
-use std::error::Error;
 use std::fmt::Debug;
 use std::ops::{RangeFrom, RangeTo};
 
@@ -52,7 +51,7 @@ where
         match &err {
             nom::Err::Incomplete(_) => {}
             nom::Err::Error(e) | nom::Err::Failure(e) => {
-                Context.exit_err(e.span, e.code, &e);
+                Context.exit_err(e.span, e.code, e.to_string());
             }
         }
         Err(err)
@@ -80,8 +79,8 @@ where
             .exit_ok(&clear_span(&span), &clear_span(&parsed))
     }
 
-    fn exit_err(&self, span: DynSpan<'s, C, T>, code: C, err: &dyn Error) {
-        span.extra.0.exit_err(&clear_span(&span), code, err)
+    fn exit_err(&self, span: DynSpan<'s, C, T>, code: C, err_str: String) {
+        span.extra.0.exit_err(&clear_span(&span), code, err_str)
     }
 }
 
@@ -147,7 +146,7 @@ where
 
     fn exit_ok(&self, _span: PlainSpan<'s, T>, _parsed: PlainSpan<'s, T>) {}
 
-    fn exit_err(&self, _span: PlainSpan<'s, T>, _code: C, _err: &dyn Error) {}
+    fn exit_err(&self, _span: PlainSpan<'s, T>, _code: C, _err: String) {}
 }
 
 impl<'s, C> FindTracker<C, &'s str> for Context
@@ -185,7 +184,7 @@ where
 
     fn exit_ok(&self, _span: &'s str, _parsed: &'s str) {}
 
-    fn exit_err(&self, _span: &'s str, _code: C, _err: &dyn Error) {}
+    fn exit_err(&self, _span: &'s str, _code: C, _err: String) {}
 }
 
 impl<'s, C> FindTracker<C, &'s [u8]> for Context
@@ -223,5 +222,5 @@ where
 
     fn exit_ok(&self, _span: &'s [u8], _parsed: &'s [u8]) {}
 
-    fn exit_err(&self, _span: &'s [u8], _code: C, _err: &dyn Error) {}
+    fn exit_err(&self, _span: &'s [u8], _code: C, _err: String) {}
 }

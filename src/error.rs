@@ -321,7 +321,7 @@ where
         + Slice<RangeTo<usize>>,
     Y: Copy + Debug,
 {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
+    fn source(&self) -> Option<&(dyn ::std::error::Error + 'static)> {
         self.hints
             .iter()
             .find(|v| matches!(v, Hints::Cause(_)))
@@ -350,15 +350,6 @@ where
         }
     }
 
-    /// New error adds the code as Suggestion too.
-    pub fn new_suggest(code: C, span: I) -> Self {
-        Self {
-            code,
-            span,
-            hints: vec![Hints::Suggest(SpanAndCode { code, span })],
-        }
-    }
-
     /// With a nom errorkind
     pub fn with_nom(mut self, span: I, kind: ErrorKind) -> Self {
         self.hints.push(Hints::Nom(Nom {
@@ -371,8 +362,11 @@ where
     }
 
     /// With a cause.
-    pub fn with_cause(mut self, err: Box<dyn Error>) -> Self {
-        self.hints.push(Hints::Cause(err));
+    pub fn with_cause<E>(mut self, err: E) -> Self
+    where
+        E: Error + 'static,
+    {
+        self.hints.push(Hints::Cause(Box::new(err)));
         self
     }
 
@@ -475,9 +469,9 @@ where
     }
 
     /// Adds some expected codes.
-    pub fn append_expected(&mut self, exp: Vec<SpanAndCode<C, I>>) {
-        for exp in exp.into_iter() {
-            self.hints.push(Hints::Expect(exp));
+    pub fn append_expected(&mut self, exp_iter: impl Iterator<Item = SpanAndCode<C, I>>) {
+        for exp in exp_iter {
+            let _ = self.hints.push(Hints::Expect(exp));
         }
     }
 
@@ -559,9 +553,9 @@ where
     }
 
     /// Adds some suggested codes.
-    pub fn append_suggested(&mut self, exp: Vec<SpanAndCode<C, I>>) {
-        for exp in exp.into_iter() {
-            self.hints.push(Hints::Suggest(exp));
+    pub fn append_suggested(&mut self, sug_iter: impl Iterator<Item = SpanAndCode<C, I>>) {
+        for exp in sug_iter {
+            let _ = self.hints.push(Hints::Suggest(exp));
         }
     }
 
@@ -573,7 +567,6 @@ where
         })
     }
 
-    // maybe: move to standalone fn
     /// Get Suggest grouped by offset into the string, starting with max first.
     pub fn suggested_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<C, I>>)>
     where
@@ -604,7 +597,6 @@ where
         grp
     }
 
-    // maybe: move to standalone fn
     /// Get Suggest grouped by line number, starting with max first.
     pub fn suggested_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<C, I>>)>
     where
