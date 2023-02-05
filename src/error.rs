@@ -545,7 +545,7 @@ where
     /// Adds some expected codes.
     pub fn append_expected(&mut self, exp_iter: impl Iterator<Item = SpanAndCode<C, I>>) {
         for exp in exp_iter {
-            let _ = self.hints.push(Hints::Expect(exp));
+            self.hints.push(Hints::Expect(exp));
         }
     }
 
@@ -629,7 +629,7 @@ where
     /// Adds some suggested codes.
     pub fn append_suggested(&mut self, sug_iter: impl Iterator<Item = SpanAndCode<C, I>>) {
         for exp in sug_iter {
-            let _ = self.hints.push(Hints::Suggest(exp));
+            self.hints.push(Hints::Suggest(exp));
         }
     }
 

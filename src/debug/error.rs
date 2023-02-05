@@ -153,14 +153,14 @@ where
         indent(f, 1)?;
         writeln!(f, "{:2?}, ", nom)?;
     }
-    if !err.iter_expected().next().is_some() {
+    if err.iter_expected().next().is_some() {
         writeln!(f, "expected")?;
     }
     for v in err.iter_expected() {
         indent(f, 1)?;
         writeln!(f, "{:2?}, ", v)?;
     }
-    if !err.iter_suggested().next().is_some() {
+    if err.iter_suggested().next().is_some() {
         writeln!(f, "suggested")?;
     }
     for v in err.iter_suggested() {

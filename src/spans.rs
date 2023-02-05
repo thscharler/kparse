@@ -131,7 +131,7 @@ impl<'s> SpanFragment for &'s str {
     type Result = &'s str;
 
     fn fragment(&self) -> &Self::Result {
-        &self
+        self
     }
 }
 
@@ -139,7 +139,7 @@ impl<'s> SpanFragment for &'s [u8] {
     type Result = &'s [u8];
 
     fn fragment(&self) -> &Self::Result {
-        &self
+        self
     }
 }
 

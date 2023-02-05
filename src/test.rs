@@ -980,7 +980,7 @@ mod report {
         }
     }
 
-    fn trace_span<'s, T, O, E>(test: &Test<'s, (), LocatedSpan<T, ()>, O, E>)
+    fn trace_span<T, O, E>(test: &Test<'_, (), LocatedSpan<T, ()>, O, E>)
     where
         T: AsBytes + Copy + Debug,
         T: Offset
