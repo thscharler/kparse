@@ -494,15 +494,14 @@ where
     ///
     /// Finish the test with q()
     #[must_use]
-    pub fn rest<'a, T>(&'a self, test: T) -> &Self
+    pub fn rest<T>(&self, test: T) -> &Self
     where
-        &'a I: SpanFragment<Result = T>,
-        I: 'a,
+        I: SpanFragment<Result = T>,
         T: PartialEq + Debug,
     {
         match &self.result {
             Ok((rest, _)) => {
-                if rest.fragment() != test {
+                if rest.fragment() != &test {
                     println!(
                         "FAIL: Rest mismatch {:?} <> {:?}",
                         restrict(DebugWidth::Medium, *rest),
@@ -591,6 +590,34 @@ where
             }
             Err(nom::Err::Incomplete(e)) => {
                 println!("INCOMPLETE: {:?}", e);
+                self.flag_fail();
+            }
+        }
+        self
+    }
+
+    /// Test for a nom error that occurred.
+    #[must_use]
+    pub fn nom_err(&self, kind: nom::error::ErrorKind) -> &Self {
+        match &self.result {
+            Ok(_) => {
+                println!("FAIL: Expected error, but was ok!");
+                self.flag_fail();
+            }
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => match e.nom() {
+                Some(n) => {
+                    if n.kind != kind {
+                        println!("FAIL: {:?} <> {:?}", n.kind, kind);
+                        self.flag_fail();
+                    }
+                }
+                None => {
+                    println!("FAIL: no nom errorkind {:?}", kind);
+                    self.flag_fail();
+                }
+            },
+            Err(nom::Err::Incomplete(_)) => {
+                println!("FAIL: nom::Err::Incomplete");
                 self.flag_fail();
             }
         }

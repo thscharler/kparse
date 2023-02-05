@@ -47,7 +47,7 @@ where
 {
     write!(
         f,
-        "parse error [{}] for {:?}",
+        "parse error [{:?}] for {:?}",
         err.code,
         restrict(DebugWidth::Short, err.span)
     )?;

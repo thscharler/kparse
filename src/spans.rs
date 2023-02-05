@@ -110,36 +110,36 @@ where
 /// Get the fragment from a span.
 pub trait SpanFragment {
     /// Type of the fragment.
-    type Result;
+    type Result: ?Sized;
 
     /// Equivalent to LocatedSpan::fragment()
-    fn fragment(self) -> Self::Result;
+    fn fragment(&self) -> &Self::Result;
 }
 
-impl<T, X> SpanFragment for &LocatedSpan<T, X>
+impl<T, X> SpanFragment for LocatedSpan<T, X>
 where
     T: Copy + AsBytes,
 {
     type Result = T;
 
-    fn fragment(self) -> T {
-        *LocatedSpan::fragment(self)
+    fn fragment(&self) -> &Self::Result {
+        LocatedSpan::fragment(self)
     }
 }
 
-impl<'s> SpanFragment for &'s &'s str {
+impl<'s> SpanFragment for &'s str {
     type Result = &'s str;
 
-    fn fragment(self) -> &'s str {
-        *self
+    fn fragment(&self) -> &Self::Result {
+        &self
     }
 }
 
-impl<'s> SpanFragment for &'s &'s [u8] {
+impl<'s> SpanFragment for &'s [u8] {
     type Result = &'s [u8];
 
-    fn fragment(self) -> &'s [u8] {
-        self
+    fn fragment(&self) -> &Self::Result {
+        &self
     }
 }
 

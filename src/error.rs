@@ -259,10 +259,10 @@ where
         + InputLength
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
-    Y: Copy,
+    Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?} ", self.code)?;
+        write!(f, "{}", self.code)?;
 
         if self.iter_expected().next().is_some() {
             write!(f, " expected ")?;
@@ -271,7 +271,7 @@ where
             if i > 0 {
                 write!(f, " ")?;
             }
-            write!(f, "{}", exp.code,)?;
+            write!(f, "{}", exp.code)?;
         }
 
         if let Some(nom) = self.nom() {
@@ -280,6 +280,24 @@ where
             } else {
                 write!(f, " errorkind {:?}", nom.kind)?
             }
+        }
+
+        if self.iter_suggested().next().is_some() {
+            write!(f, " suggested ")?;
+        }
+        for (i, sug) in self.iter_suggested().enumerate() {
+            if i > 0 {
+                write!(f, " ")?;
+            }
+            write!(f, "{}", sug.code)?;
+        }
+
+        if let Some(cause) = self.cause() {
+            write!(f, " cause {:0?}, ", cause)?;
+        }
+
+        if let Some(user_data) = self.user_data() {
+            write!(f, " user_data {:?}, ", user_data)?;
         }
 
         // no suggest
@@ -360,7 +378,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
-        write!(f, "{}:{:?}", self.code, restrict(w, self.span))?;
+        write!(f, "{:?}:{:?}", self.code, restrict(w, self.span))?;
         Ok(())
     }
 }
