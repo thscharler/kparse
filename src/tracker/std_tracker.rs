@@ -74,7 +74,11 @@ where
     }
 }
 
-impl<C, T> Default for StdTracker<C, T> {
+impl<C, T> Default for StdTracker<C, T>
+where
+    T: AsBytes + Copy,
+    C: Code,
+{
     fn default() -> Self {
         Self::new()
     }

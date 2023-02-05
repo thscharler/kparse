@@ -83,8 +83,8 @@ where
     move |i| -> Result<(I, TrO), nom::Err<ParserError<C, I, Y>>> {
         parser.parse(i).and_then(|(rest, tok)| {
             transform(tok)
-                .and_then(|v| Ok((rest, v)))
-                .or_else(|e| Err(e.with_span(code, tok)))
+                .map(|v| (rest, v))
+                .map_err(|e| e.with_span(code, tok))
         })
     }
 }
@@ -132,10 +132,7 @@ where
 {
     move |i| -> Result<(I, Option<O>), nom::Err<ParserError<C, I, Y>>> {
         if cond_fn(i) {
-            match parse_fn.parse(i) {
-                Ok((r, v)) => Ok((r, Some(v))),
-                Err(e) => Err(e),
-            }
+            parse_fn.parse(i).map(|(r, v)| (r, Some(v)))
         } else {
             Ok((i, None))
         }
