@@ -3,7 +3,7 @@
 //!
 
 use crate::tracker::FindTracker;
-use crate::{Code, ParserError, WithCode, WithSpan};
+use crate::{Code, ParserError, WithSpan};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Parser, Slice};
 use std::fmt::Debug;
 use std::ops::{RangeFrom, RangeTo};
@@ -35,28 +35,7 @@ where
 }
 
 /// Takes a parser and converts the error via the WithCode trait.
-pub fn error_code<PA, C, I, O, E0, E1>(
-    mut parser: PA,
-    code: C,
-) -> impl FnMut(I) -> Result<(I, O), nom::Err<E1>>
-where
-    C: Code,
-    PA: Parser<I, O, E0>,
-    E0: WithCode<C, E1>,
-{
-    move |i| -> Result<(I, O), nom::Err<E1>> {
-        match parser.parse(i) {
-            Ok((r, v)) => Ok((r, v)),
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(code))),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Error(e.with_code(code))),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-        }
-    }
-}
-
-/// Takes a parser and converts the error via the WithCode trait.
-/// This variation uses a fixed input error type to help with type inference.
-pub fn parser_error<PA, C, I, O, Y>(
+pub fn error_code<PA, C, I, O, Y>(
     mut parser: PA,
     code: C,
 ) -> impl FnMut(I) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
@@ -140,16 +119,18 @@ where
 }
 
 /// Runs a condition on the input and only executes the parser on success.
-pub fn conditional<I, O, E, CFn, PFn>(
+pub fn conditional<CFn, PFn, C, I, O, Y>(
     cond_fn: CFn,
     mut parse_fn: PFn,
-) -> impl FnMut(I) -> Result<(I, Option<O>), nom::Err<E>>
+) -> impl FnMut(I) -> Result<(I, Option<O>), nom::Err<ParserError<C, I, Y>>>
 where
-    I: Copy,
     CFn: Fn(I) -> bool,
-    PFn: Parser<I, O, E>,
+    PFn: Parser<I, O, ParserError<C, I, Y>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
 {
-    move |i| -> Result<(I, Option<O>), nom::Err<E>> {
+    move |i| -> Result<(I, Option<O>), nom::Err<ParserError<C, I, Y>>> {
         if cond_fn(i) {
             match parse_fn.parse(i) {
                 Ok((r, v)) => Ok((r, Some(v))),
