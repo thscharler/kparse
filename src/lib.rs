@@ -142,6 +142,22 @@ where
 }
 
 //
+// ()
+//
+
+// from the std::wilds
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for ()
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
+        nom::Err::Failure(ParserError::new(code, span))
+    }
+}
+
+//
 // nom::error::Error
 //
 

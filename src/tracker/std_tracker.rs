@@ -380,7 +380,7 @@ where
     pub func: C,
     /// Span.
     pub span: LocatedSpan<T, ()>,
-    /// Remaining span.
+    /// Parsed span or input span.
     pub parsed: LocatedSpan<T, ()>,
     /// Parser call stack.
     pub parents: Vec<C>,

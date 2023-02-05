@@ -217,16 +217,29 @@ where
 {
     match w {
         DebugWidth::Short | DebugWidth::Medium | DebugWidth::Long => {
-            if !v.span.as_bytes().is_empty() {
+            if v.parsed.location_offset() + v.parsed.input_len() <= v.span.location_offset() {
+                if v.parsed.input_len() > 0 {
+                    write!(
+                        f,
+                        "{}: ok -> [ {:?}, {:?} ]",
+                        v.func,
+                        v.parsed.fragment(),
+                        restrict(w, v.span).fragment()
+                    )?;
+                } else {
+                    write!(f, "{}: ok -> no match", v.func)?;
+                }
+            } else {
+                let parsed_len = v.span.location_offset() - v.parsed.location_offset();
+                let parsed = v.parsed.take(parsed_len);
+
                 write!(
                     f,
                     "{}: ok -> [ {:?}, {:?} ]",
                     v.func,
-                    restrict(w, v.parsed).fragment(),
+                    parsed.fragment(),
                     restrict(w, v.span).fragment()
                 )?;
-            } else {
-                write!(f, "{}: ok -> no match", v.func)?;
             }
         }
     }
