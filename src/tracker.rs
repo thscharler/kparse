@@ -2,7 +2,6 @@
 //! Everything related to tracking in a parser.
 //!
 
-use crate::context::Context;
 use crate::error::ParserError;
 use crate::Code;
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
@@ -74,52 +73,41 @@ where
 
 /// This trait is implemented on Context for various input types.
 /// This allows it to switch seamlessly between input types.
-pub trait FindTracker<C, I>
+pub trait FindTracker<C>
 where
-    I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
     C: Code,
+    Self: Sized,
 {
     /// Creates an Ok() Result from the parameters and tracks the result.
     fn ok<O, Y>(
-        &self,
-        remainder: I,
-        parsed: I,
+        self,
+        parsed: Self,
         value: O,
-    ) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
-    where
-        Y: Copy;
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>;
 
     /// Tracks the error and creates a Result.
-    fn err<O, E, Y>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+    fn err<O, E, Y>(&self, err: E) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
     where
-        E: Into<nom::Err<ParserError<C, I, Y>>>,
-        Y: Copy + Debug,
-        C: Code;
+        E: Into<nom::Err<ParserError<C, Self, Y>>>,
+        Y: Copy + Debug;
 
     /// Enter a parser function.
-    fn enter(&self, func: C, span: I);
+    fn enter(&self, func: C);
 
     /// Track some debug info.
-    fn debug(&self, span: I, debug: String);
+    fn debug(&self, debug: String);
 
     /// Track some other info.
-    fn info(&self, span: I, info: &'static str);
+    fn info(&self, info: &'static str);
 
     /// Track some warning.
-    fn warn(&self, span: I, warn: &'static str);
+    fn warn(&self, warn: &'static str);
 
     /// Calls exit_ok() on the ParseContext. You might want to use ok() instead.
-    fn exit_ok(&self, span: I, parsed: I);
+    fn exit_ok(&self, parsed: Self);
 
     /// Calls exit_err() on the ParseContext. You might want to use err() instead.
-    fn exit_err(&self, span: I, code: C, err: String);
+    fn exit_err(&self, code: C, err: String);
 }
 
 /// This trait is used for error tracking.
@@ -135,10 +123,10 @@ where
 /// let (rest, plan) = token_name(rest).track()?;
 /// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
 /// ```
-pub trait TrackError<'s, C, I, O, E, Y>
+pub trait TrackError<C, I, O, E, Y>
 where
     C: Code,
-    I: AsBytes + Copy + Debug,
+    I: Copy + FindTracker<C> + Debug,
     I: Offset
         + InputTake
         + InputIter
@@ -146,19 +134,42 @@ where
         + AsBytes
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
-    Y: Copy + Debug,
     E: Into<ParserError<C, I, Y>>,
-    Self: Into<Result<(I, O), nom::Err<E>>>,
+    Y: Copy + Debug,
+{
+    /// Keep a track if self is an error.
+    fn track(self) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+
+    /// Keep track if self is an error, and set an error code too.
+    fn track_as(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+
+    /// Keep track of self, either as error or as ok result.
+    fn track_ok(self, parsed: I) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+}
+
+impl<C, I, O, E, Y> TrackError<C, I, O, E, Y> for Result<(I, O), nom::Err<E>>
+where
+    C: Code,
+    I: Copy + FindTracker<C> + Debug,
+    I: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + AsBytes
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+    E: Into<ParserError<C, I, Y>>,
+    Y: Copy + Debug,
 {
     /// Keep a track if self is an error.
     fn track(self) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
-        let ego = self.into();
-        match ego {
+        match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
                 let p_err: ParserError<C, I, Y> = e.into();
-                Self::exit_err(p_err.span, p_err.code, &p_err);
+                let p_span = p_err.span;
+                p_span.exit_err(p_err.code, format!("{:?}", p_err));
                 Err(nom::Err::Error(p_err))
             }
         }
@@ -166,14 +177,14 @@ where
 
     /// Keep track if self is an error, and set an error code too.
     fn track_as(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
-        let ego = self.into();
-        match ego {
+        match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
                 let p_err: ParserError<C, I, Y> = e.into();
                 let p_err = p_err.with_code(code);
-                Self::exit_err(p_err.span, p_err.code, &p_err);
+                let p_span = p_err.span;
+                p_span.exit_err(p_err.code, format!("{:?}", p_err));
                 Err(nom::Err::Error(p_err))
             }
         }
@@ -181,105 +192,18 @@ where
 
     /// Keep track of self, either as error or as ok result.
     fn track_ok(self, parsed: I) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
-        let ego = self.into();
-        match ego {
+        match self {
             Ok((span, v)) => {
-                Self::exit_ok(parsed, span);
+                span.exit_ok(parsed);
                 Ok((span, v))
             }
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
                 let p_err: ParserError<C, I, Y> = e.into();
-                Self::exit_err(p_err.span, p_err.code, &p_err);
+                let p_span = p_err.span;
+                p_span.exit_err(p_err.code, format!("{:?}", p_err));
                 Err(nom::Err::Error(p_err))
             }
         }
-    }
-
-    /// Used to implement the bridge to [Context].
-    fn exit_ok(span: I, parsed: I);
-
-    /// Used to implement the bridge to [Context].
-    fn exit_err(span: I, code: C, err: &ParserError<C, I, Y>);
-}
-
-impl<'s, C, O, E, Y> TrackError<'s, C, &'s str, O, E, Y> for Result<(&'s str, O), nom::Err<E>>
-where
-    E: Into<ParserError<C, &'s str, Y>>,
-    C: Code,
-    Y: Copy + Debug,
-{
-    fn exit_ok(_span: &'s str, _parsed: &'s str) {}
-
-    fn exit_err(_span: &'s str, _code: C, _err: &ParserError<C, &'s str, Y>) {}
-}
-
-impl<'s, C, O, E, Y> TrackError<'s, C, &'s [u8], O, E, Y> for Result<(&'s [u8], O), nom::Err<E>>
-where
-    E: Into<ParserError<C, &'s [u8], Y>>,
-    C: Code,
-    Y: Copy + Debug,
-{
-    fn exit_ok(_span: &'s [u8], _parsed: &'s [u8]) {}
-
-    fn exit_err(_span: &'s [u8], _code: C, _err: &ParserError<C, &'s [u8], Y>) {}
-}
-
-impl<'s, C, T, O, E, Y> TrackError<'s, C, LocatedSpan<T, ()>, O, E, Y>
-    for Result<(LocatedSpan<T, ()>, O), nom::Err<E>>
-where
-    E: Into<ParserError<C, LocatedSpan<T, ()>, Y>>,
-    C: Code,
-    Y: Copy + Debug,
-    T: Copy + Debug,
-    T: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
-{
-    fn exit_ok(_span: LocatedSpan<T, ()>, _parsed: LocatedSpan<T, ()>) {}
-
-    fn exit_err(_span: LocatedSpan<T, ()>, _code: C, _err: &ParserError<C, LocatedSpan<T, ()>, Y>) {
-    }
-}
-
-impl<'s, C, T, O, E, Y> TrackError<'s, C, LocatedSpan<T, DynTracker<'s, C, T>>, O, E, Y>
-    for Result<(LocatedSpan<T, DynTracker<'s, C, T>>, O), nom::Err<E>>
-where
-    E: Into<ParserError<C, LocatedSpan<T, DynTracker<'s, C, T>>, Y>>,
-    C: Code,
-    Y: Copy + Debug,
-    T: Copy + Debug,
-    T: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
-{
-    fn exit_ok(
-        span: LocatedSpan<T, DynTracker<'s, C, T>>,
-        parsed: LocatedSpan<T, DynTracker<'s, C, T>>,
-    ) {
-        <Context as FindTracker<C, LocatedSpan<T, DynTracker<'s, C, T>>>>::exit_ok(
-            &Context, span, parsed,
-        );
-    }
-
-    fn exit_err(
-        span: LocatedSpan<T, DynTracker<'s, C, T>>,
-        code: C,
-        err: &ParserError<C, LocatedSpan<T, DynTracker<'s, C, T>>, Y>,
-    ) {
-        <Context as FindTracker<C, LocatedSpan<T, DynTracker<'s, C, T>>>>::exit_err(
-            &Context,
-            span,
-            code,
-            err.to_string(),
-        );
     }
 }

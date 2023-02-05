@@ -12,9 +12,77 @@ use std::ops::{RangeFrom, RangeTo};
 /// Provides access to the tracker functions for various input types.
 pub struct Context;
 
+impl Context {
+    /// Creates an Ok() Result from the parameters and tracks the result.
+    pub fn ok<C, I, O, Y>(
+        &self,
+        rest: I,
+        input: I,
+        value: O,
+    ) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+    where
+        C: Code,
+        I: FindTracker<C>,
+    {
+        rest.ok(input, value)
+    }
+
+    /// Tracks the error and creates a Result.
+    pub fn err<C, I, O, E, Y>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+    where
+        C: Code,
+        I: Copy + FindTracker<C>,
+        E: Into<nom::Err<ParserError<C, I, Y>>>,
+        Y: Copy + Debug,
+    {
+        let err: nom::Err<ParserError<C, I, Y>> = err.into();
+        let span = match &err {
+            nom::Err::Incomplete(_) => return Err(err),
+            nom::Err::Error(e) | nom::Err::Failure(e) => e.span,
+        };
+        span.err(err)
+    }
+
+    /// Enter a parser function.
+    pub fn enter<C, I>(&self, func: C, span: I)
+    where
+        C: Code,
+        I: FindTracker<C>,
+    {
+        span.enter(func);
+    }
+
+    /// Track some debug info.
+    pub fn debug<C, I>(&self, span: I, debug: String)
+    where
+        C: Code,
+        I: FindTracker<C>,
+    {
+        span.debug(debug);
+    }
+
+    /// Track some other info.
+    pub fn info<C, I>(&self, span: I, info: &'static str)
+    where
+        C: Code,
+        I: FindTracker<C>,
+    {
+        span.info(info);
+    }
+
+    /// Track some warning.
+    pub fn warn<C, I>(&self, span: I, warn: &'static str)
+    where
+        C: Code,
+        I: FindTracker<C>,
+    {
+        span.warn(warn);
+    }
+}
+
 type DynSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
-impl<'s, T, C> FindTracker<C, DynSpan<'s, C, T>> for Context
+impl<'s, C, T> FindTracker<C> for DynSpan<'s, C, T>
 where
     T: Copy + Debug,
     T: Offset
@@ -27,22 +95,20 @@ where
     C: Code,
 {
     fn ok<O, Y>(
-        &self,
-        remainder: DynSpan<'s, C, T>,
+        self,
         parsed: DynSpan<'s, C, T>,
         value: O,
-    ) -> Result<(DynSpan<'s, C, T>, O), nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>>>
-    where
-        Y: Copy,
-    {
-        Context.exit_ok(remainder, parsed);
-        Ok((remainder, value))
+    ) -> Result<(DynSpan<'s, C, T>, O), nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>>> {
+        self.extra
+            .0
+            .exit_ok(&clear_span(&self), &clear_span(&parsed));
+        Ok((self, value))
     }
 
     fn err<O, E, Y>(
         &self,
         err: E,
-    ) -> Result<(DynSpan<'s, C, T>, O), nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>>>
+    ) -> Result<(DynSpan<'s, C, T>, O), nom::Err<ParserError<C, Self, Y>>>
     where
         E: Into<nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>>>,
         Y: Copy + Debug,
@@ -51,36 +117,38 @@ where
         match &err {
             nom::Err::Incomplete(_) => {}
             nom::Err::Error(e) | nom::Err::Failure(e) => {
-                Context.exit_err(e.span, e.code, e.to_string());
+                self.extra
+                    .0
+                    .exit_err(&clear_span(&e.span), e.code, e.to_string());
             }
         }
         Err(err)
     }
 
-    fn enter(&self, func: C, span: DynSpan<'s, C, T>) {
-        span.extra.0.enter(func, &clear_span(&span))
+    fn enter(&self, func: C) {
+        self.extra.0.enter(func, &clear_span(self));
     }
 
-    fn debug(&self, span: DynSpan<'s, C, T>, debug: String) {
-        span.extra.0.debug(&clear_span(&span), debug)
+    fn debug(&self, debug: String) {
+        self.extra.0.debug(&clear_span(self), debug);
     }
 
-    fn info(&self, span: DynSpan<'s, C, T>, info: &'static str) {
-        span.extra.0.info(&clear_span(&span), info)
+    fn info(&self, info: &'static str) {
+        self.extra.0.info(&clear_span(self), info);
     }
 
-    fn warn(&self, span: DynSpan<'s, C, T>, warn: &'static str) {
-        span.extra.0.warn(&clear_span(&span), warn)
+    fn warn(&self, warn: &'static str) {
+        self.extra.0.warn(&clear_span(self), warn);
     }
 
-    fn exit_ok(&self, span: DynSpan<'s, C, T>, parsed: DynSpan<'s, C, T>) {
-        span.extra
+    fn exit_ok(&self, parsed: DynSpan<'s, C, T>) {
+        self.extra
             .0
-            .exit_ok(&clear_span(&span), &clear_span(&parsed))
+            .exit_ok(&clear_span(self), &clear_span(&parsed));
     }
 
-    fn exit_err(&self, span: DynSpan<'s, C, T>, code: C, err_str: String) {
-        span.extra.0.exit_err(&clear_span(&span), code, err_str)
+    fn exit_err(&self, code: C, err: String) {
+        self.extra.0.exit_err(&clear_span(self), code, err);
     }
 }
 
@@ -101,7 +169,7 @@ where
 
 type PlainSpan<'s, T> = LocatedSpan<T, ()>;
 
-impl<'s, T, C> FindTracker<C, PlainSpan<'s, T>> for Context
+impl<'s, C, T> FindTracker<C> for PlainSpan<'s, T>
 where
     T: Copy + Debug,
     T: Offset
@@ -114,15 +182,11 @@ where
     C: Code,
 {
     fn ok<O, Y>(
-        &self,
-        remainder: PlainSpan<'s, T>,
+        self,
         _parsed: PlainSpan<'s, T>,
         value: O,
-    ) -> Result<(PlainSpan<'s, T>, O), nom::Err<ParserError<C, PlainSpan<'s, T>, Y>>>
-    where
-        Y: Copy,
-    {
-        Ok((remainder, value))
+    ) -> Result<(PlainSpan<'s, T>, O), nom::Err<ParserError<C, PlainSpan<'s, T>, Y>>> {
+        Ok((self, value))
     }
 
     fn err<O, E, Y>(
@@ -131,96 +195,86 @@ where
     ) -> Result<(PlainSpan<'s, T>, O), nom::Err<ParserError<C, PlainSpan<'s, T>, Y>>>
     where
         E: Into<nom::Err<ParserError<C, PlainSpan<'s, T>, Y>>>,
-        Y: Copy,
+        Y: Copy + Debug,
     {
         Err(err.into())
     }
 
-    fn enter(&self, _func: C, _span: PlainSpan<'s, T>) {}
+    fn enter(&self, _func: C) {}
 
-    fn debug(&self, _span: PlainSpan<'s, T>, _debug: String) {}
+    fn debug(&self, _debug: String) {}
 
-    fn info(&self, _span: PlainSpan<'s, T>, _info: &'static str) {}
+    fn info(&self, _info: &'static str) {}
 
-    fn warn(&self, _span: PlainSpan<'s, T>, _warn: &'static str) {}
+    fn warn(&self, _warn: &'static str) {}
 
-    fn exit_ok(&self, _span: PlainSpan<'s, T>, _parsed: PlainSpan<'s, T>) {}
+    fn exit_ok(&self, _parsed: PlainSpan<'s, T>) {}
 
-    fn exit_err(&self, _span: PlainSpan<'s, T>, _code: C, _err: String) {}
+    fn exit_err(&self, _func: C, _err: String) {}
 }
 
-impl<'s, C> FindTracker<C, &'s str> for Context
+impl<'s, C> FindTracker<C> for &'s str
 where
     C: Code,
 {
     fn ok<O, Y>(
-        &self,
-        remainder: &'s str,
+        self,
         _parsed: &'s str,
         value: O,
-    ) -> Result<(&'s str, O), nom::Err<ParserError<C, &'s str, Y>>>
-    where
-        Y: Copy,
-        C: Code,
-    {
-        Ok((remainder, value))
+    ) -> Result<(&'s str, O), nom::Err<ParserError<C, &'s str, Y>>> {
+        Ok((self, value))
     }
 
-    fn err<O, E, Y>(&self, err: E) -> Result<(&'s str, O), nom::Err<ParserError<C, &'s str, Y>>>
+    fn err<O, E, Y>(&self, err: E) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
     where
-        E: Into<nom::Err<ParserError<C, &'s str, Y>>>,
-        Y: Copy,
+        E: Into<nom::Err<ParserError<C, Self, Y>>>,
+        Y: Copy + Debug,
     {
         Err(err.into())
     }
 
-    fn enter(&self, _func: C, _span: &'s str) {}
+    fn enter(&self, _func: C) {}
 
-    fn debug(&self, _span: &'s str, _debug: String) {}
+    fn debug(&self, _debug: String) {}
 
-    fn info(&self, _span: &'s str, _info: &'static str) {}
+    fn info(&self, _info: &'static str) {}
 
-    fn warn(&self, _span: &'s str, _warn: &'static str) {}
+    fn warn(&self, _warn: &'static str) {}
 
-    fn exit_ok(&self, _span: &'s str, _parsed: &'s str) {}
+    fn exit_ok(&self, _input: Self) {}
 
-    fn exit_err(&self, _span: &'s str, _code: C, _err: String) {}
+    fn exit_err(&self, _func: C, _err: String) {}
 }
 
-impl<'s, C> FindTracker<C, &'s [u8]> for Context
+impl<'s, C> FindTracker<C> for &'s [u8]
 where
     C: Code,
 {
     fn ok<O, Y>(
-        &self,
-        remainder: &'s [u8],
-        _parsed: &'s [u8],
+        self,
+        _input: Self,
         value: O,
-    ) -> Result<(&'s [u8], O), nom::Err<ParserError<C, &'s [u8], Y>>>
-    where
-        Y: Copy,
-        C: Code,
-    {
-        Ok((remainder, value))
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>> {
+        Ok((self, value))
     }
 
-    fn err<O, E, Y>(&self, err: E) -> Result<(&'s [u8], O), nom::Err<ParserError<C, &'s [u8], Y>>>
+    fn err<O, E, Y>(&self, err: E) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
     where
-        E: Into<nom::Err<ParserError<C, &'s [u8], Y>>>,
-        Y: Copy,
+        E: Into<nom::Err<ParserError<C, Self, Y>>>,
+        Y: Copy + Debug,
     {
         Err(err.into())
     }
 
-    fn enter(&self, _func: C, _span: &'s [u8]) {}
+    fn enter(&self, _func: C) {}
 
-    fn debug(&self, _span: &'s [u8], _debug: String) {}
+    fn debug(&self, _debug: String) {}
 
-    fn info(&self, _span: &'s [u8], _info: &'static str) {}
+    fn info(&self, _info: &'static str) {}
 
-    fn warn(&self, _span: &'s [u8], _warn: &'static str) {}
+    fn warn(&self, _warn: &'static str) {}
 
-    fn exit_ok(&self, _span: &'s [u8], _parsed: &'s [u8]) {}
+    fn exit_ok(&self, _input: Self) {}
 
-    fn exit_err(&self, _span: &'s [u8], _code: C, _err: String) {}
+    fn exit_err(&self, _func: C, _err: String) {}
 }

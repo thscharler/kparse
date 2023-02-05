@@ -131,7 +131,7 @@ pub fn span_parse<'s, C, T, O, E>(
     buf: &'s mut Option<StdTracker<C, T>>,
     text: T,
     fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
-) -> Test<'s, (), TrackSpan<'s, C, T>, O, E>
+) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
     T: AsBytes + Copy + 's,
     C: Code,
@@ -147,7 +147,7 @@ where
 
     Test {
         span,
-        context: &(),
+        context,
         result,
         duration,
         failed: Cell::new(false),
@@ -314,7 +314,7 @@ pub fn byte_parse<'s, C, O, E>(
     buf: &'s mut Option<StdTracker<C, &'s [u8]>>,
     text: &'s [u8],
     fn_test: impl Fn(TrackSpan<'s, C, &'s [u8]>) -> Result<(TrackSpan<'s, C, &'s [u8]>, O), nom::Err<E>>,
-) -> Test<'s, (), TrackSpan<'s, C, &'s [u8]>, O, E>
+) -> Test<'s, StdTracker<C, &'s [u8]>, TrackSpan<'s, C, &'s [u8]>, O, E>
 where
     C: Code,
 {
@@ -329,7 +329,7 @@ where
 
     Test {
         span,
-        context: &(),
+        context,
         result,
         duration,
         failed: Cell::new(false),
@@ -690,11 +690,12 @@ mod span {
 }
 
 mod report {
-    use crate::debug::{restrict, restrict_str, DebugWidth};
+    use crate::debug::{restrict, restrict_ref, DebugWidth};
     use crate::test::{Report, Test};
     use crate::tracker::{StdTracker, TrackSpan};
     use crate::Code;
     use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
+    use nom_locate::LocatedSpan;
     use std::fmt::Debug;
     use std::ops::{RangeFrom, RangeTo};
 
@@ -750,7 +751,7 @@ mod report {
         fn report(&self, test: &Test<'s, P, I, O, E>) {
             println!(
                 "when parsing {:?} in {:?} =>",
-                restrict_str(DebugWidth::Medium, test.span),
+                restrict(DebugWidth::Medium, test.span),
                 test.duration / self.0
             );
             match &test.result {
@@ -800,17 +801,19 @@ mod report {
         println!();
         println!(
             "when parsing {:?} in {:?} =>",
-            restrict_str(DebugWidth::Medium, test.span),
+            restrict(DebugWidth::Medium, test.span),
             test.duration
         );
         match &test.result {
             Ok((rest, token)) => {
-                println!("rest {}:{:?}", test.span.offset(rest), rest);
-                println!("{:0?}", token);
+                println!("parsed");
+                println!("    {:0?}", token);
+                println!("rest");
+                println!("    {}:{:?}", test.span.offset(rest), rest);
             }
             Err(e) => {
                 println!("error");
-                println!("{:1?}", e);
+                println!("    {:1?}", e);
             }
         }
     }
@@ -818,6 +821,10 @@ mod report {
     /// Dumps the full parser trace if any test failed.
     #[derive(Clone, Copy)]
     pub struct CheckTrace;
+
+    /// Dumps the full parser trace.
+    #[derive(Clone, Copy)]
+    pub struct Trace;
 
     impl<'s, C, T, O, E> Report<Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>> for CheckTrace
     where
@@ -840,10 +847,6 @@ mod report {
             }
         }
     }
-
-    /// Dumps the full parser trace.
-    #[derive(Clone, Copy)]
-    pub struct Trace;
 
     impl<'s, C, T, O, E> Report<Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>> for Trace
     where
@@ -879,32 +882,243 @@ mod report {
         println!();
         println!(
             "when parsing {:?} in {:?} =>",
-            restrict(DebugWidth::Medium, test.span),
+            restrict_ref(DebugWidth::Medium, test.span.fragment()),
             test.duration
         );
 
         let tracks = test.context.results();
-        println!("{:?}", tracks);
+        print!("{:?}", tracks);
 
         match &test.result {
             Ok((rest, token)) => {
+                println!("parsed");
+                println!("    {:0?}", token);
+                println!("rest");
                 println!(
-                    "rest {}:{:?}",
+                    "    {}:{:?}",
                     rest.location_offset(),
-                    restrict(DebugWidth::Medium, *rest)
+                    restrict_ref(DebugWidth::Medium, rest.fragment()),
                 );
-                println!("{:0?}", token);
             }
             Err(nom::Err::Error(e)) => {
                 println!("error");
-                println!("{:1?}", e);
+                println!("    {:1?}", e);
             }
             Err(nom::Err::Failure(e)) => {
                 println!("failure");
-                println!("{:1?}", e);
+                println!("    {:1?}", e);
             }
             Err(nom::Err::Incomplete(e)) => {
-                println!("incomplete {:1?}", e);
+                println!("incomplete");
+                println!("    {:1?}", e);
+            }
+        }
+    }
+
+    impl<'s, T, O, E> Report<Test<'s, (), LocatedSpan<T, ()>, O, E>> for CheckTrace
+    where
+        T: AsBytes + Copy + Debug,
+        T: Offset
+            + InputTake
+            + InputIter
+            + InputLength
+            + Slice<RangeFrom<usize>>
+            + Slice<RangeTo<usize>>,
+        O: Debug,
+        E: Debug,
+    {
+        #[track_caller]
+        fn report(&self, test: &Test<'s, (), LocatedSpan<T, ()>, O, E>) {
+            if test.failed.get() {
+                trace_span(test);
+                panic!("test failed")
+            }
+        }
+    }
+
+    impl<'s, T, O, E> Report<Test<'s, (), LocatedSpan<T, ()>, O, E>> for Trace
+    where
+        T: AsBytes + Copy + Debug,
+        T: Offset
+            + InputTake
+            + InputIter
+            + InputLength
+            + Slice<RangeFrom<usize>>
+            + Slice<RangeTo<usize>>,
+        O: Debug,
+        E: Debug,
+    {
+        fn report(&self, test: &Test<'s, (), LocatedSpan<T, ()>, O, E>) {
+            trace_span(test);
+        }
+    }
+
+    fn trace_span<'s, T, O, E>(test: &Test<'s, (), LocatedSpan<T, ()>, O, E>)
+    where
+        T: AsBytes + Copy + Debug,
+        T: Offset
+            + InputTake
+            + InputIter
+            + InputLength
+            + Slice<RangeFrom<usize>>
+            + Slice<RangeTo<usize>>,
+        O: Debug,
+        E: Debug,
+    {
+        println!();
+        println!(
+            "when parsing {:?} in {:?} =>",
+            restrict_ref(DebugWidth::Medium, test.span.fragment()),
+            test.duration
+        );
+
+        println!("trace");
+        println!("    no trace");
+
+        match &test.result {
+            Ok((rest, token)) => {
+                println!("parsed");
+                println!("    {:0?}", token);
+                println!("rest");
+                println!(
+                    "    {}:{:?}",
+                    rest.location_offset(),
+                    restrict_ref(DebugWidth::Medium, rest.fragment()),
+                );
+            }
+            Err(nom::Err::Error(e)) => {
+                println!("error");
+                println!("    {:1?}", e);
+            }
+            Err(nom::Err::Failure(e)) => {
+                println!("failure");
+                println!("    {:1?}", e);
+            }
+            Err(nom::Err::Incomplete(e)) => {
+                println!("incomplete");
+                println!("    {:1?}", e);
+            }
+        }
+    }
+
+    impl<'s, O, E> Report<Test<'s, (), &'s str, O, E>> for CheckTrace
+    where
+        O: Debug,
+        E: Debug,
+    {
+        #[track_caller]
+        fn report(&self, test: &Test<'s, (), &'s str, O, E>) {
+            if test.failed.get() {
+                trace_less(test);
+                panic!("test failed")
+            }
+        }
+    }
+
+    impl<'s, O, E> Report<Test<'s, (), &'s str, O, E>> for Trace
+    where
+        O: Debug,
+        E: Debug,
+    {
+        fn report(&self, test: &Test<'s, (), &'s str, O, E>) {
+            trace_less(test);
+        }
+    }
+
+    fn trace_less<'s, O, E>(test: &Test<'s, (), &'s str, O, E>)
+    where
+        O: Debug,
+        E: Debug,
+    {
+        println!();
+        println!(
+            "when parsing {:?} in {:?} =>",
+            restrict_ref(DebugWidth::Medium, &test.span),
+            test.duration
+        );
+
+        println!("trace");
+        println!("    no trace");
+
+        match &test.result {
+            Ok((rest, token)) => {
+                println!("parsed");
+                println!("    {:0?}", token);
+                println!("rest");
+                println!("    {:?}", restrict_ref(DebugWidth::Medium, rest));
+            }
+            Err(nom::Err::Error(e)) => {
+                println!("error");
+                println!("    {:1?}", e);
+            }
+            Err(nom::Err::Failure(e)) => {
+                println!("failure");
+                println!("    {:1?}", e);
+            }
+            Err(nom::Err::Incomplete(e)) => {
+                println!("incomplete");
+                println!("    {:1?}", e);
+            }
+        }
+    }
+
+    impl<'s, O, E> Report<Test<'s, (), &'s [u8], O, E>> for CheckTrace
+    where
+        O: Debug,
+        E: Debug,
+    {
+        #[track_caller]
+        fn report(&self, test: &Test<'s, (), &'s [u8], O, E>) {
+            if test.failed.get() {
+                trace_less_b(test);
+                panic!("test failed")
+            }
+        }
+    }
+
+    impl<'s, O, E> Report<Test<'s, (), &'s [u8], O, E>> for Trace
+    where
+        O: Debug,
+        E: Debug,
+    {
+        fn report(&self, test: &Test<'s, (), &'s [u8], O, E>) {
+            trace_less_b(test);
+        }
+    }
+
+    fn trace_less_b<'s, O, E>(test: &Test<'s, (), &'s [u8], O, E>)
+    where
+        O: Debug,
+        E: Debug,
+    {
+        println!();
+        println!(
+            "when parsing {:?} in {:?} =>",
+            restrict_ref(DebugWidth::Medium, &test.span),
+            test.duration
+        );
+
+        println!("trace");
+        println!("    no trace");
+
+        match &test.result {
+            Ok((rest, token)) => {
+                println!("parsed");
+                println!("    {:0?}", token);
+                println!("rest");
+                println!("    {:?}", restrict_ref(DebugWidth::Medium, rest));
+            }
+            Err(nom::Err::Error(e)) => {
+                println!("error");
+                println!("    {:1?}", e);
+            }
+            Err(nom::Err::Failure(e)) => {
+                println!("failure");
+                println!("    {:1?}", e);
+            }
+            Err(nom::Err::Incomplete(e)) => {
+                println!("incomplete");
+                println!("    {:1?}", e);
             }
         }
     }

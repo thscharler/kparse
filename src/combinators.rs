@@ -2,8 +2,37 @@
 //! Provides some extra parser combinators.
 //!
 
+use crate::tracker::FindTracker;
 use crate::{Code, ParserError, WithCode, WithSpan};
-use nom::{AsBytes, Parser};
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Parser, Slice};
+use std::fmt::Debug;
+use std::ops::{RangeFrom, RangeTo};
+
+/// Tracked execution of a parser.
+pub fn track<PA, C, I, O>(
+    code: C,
+    mut parser: PA,
+) -> impl FnMut(I) -> Result<(I, O), nom::Err<ParserError<C, I>>>
+where
+    PA: Parser<I, O, ParserError<C, I>>,
+    C: Code,
+    I: Copy + Debug + FindTracker<C>,
+    I: Offset
+        + InputTake
+        + InputIter
+        + InputLength
+        + AsBytes
+        + Slice<RangeFrom<usize>>
+        + Slice<RangeTo<usize>>,
+{
+    move |i| -> Result<(I, O), nom::Err<ParserError<C, I>>> {
+        i.enter(code);
+        match parser.parse(i) {
+            Ok((r, v)) => r.ok(i, v),
+            Err(e) => i.err(e),
+        }
+    }
+}
 
 /// Takes a parser and converts the error via the WithCode trait.
 pub fn error_code<PA, C, I, O, E0, E1>(
@@ -58,33 +87,55 @@ where
 /// let (rest, (tok, val)) =
 ///         consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
 /// ```
-pub fn transform<PA, TRFn, C, I, O1, O2, E0, E1, E2>(
+pub fn transform<PA, TRFn, C, I, PAO, TrO, TrE, Y>(
     mut parser: PA,
     transform: TRFn,
     code: C,
-) -> impl FnMut(I) -> Result<(I, O2), nom::Err<E2>>
+) -> impl FnMut(I) -> Result<(I, TrO), nom::Err<ParserError<C, I, Y>>>
 where
+    PA: Parser<I, PAO, ParserError<C, I, Y>>,
+    TRFn: Fn(PAO) -> Result<TrO, TrE>,
     C: Code,
-    O1: Copy,
-    PA: Parser<I, O1, E0>,
-    TRFn: Fn(O1) -> Result<O2, E1>,
-    E0: WithCode<C, E2>,
-    E1: WithSpan<C, O1, E2>,
+    I: AsBytes + Copy,
+    PAO: Copy,
+    TrE: WithSpan<C, PAO, ParserError<C, I, Y>>,
+    Y: Copy,
 {
-    move |i| -> Result<(I, O2), nom::Err<E2>> {
-        let r = parser.parse(i);
-        match r {
-            Ok((rest, token)) => {
-                let o = transform(token);
-                match o {
-                    Ok(o) => Ok((rest, o)),
-                    Err(e) => Err(e.with_span(code, token)),
-                }
-            }
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(code))),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.with_code(code))),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-        }
+    move |i| -> Result<(I, TrO), nom::Err<ParserError<C, I, Y>>> {
+        parser.parse(i).and_then(|(rest, tok)| {
+            transform(tok)
+                .and_then(|v| Ok((rest, v)))
+                .or_else(|e| Err(e.with_span(code, tok)))
+        })
+    }
+}
+
+/// Takes a parser and a transformation of the parser result.
+/// Maps any error to the given error code.
+///
+/// ```rust ignore
+/// use nom::combinator::consumed;
+/// use nom::Parser;
+/// use kparse::{TrackParserError, transform};
+///
+/// let (rest, (tok, val)) =
+///         consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
+/// ```
+pub fn transform_p<PA, TRFn, C, I, O1, O2, Y>(
+    mut parser: PA,
+    transform: TRFn,
+) -> impl FnMut(I) -> Result<(I, O2), nom::Err<ParserError<C, I, Y>>>
+where
+    PA: Parser<I, O1, ParserError<C, I, Y>>,
+    TRFn: Fn(O1) -> Result<O2, nom::Err<ParserError<C, I, Y>>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    move |i| -> Result<(I, O2), nom::Err<ParserError<C, I, Y>>> {
+        parser
+            .parse(i)
+            .and_then(|(rest, tok)| Ok((rest, transform(tok)?)))
     }
 }
 

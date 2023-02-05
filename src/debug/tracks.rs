@@ -2,7 +2,7 @@
 //! Debug output for Track
 //!
 
-use crate::debug::{restrict, DebugWidth};
+use crate::debug::{restrict_ref, DebugWidth};
 use crate::tracker::{
     DebugTrack, EnterTrack, ErrTrack, ExitTrack, InfoTrack, OkTrack, Track, WarnTrack,
 };
@@ -96,16 +96,18 @@ where
         DebugWidth::Short | DebugWidth::Medium => {
             write!(
                 f,
-                "{}: enter with {:?}",
+                "{}: enter with {}:{:?}",
                 v.func,
-                restrict(w, v.span).fragment()
+                v.span.location_offset(),
+                restrict_ref(w, v.span.fragment())
             )
         }
         DebugWidth::Long => write!(
             f,
-            "{}: enter with {:?} <<{:?}",
+            "{}: enter with {}:{:?} <<{:?}",
             v.func,
-            restrict(w, v.span).fragment(),
+            v.span.location_offset(),
+            restrict_ref(w, v.span.fragment()),
             v.parents
         ),
     }
@@ -128,19 +130,21 @@ where
         DebugWidth::Short | DebugWidth::Medium => {
             write!(
                 f,
-                "{}: info {} {:?}",
+                "{}: info {} {}:{:?}",
                 v.func,
                 v.info,
-                restrict(w, v.span).fragment()
+                v.span.location_offset(),
+                restrict_ref(w, v.span.fragment())
             )
         }
         DebugWidth::Long => {
             write!(
                 f,
-                "{}: info {} {:?} <<{:?}",
+                "{}: info {} {}:{:?} <<{:?}",
                 v.func,
                 v.info,
-                restrict(w, v.span).fragment(),
+                v.span.location_offset(),
+                restrict_ref(w, v.span.fragment()),
                 v.parents
             )
         }
@@ -164,19 +168,21 @@ where
         DebugWidth::Short | DebugWidth::Medium => {
             write!(
                 f,
-                "{}: warn {} {:?}",
+                "{}: warn {} {}:{:?}",
                 v.func,
                 v.warn,
-                restrict(w, v.span).fragment()
+                v.span.location_offset(),
+                restrict_ref(w, v.span.fragment())
             )
         }
         DebugWidth::Long => {
             write!(
                 f,
-                "{}: warn {} {:?} <<{:?}",
+                "{}: warn {} {}:{:?} <<{:?}",
                 v.func,
                 v.warn,
-                restrict(w, v.span).fragment(),
+                v.span.location_offset(),
+                restrict_ref(w, v.span.fragment()),
                 v.parents
             )
         }
@@ -221,10 +227,12 @@ where
                 if v.parsed.input_len() > 0 {
                     write!(
                         f,
-                        "{}: ok -> [ {:?}, {:?} ]",
+                        "{}: ok -> [ {}:{:?}, {}:{:?} ]",
                         v.func,
+                        v.parsed.location_offset(),
                         v.parsed.fragment(),
-                        restrict(w, v.span).fragment()
+                        v.span.location_offset(),
+                        restrict_ref(w, v.span.fragment())
                     )?;
                 } else {
                     write!(f, "{}: ok -> no match", v.func)?;
@@ -235,10 +243,12 @@ where
 
                 write!(
                     f,
-                    "{}: ok -> [ {:?}, {:?} ]",
+                    "{}: ok -> [ {}:{:?}, {}:{:?} ]",
                     v.func,
+                    parsed.location_offset(),
                     parsed.fragment(),
-                    restrict(w, v.span).fragment()
+                    v.span.location_offset(),
+                    restrict_ref(w, v.span.fragment())
                 )?;
             }
         }

@@ -32,7 +32,7 @@ impl From<Option<usize>> for DebugWidth {
 }
 
 /// Cuts off the text at 20/40/60 characters.
-pub(crate) fn restrict_str<T: AsBytes + Copy>(w: DebugWidth, text: T) -> T
+pub(crate) fn restrict_ref<T: AsBytes + Copy>(w: DebugWidth, text: &T) -> T
 where
     T: Offset
         + InputTake
@@ -42,14 +42,14 @@ where
         + Slice<RangeTo<usize>>,
 {
     match w {
-        DebugWidth::Short => restrict_str_n(20, text),
-        DebugWidth::Medium => restrict_str_n(40, text),
-        DebugWidth::Long => restrict_str_n(60, text),
+        DebugWidth::Short => restrict_ref_n(20, text),
+        DebugWidth::Medium => restrict_ref_n(40, text),
+        DebugWidth::Long => restrict_ref_n(60, text),
     }
 }
 
 /// Cuts off the text at max_len characters.
-pub(crate) fn restrict_str_n<T: AsBytes + Copy>(max_len: usize, text: T) -> T
+pub(crate) fn restrict_ref_n<T: AsBytes + Copy>(max_len: usize, text: &T) -> T
 where
     T: Offset
         + InputTake
@@ -58,9 +58,9 @@ where
         + Slice<RangeFrom<usize>>
         + Slice<RangeTo<usize>>,
 {
-    match take_while_m_n::<_, _, nom::error::Error<T>>(0, max_len, |_c| true)(text) {
+    match take_while_m_n::<_, _, nom::error::Error<T>>(0, max_len, |_c| true)(*text) {
         Ok((_, v)) => v,
-        Err(_) => text,
+        Err(_) => *text,
     }
 }
 

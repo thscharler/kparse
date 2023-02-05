@@ -88,7 +88,7 @@ where
 {
     writeln!(
         f,
-        "ParserError {} for {:?}",
+        "ParserError [{}] for {:?}",
         err.code,
         restrict(DebugWidth::Medium, err.span)
     )?;
@@ -143,7 +143,7 @@ where
 {
     writeln!(
         f,
-        "ParserError {} for {:?}",
+        "ParserError [{}] for {:?}",
         err.code,
         restrict(DebugWidth::Long, err.span)
     )?;
