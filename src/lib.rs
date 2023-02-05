@@ -60,7 +60,7 @@ pub use crate::error::ParserError;
 /// Prelude, import the traits.
 pub mod prelude {
     pub use crate::error::AppendParserError;
-    pub use crate::spans::{Fragment, LocatedSpanExt, SpanExt};
+    pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
     pub use crate::tracker::{FindTracker, TrackError};
     pub use crate::{ResultWithSpan, WithCode, WithSpan};
 }

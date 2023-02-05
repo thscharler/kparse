@@ -9,7 +9,7 @@ use nom_locate::LocatedSpan;
 use std::ops::{Range, RangeFrom, RangeTo};
 
 /// Extension trait for Spans.
-pub trait SpanExt {
+pub trait SpanUnion {
     /// Return a new Span that encompasses both parameters.
     ///
     /// # Safety
@@ -18,7 +18,7 @@ pub trait SpanExt {
     fn span_union<'a>(&self, first: &'a Self, second: &'a Self) -> Self;
 }
 
-impl<'s> SpanExt for &'s str {
+impl<'s> SpanUnion for &'s str {
     /// Can be implemented reasonably sane for &str.
     fn span_union<'a>(&self, first: &'a Self, second: &'a Self) -> Self {
         let self_ptr = self.as_ptr();
@@ -50,7 +50,7 @@ impl<'s> SpanExt for &'s str {
     }
 }
 
-impl<'s> SpanExt for &'s [u8] {
+impl<'s> SpanUnion for &'s [u8] {
     /// Can be implemented reasonably sane for &\[u8\].
     fn span_union<'a>(&self, first: &'a Self, second: &'a Self) -> Self {
         let self_ptr = self.as_ptr();
@@ -83,7 +83,7 @@ impl<'s> SpanExt for &'s [u8] {
 }
 
 /// Trait for two functions of LocatedSpan.
-pub trait LocatedSpanExt {
+pub trait SpanLocation {
     /// The offset represents the position of the fragment relatively to
     /// the input of the parser. It starts at offset 0.
     fn location_offset(&self) -> usize;
@@ -93,7 +93,7 @@ pub trait LocatedSpanExt {
     fn location_line(&self) -> u32;
 }
 
-impl<T, X> LocatedSpanExt for LocatedSpan<T, X>
+impl<T, X> SpanLocation for LocatedSpan<T, X>
 where
     T: AsBytes,
     X: Copy,
@@ -108,7 +108,7 @@ where
 }
 
 /// Get the fragment from a span.
-pub trait Fragment {
+pub trait SpanFragment {
     /// Type of the fragment.
     type Result;
 
@@ -116,7 +116,7 @@ pub trait Fragment {
     fn fragment(self) -> Self::Result;
 }
 
-impl<T, X> Fragment for &LocatedSpan<T, X>
+impl<T, X> SpanFragment for &LocatedSpan<T, X>
 where
     T: Copy + AsBytes,
 {
@@ -127,7 +127,7 @@ where
     }
 }
 
-impl<'s> Fragment for &'s &'s str {
+impl<'s> SpanFragment for &'s &'s str {
     type Result = &'s str;
 
     fn fragment(self) -> &'s str {
@@ -135,7 +135,7 @@ impl<'s> Fragment for &'s &'s str {
     }
 }
 
-impl<'s> Fragment for &'s &'s [u8] {
+impl<'s> SpanFragment for &'s &'s [u8] {
     type Result = &'s [u8];
 
     fn fragment(self) -> &'s [u8] {
@@ -143,7 +143,7 @@ impl<'s> Fragment for &'s &'s [u8] {
     }
 }
 
-impl<T, X> SpanExt for LocatedSpan<T, X>
+impl<T, X> SpanUnion for LocatedSpan<T, X>
 where
     T: AsBytes,
     X: Copy,

@@ -287,14 +287,17 @@ pub fn test_date() {
 }
 
 mod planung4 {
-    use std::fmt::{Display, Formatter};
-
     pub use diagnostics::{
         dump_diagnostics as dump_diagnostics_v4, dump_diagnostics_info as dump_diagnostics_info_v4,
         dump_trace as dump_trace_v4,
     };
-    use kparse::tracker::{TrackResult, TrackSpan};
+    use kparse::tracker::TrackResult;
+    #[cfg(debug_assertions)]
+    use kparse::tracker::TrackSpan;
     use kparse::{Code, ParserError};
+    #[cfg(not(debug_assertions))]
+    use nom_locate::LocatedSpan;
+    use std::fmt::{Display, Formatter};
 
     #[allow(clippy::enum_variant_names)]
     #[allow(dead_code)]

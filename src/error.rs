@@ -19,7 +19,7 @@
 
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
-use crate::spans::LocatedSpanExt;
+use crate::spans::SpanLocation;
 use crate::Code;
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake, Offset, Slice};
@@ -546,7 +546,7 @@ where
     /// Get Expect grouped by offset into the string, starting with max first.
     pub fn expected_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<C, I>>)>
     where
-        I: LocatedSpanExt,
+        I: SpanLocation,
     {
         let mut sorted: Vec<&SpanAndCode<C, I>> = self.iter_expected().collect();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
@@ -576,7 +576,7 @@ where
     /// Get Expect grouped by line number, starting with max first.
     pub fn expected_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<C, I>>)>
     where
-        I: LocatedSpanExt,
+        I: SpanLocation,
     {
         let mut sorted: Vec<&SpanAndCode<C, I>> = self.iter_expected().collect();
         sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));
@@ -626,7 +626,7 @@ where
     /// Get Suggest grouped by offset into the string, starting with max first.
     pub fn suggested_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<C, I>>)>
     where
-        I: LocatedSpanExt,
+        I: SpanLocation,
     {
         let mut sorted: Vec<&SpanAndCode<C, I>> = self.iter_suggested().collect();
         sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
@@ -656,7 +656,7 @@ where
     /// Get Suggest grouped by line number, starting with max first.
     pub fn suggested_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<C, I>>)>
     where
-        I: LocatedSpanExt,
+        I: SpanLocation,
     {
         let mut sorted: Vec<&SpanAndCode<C, I>> = self.iter_suggested().collect();
         sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));

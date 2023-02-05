@@ -14,7 +14,7 @@
 //! Note: The &mut None is because lifetimes.
 
 use crate::debug::{restrict, DebugWidth};
-use crate::spans::Fragment;
+use crate::spans::SpanFragment;
 use crate::tracker::{StdTracker, TrackSpan};
 use crate::{Code, ParserError};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
@@ -496,7 +496,7 @@ where
     #[must_use]
     pub fn rest<'a, T>(&'a self, test: T) -> &Self
     where
-        &'a I: Fragment<Result = T>,
+        &'a I: SpanFragment<Result = T>,
         I: 'a,
         T: PartialEq + Debug,
     {
