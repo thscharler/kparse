@@ -3,7 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../../StableProjects/kparse/kparse.iml" filepath="$PROJECT_DIR$/../../StableProjects/kparse/kparse.iml" />
-      <module fileurl="file://$PROJECT_DIR$/nparse.iml" filepath="$PROJECT_DIR$/nparse.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../openformula/openformula.iml" filepath="$PROJECT_DIR$/../openformula/openformula.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/spreadsheet-ods.iml" filepath="$PROJECT_DIR$/../../StableProjects/spreadsheet-ods/spreadsheet-ods.iml" />
     </modules>
   </component>
 </project>

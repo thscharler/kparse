@@ -2,8 +2,8 @@
 //! Provides some extra parser combinators.
 //!
 
-use crate::{Code, WithCode, WithSpan};
-use nom::Parser;
+use crate::{Code, ParserError, WithCode, WithSpan};
+use nom::{AsBytes, Parser};
 
 /// Takes a parser and converts the error via the WithCode trait.
 pub fn error_code<PA, C, I, O, E0, E1>(
@@ -16,6 +16,28 @@ where
     E0: WithCode<C, E1>,
 {
     move |i| -> Result<(I, O), nom::Err<E1>> {
+        match parser.parse(i) {
+            Ok((r, v)) => Ok((r, v)),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(code))),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Error(e.with_code(code))),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+        }
+    }
+}
+
+/// Takes a parser and converts the error via the WithCode trait.
+/// This variation uses a fixed input error type to help with type inference.
+pub fn parser_error<PA, C, I, O, Y>(
+    mut parser: PA,
+    code: C,
+) -> impl FnMut(I) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+where
+    PA: Parser<I, O, ParserError<C, I, Y>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    move |i| -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
         match parser.parse(i) {
             Ok((r, v)) => Ok((r, v)),
             Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(code))),
@@ -66,7 +88,7 @@ where
     }
 }
 
-/// Runs a condition on the input and only executes the parser on succes.
+/// Runs a condition on the input and only executes the parser on success.
 pub fn conditional<I, O, E, CFn, PFn>(
     cond_fn: CFn,
     mut parse_fn: PFn,

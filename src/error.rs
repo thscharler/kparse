@@ -96,7 +96,7 @@ where
     type Output = ();
 
     fn append(&mut self, err: ParserError<C, I, Y>) {
-        ParserError::append(self, err);
+        self.append_err(err);
     }
 }
 
@@ -111,7 +111,7 @@ where
     fn append(&mut self, err: ParserError<C, I, Y>) {
         match self {
             None => *self = Some(err),
-            Some(self_err) => self_err.append(err),
+            Some(self_err) => self_err.append_err(err),
         }
     }
 }
@@ -136,10 +136,66 @@ where
             },
             Some(self_err) => match err {
                 nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(e)),
-                nom::Err::Error(e) => self_err.append(e),
-                nom::Err::Failure(e) => self_err.append(e),
+                nom::Err::Error(e) => self_err.append_err(e),
+                nom::Err::Failure(e) => self_err.append_err(e),
             },
         };
+        Ok(())
+    }
+}
+
+impl<C, I, Y> AppendParserError<ParserError<C, I, Y>> for nom::Err<ParserError<C, I, Y>>
+where
+    C: Code,
+    I: Copy,
+    Y: Copy,
+{
+    type Output = Result<(), nom::Err<ParserError<C, I, Y>>>;
+
+    fn append(&mut self, err: ParserError<C, I, Y>) -> Self::Output {
+        match self {
+            nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(*e)),
+            nom::Err::Error(e) => e.append_err(err),
+            nom::Err::Failure(e) => e.append_err(err),
+        }
+        Ok(())
+    }
+}
+
+impl<C, I, Y> AppendParserError<nom::Err<ParserError<C, I, Y>>> for ParserError<C, I, Y>
+where
+    C: Code,
+    I: Copy,
+    Y: Copy,
+{
+    type Output = Result<(), nom::Err<ParserError<C, I, Y>>>;
+
+    fn append(&mut self, err: nom::Err<ParserError<C, I, Y>>) -> Self::Output {
+        match err {
+            nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(e)),
+            nom::Err::Error(e) => self.append_err(e),
+            nom::Err::Failure(e) => self.append_err(e),
+        }
+        Ok(())
+    }
+}
+
+impl<C, I, Y> AppendParserError<nom::Err<ParserError<C, I, Y>>> for nom::Err<ParserError<C, I, Y>>
+where
+    C: Code,
+    I: Copy,
+    Y: Copy,
+{
+    type Output = Result<(), nom::Err<ParserError<C, I, Y>>>;
+
+    fn append(&mut self, err: nom::Err<ParserError<C, I, Y>>) -> Self::Output {
+        match self {
+            nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(*e)),
+            nom::Err::Error(e) | nom::Err::Failure(e) => match err {
+                nom::Err::Incomplete(_) => return Err(err),
+                nom::Err::Error(e2) | nom::Err::Failure(e2) => e.append_err(e2),
+            },
+        }
         Ok(())
     }
 }
@@ -413,7 +469,7 @@ where
     ///
     /// Adds the others code and span as expect values.
     /// Adds all the others expect values.
-    pub fn append(&mut self, other: ParserError<C, I, Y>) {
+    pub fn append_err(&mut self, other: ParserError<C, I, Y>) {
         if other.code != C::NOM_ERROR {
             self.expect(other.code, other.span);
         }
