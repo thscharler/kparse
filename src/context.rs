@@ -27,6 +27,17 @@ impl Context {
         rest.ok(input, value)
     }
 
+    /// When multiple Context.enter() calls are used within one function
+    /// (to denote some separation), this can be used to exit such a compartment
+    /// with an ok track.
+    pub fn ok_section<C, I>(&self, rest: I, input: I)
+    where
+        C: Code,
+        I: FindTracker<C>,
+    {
+        rest.exit_ok(input);
+    }
+
     /// Tracks the error and creates a Result.
     pub fn err<C, I, O, E, Y>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
