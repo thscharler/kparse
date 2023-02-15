@@ -207,7 +207,8 @@ where
     Y: Copy,
 {
     fn from_error_kind(input: I, kind: ErrorKind) -> Self {
-        ParserError {
+        #[cfg(feature = "track_nom")]
+        let v = ParserError {
             code: C::NOM_ERROR,
             span: input,
             hints: vec![Hints::Nom(Nom {
@@ -216,10 +217,18 @@ where
                 ch: None,
                 _phantom: Default::default(),
             })],
-        }
+        };
+        #[cfg(not(feature = "track_nom"))]
+        let v = ParserError {
+            code: C::NOM_ERROR,
+            span: input,
+            hints: Default::default(),
+        };
+        v
     }
 
     fn append(input: I, kind: ErrorKind, mut other: Self) -> Self {
+        #[cfg(feature = "track_nom")]
         other.hints.push(Hints::Nom(Nom {
             kind,
             span: input,
@@ -230,7 +239,8 @@ where
     }
 
     fn from_char(input: I, ch: char) -> Self {
-        ParserError {
+        #[cfg(feature = "track_nom")]
+        let v = ParserError {
             code: C::NOM_ERROR,
             span: input,
             hints: vec![Hints::Nom(Nom {
@@ -239,12 +249,22 @@ where
                 ch: Some(ch),
                 _phantom: Default::default(),
             })],
-        }
+        };
+        #[cfg(not(feature = "track_nom"))]
+        let v = ParserError {
+            code: C::NOM_ERROR,
+            span: input,
+            hints: Default::default(),
+        };
+        v
     }
 
     /// Combines two parser errors.
     fn or(mut self, other: Self) -> Self {
-        self.append(other);
+        #[cfg(feature = "track_nom")]
+        {
+            self.append(other);
+        }
         self
     }
 }

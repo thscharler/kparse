@@ -1,3 +1,24 @@
+# 1.2
+
+## Breaking
+
+* FindTracker::err() removed the Into<> conversion for the error type.
+  This already happens in context.
+* FindTracker::exit_err() takes a &ParserError instead of a string.
+  This removes a .to_string() if no tracking is active.
+
+## Features
+
+* Add a feature track_nom. If it is not active, no details for nom errors
+  are collected. This helps to avoid creating a hint-vec for ParserError.
+  This speeds up the case when parsing fails just to indicate a wrong branch.
+
+## Other
+
+* Add Context::ok_section() and Context::err_section(). Can be used to
+  add compartments within one parser function.
+* Add inline to all Context functions.
+
 # 1.1
 
 Not everything was as good as I thought.

@@ -14,6 +14,7 @@ pub struct Context;
 
 impl Context {
     /// Creates an Ok() Result from the parameters and tracks the result.
+    #[inline]
     pub fn ok<C, I, O, Y>(
         &self,
         rest: I,
@@ -28,6 +29,7 @@ impl Context {
     }
 
     /// Tracks the error and creates a Result.
+    #[inline]
     pub fn err<C, I, O, E, Y>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
         C: Code,
@@ -46,6 +48,7 @@ impl Context {
     /// When multiple Context.enter() calls are used within one function
     /// (to denote some separation), this can be used to exit such a compartment
     /// with an ok track.
+    #[inline]
     pub fn ok_section<C, I>(&self, rest: I, input: I)
     where
         C: Code,
@@ -57,6 +60,7 @@ impl Context {
     /// When multiple Context.enter() calls are used within one function
     /// (to denote some separation), this can be used to exit such a compartment
     /// with an ok track.
+    #[inline]
     pub fn err_section<C, I, Y>(&self, rest: I, code: C, err: &nom::Err<ParserError<C, I, Y>>)
     where
         C: Code,
@@ -67,6 +71,7 @@ impl Context {
     }
 
     /// Enter a parser function.
+    #[inline]
     pub fn enter<C, I>(&self, func: C, span: I)
     where
         C: Code,
@@ -76,6 +81,7 @@ impl Context {
     }
 
     /// Track some debug info.
+    #[inline]
     pub fn debug<C, I>(&self, span: I, debug: String)
     where
         C: Code,
@@ -85,6 +91,7 @@ impl Context {
     }
 
     /// Track some other info.
+    #[inline]
     pub fn info<C, I>(&self, span: I, info: &'static str)
     where
         C: Code,
@@ -94,6 +101,7 @@ impl Context {
     }
 
     /// Track some warning.
+    #[inline]
     pub fn warn<C, I>(&self, span: I, warn: &'static str)
     where
         C: Code,
