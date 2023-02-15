@@ -57,10 +57,11 @@ impl Context {
     /// When multiple Context.enter() calls are used within one function
     /// (to denote some separation), this can be used to exit such a compartment
     /// with an ok track.
-    pub fn err_section<C, I>(&self, rest: I, code: C, err: String)
+    pub fn err_section<C, I, Y>(&self, rest: I, code: C, err: &nom::Err<ParserError<C, I, Y>>)
     where
         C: Code,
         I: FindTracker<C>,
+        Y: Copy + Debug,
     {
         rest.exit_err(code, err);
     }
@@ -118,24 +119,22 @@ where
 {
     fn ok<O, Y>(
         self,
-        parsed: DynSpan<'s, C, T>,
+        parsed: Self,
         value: O,
-    ) -> Result<(DynSpan<'s, C, T>, O), nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>>> {
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>> {
         self.extra
             .0
             .exit_ok(&clear_span(&self), &clear_span(&parsed));
         Ok((self, value))
     }
 
-    fn err<O, E, Y>(
+    fn err<O, Y>(
         &self,
-        err: E,
-    ) -> Result<(DynSpan<'s, C, T>, O), nom::Err<ParserError<C, Self, Y>>>
+        err: nom::Err<ParserError<C, Self, Y>>,
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
     where
-        E: Into<nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>>>,
         Y: Copy + Debug,
     {
-        let err: nom::Err<ParserError<C, DynSpan<'s, C, T>, Y>> = err.into();
         match &err {
             nom::Err::Incomplete(_) => {}
             nom::Err::Error(e) | nom::Err::Failure(e) => {
@@ -169,8 +168,13 @@ where
             .exit_ok(&clear_span(self), &clear_span(&parsed));
     }
 
-    fn exit_err(&self, code: C, err: String) {
-        self.extra.0.exit_err(&clear_span(self), code, err);
+    fn exit_err<Y>(&self, code: C, err: &nom::Err<ParserError<C, Self, Y>>)
+    where
+        Y: Copy + Debug,
+    {
+        self.extra
+            .0
+            .exit_err(&clear_span(self), code, err.to_string());
     }
 }
 
@@ -205,21 +209,20 @@ where
 {
     fn ok<O, Y>(
         self,
-        _parsed: PlainSpan<'s, T>,
+        _parsed: Self,
         value: O,
-    ) -> Result<(PlainSpan<'s, T>, O), nom::Err<ParserError<C, PlainSpan<'s, T>, Y>>> {
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>> {
         Ok((self, value))
     }
 
-    fn err<O, E, Y>(
+    fn err<O, Y>(
         &self,
-        err: E,
-    ) -> Result<(PlainSpan<'s, T>, O), nom::Err<ParserError<C, PlainSpan<'s, T>, Y>>>
+        err: nom::Err<ParserError<C, Self, Y>>,
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
     where
-        E: Into<nom::Err<ParserError<C, PlainSpan<'s, T>, Y>>>,
         Y: Copy + Debug,
     {
-        Err(err.into())
+        Err(err)
     }
 
     fn enter(&self, _func: C) {}
@@ -232,7 +235,11 @@ where
 
     fn exit_ok(&self, _parsed: PlainSpan<'s, T>) {}
 
-    fn exit_err(&self, _func: C, _err: String) {}
+    fn exit_err<Y>(&self, _func: C, _err: &nom::Err<ParserError<C, Self, Y>>)
+    where
+        Y: Copy + Debug,
+    {
+    }
 }
 
 impl<'s, C> FindTracker<C> for &'s str
@@ -241,18 +248,20 @@ where
 {
     fn ok<O, Y>(
         self,
-        _parsed: &'s str,
+        _parsed: Self,
         value: O,
-    ) -> Result<(&'s str, O), nom::Err<ParserError<C, &'s str, Y>>> {
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>> {
         Ok((self, value))
     }
 
-    fn err<O, E, Y>(&self, err: E) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
+    fn err<O, Y>(
+        &self,
+        err: nom::Err<ParserError<C, Self, Y>>,
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
     where
-        E: Into<nom::Err<ParserError<C, Self, Y>>>,
         Y: Copy + Debug,
     {
-        Err(err.into())
+        Err(err)
     }
 
     fn enter(&self, _func: C) {}
@@ -265,7 +274,11 @@ where
 
     fn exit_ok(&self, _input: Self) {}
 
-    fn exit_err(&self, _func: C, _err: String) {}
+    fn exit_err<Y>(&self, _func: C, _err: &nom::Err<ParserError<C, Self, Y>>)
+    where
+        Y: Copy + Debug,
+    {
+    }
 }
 
 impl<'s, C> FindTracker<C> for &'s [u8]
@@ -280,12 +293,14 @@ where
         Ok((self, value))
     }
 
-    fn err<O, E, Y>(&self, err: E) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
+    fn err<O, Y>(
+        &self,
+        err: nom::Err<ParserError<C, Self, Y>>,
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
     where
-        E: Into<nom::Err<ParserError<C, Self, Y>>>,
         Y: Copy + Debug,
     {
-        Err(err.into())
+        Err(err)
     }
 
     fn enter(&self, _func: C) {}
@@ -298,5 +313,9 @@ where
 
     fn exit_ok(&self, _input: Self) {}
 
-    fn exit_err(&self, _func: C, _err: String) {}
+    fn exit_err<Y>(&self, _func: C, _err: &nom::Err<ParserError<C, Self, Y>>)
+    where
+        Y: Copy + Debug,
+    {
+    }
 }

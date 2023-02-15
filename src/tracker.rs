@@ -86,9 +86,11 @@ where
     ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>;
 
     /// Tracks the error and creates a Result.
-    fn err<O, E, Y>(&self, err: E) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
+    fn err<O, Y>(
+        &self,
+        err: nom::Err<ParserError<C, Self, Y>>,
+    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
     where
-        E: Into<nom::Err<ParserError<C, Self, Y>>>,
         Y: Copy + Debug;
 
     /// Enter a parser function.
@@ -107,7 +109,9 @@ where
     fn exit_ok(&self, parsed: Self);
 
     /// Calls exit_err() on the ParseContext. You might want to use err() instead.
-    fn exit_err(&self, code: C, err: String);
+    fn exit_err<Y>(&self, code: C, err: &nom::Err<ParserError<C, Self, Y>>)
+    where
+        Y: Copy + Debug;
 }
 
 /// This trait is used for error tracking.
@@ -167,10 +171,12 @@ where
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<C, I, Y> = e.into();
-                let p_span = p_err.span;
-                p_span.exit_err(p_err.code, format!("{:?}", p_err));
-                Err(nom::Err::Error(p_err))
+                let err: ParserError<C, I, Y> = e.into();
+                let code = err.code;
+                let span = err.span;
+                let nom_err = nom::Err::Error(err);
+                span.exit_err(code, &nom_err);
+                Err(nom_err)
             }
         }
     }
@@ -181,11 +187,13 @@ where
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<C, I, Y> = e.into();
-                let p_err = p_err.with_code(code);
-                let p_span = p_err.span;
-                p_span.exit_err(p_err.code, format!("{:?}", p_err));
-                Err(nom::Err::Error(p_err))
+                let err: ParserError<C, I, Y> = e.into();
+                let err = err.with_code(code);
+                let code = err.code;
+                let span = err.span;
+                let nom_err = nom::Err::Error(err);
+                span.exit_err(code, &nom_err);
+                Err(nom_err)
             }
         }
     }
@@ -199,10 +207,12 @@ where
             }
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let p_err: ParserError<C, I, Y> = e.into();
-                let p_span = p_err.span;
-                p_span.exit_err(p_err.code, format!("{:?}", p_err));
-                Err(nom::Err::Error(p_err))
+                let err: ParserError<C, I, Y> = e.into();
+                let code = err.code;
+                let span = err.span;
+                let nom_err = nom::Err::Error(err);
+                span.exit_err(code, &nom_err);
+                Err(nom_err)
             }
         }
     }
