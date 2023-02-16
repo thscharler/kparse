@@ -127,92 +127,96 @@ where
 /// let (rest, plan) = token_name(rest).track()?;
 /// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
 /// ```
-pub trait TrackError<C, I, O, E, Y>
+pub trait TrackError<C, I>
 where
     C: Code,
-    I: Copy + FindTracker<C> + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
-    E: Into<ParserError<C, I, Y>>,
-    Y: Copy + Debug,
+    I: Copy + Debug,
+    I: FindTracker<C>,
+    I: InputTake + InputLength + AsBytes,
 {
     /// Keep a track if self is an error.
-    fn track(self) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+    fn track(self) -> Self;
 
     /// Keep track if self is an error, and set an error code too.
-    fn track_as(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+    fn track_as(self, code: C) -> Self;
 
     /// Keep track of self, either as error or as ok result.
-    fn track_ok(self, parsed: I) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+    fn track_ok(self, parsed: I) -> Self;
 }
 
-impl<C, I, O, E, Y> TrackError<C, I, O, E, Y> for Result<(I, O), nom::Err<E>>
+impl<C, I, O, Y> TrackError<C, I> for Result<(I, O), nom::Err<ParserError<C, I, Y>>>
 where
     C: Code,
-    I: Copy + FindTracker<C> + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
-    E: Into<ParserError<C, I, Y>>,
+    I: Copy + Debug,
+    I: FindTracker<C>,
+    I: InputTake + InputLength + AsBytes,
     Y: Copy + Debug,
 {
     /// Keep a track if self is an error.
-    fn track(self) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+    fn track(self) -> Self {
         match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let err: ParserError<C, I, Y> = e.into();
-                let code = err.code;
-                let span = err.span;
-                let nom_err = nom::Err::Error(err);
-                span.exit_err(code, &nom_err);
-                Err(nom_err)
+            Err(nom::Err::Error(e)) => {
+                let span = e.span;
+                let code = e.code;
+                let err = nom::Err::Error(e);
+                span.exit_err(code, &err);
+                Err(err)
+            }
+            Err(nom::Err::Failure(e)) => {
+                let span = e.span;
+                let code = e.code;
+                let err = nom::Err::Failure(e);
+                span.exit_err(code, &err);
+                Err(err)
             }
         }
     }
 
     /// Keep track if self is an error, and set an error code too.
-    fn track_as(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+    fn track_as(self, code: C) -> Self {
         match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let err: ParserError<C, I, Y> = e.into();
-                let err = err.with_code(code);
-                let code = err.code;
-                let span = err.span;
-                let nom_err = nom::Err::Error(err);
-                span.exit_err(code, &nom_err);
-                Err(nom_err)
+            Err(nom::Err::Error(e)) => {
+                let e = e.with_code(code);
+                let span = e.span;
+                let err = nom::Err::Error(e);
+                span.exit_err(code, &err);
+                Err(err)
+            }
+            Err(nom::Err::Failure(e)) => {
+                let e = e.with_code(code);
+                let span = e.span;
+                let err = nom::Err::Failure(e);
+                span.exit_err(code, &err);
+                Err(err)
             }
         }
     }
 
     /// Keep track of self, either as error or as ok result.
-    fn track_ok(self, parsed: I) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+    fn track_ok(self, parsed: I) -> Self {
         match self {
             Ok((span, v)) => {
                 span.exit_ok(parsed);
                 Ok((span, v))
             }
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let err: ParserError<C, I, Y> = e.into();
-                let code = err.code;
-                let span = err.span;
-                let nom_err = nom::Err::Error(err);
-                span.exit_err(code, &nom_err);
-                Err(nom_err)
+            Err(nom::Err::Error(e)) => {
+                let span = e.span;
+                let code = e.code;
+                let err = nom::Err::Error(e);
+                span.exit_err(code, &err);
+                Err(err)
+            }
+            Err(nom::Err::Failure(e)) => {
+                let span = e.span;
+                let code = e.code;
+                let err = nom::Err::Failure(e);
+                span.exit_err(code, &err);
+                Err(err)
             }
         }
     }
