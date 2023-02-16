@@ -1,6 +1,6 @@
 use crate::debug::{restrict, DebugWidth};
 use crate::{Code, ParserError};
-use nom::{InputIter, InputLength, InputTake, Offset, Slice};
+use nom::{InputLength, InputTake};
 use std::fmt;
 use std::fmt::Debug;
 
@@ -13,12 +13,7 @@ where
     C: Code,
     Y: Copy + Debug,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
 {
     match f.width() {
         None | Some(0) => debug_parse_error_short(f, err),
@@ -28,8 +23,6 @@ where
     }
 }
 
-use std::ops::{RangeFrom, RangeTo};
-
 fn debug_parse_error_short<C, I, Y>(
     f: &mut impl fmt::Write,
     err: &ParserError<C, I, Y>,
@@ -38,12 +31,7 @@ where
     C: Code,
     Y: Copy + Debug,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
 {
     write!(
         f,
@@ -79,12 +67,7 @@ where
     C: Code,
     Y: Copy + Debug,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
 {
     writeln!(
         f,
@@ -134,12 +117,7 @@ where
     C: Code,
     Y: Copy + Debug,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
 {
     writeln!(
         f,

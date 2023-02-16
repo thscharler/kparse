@@ -3,7 +3,7 @@
 //!
 
 use crate::tracker::FindTracker;
-use crate::{Code, ParserError, WithSpan};
+use crate::{Code, ParserError, WithCode, WithSpan};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Parser, Slice};
 use std::fmt::Debug;
 use std::ops::{RangeFrom, RangeTo};
@@ -17,13 +17,7 @@ where
     PA: Parser<I, O, ParserError<C, I>>,
     C: Code,
     I: Copy + Debug + FindTracker<C>,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength + AsBytes,
 {
     move |i| -> Result<(I, O), nom::Err<ParserError<C, I>>> {
         i.enter(code);
@@ -35,17 +29,17 @@ where
 }
 
 /// Takes a parser and converts the error via the WithCode trait.
-pub fn error_code<PA, C, I, O, Y>(
+pub fn error_code<PA, C, I, O, E>(
     mut parser: PA,
     code: C,
-) -> impl FnMut(I) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+) -> impl FnMut(I) -> Result<(I, O), nom::Err<E>>
 where
-    PA: Parser<I, O, ParserError<C, I, Y>>,
+    PA: Parser<I, O, E>,
+    E: WithCode<C, E>,
     C: Code,
     I: AsBytes + Copy,
-    Y: Copy,
 {
-    move |i| -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+    move |i| -> Result<(I, O), nom::Err<E>> {
         match parser.parse(i) {
             Ok((r, v)) => Ok((r, v)),
             Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(code))),

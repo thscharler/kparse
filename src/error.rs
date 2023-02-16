@@ -273,12 +273,7 @@ impl<C, I, Y> Display for ParserError<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
     Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -330,12 +325,7 @@ impl<C, I, Y> Debug for ParserError<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
     Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -347,12 +337,7 @@ impl<C, I, Y> Debug for Hints<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
     Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -371,12 +356,7 @@ impl<C, I> Debug for Nom<C, I>
 where
     C: Code,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
@@ -389,12 +369,7 @@ impl<C, I> Debug for SpanAndCode<C, I>
 where
     C: Code,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();

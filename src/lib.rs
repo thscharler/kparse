@@ -240,18 +240,13 @@ where
 // ***********************************************************************
 
 //
-// nom::Err::<E>
+// nom::Err::<ParserError<C, I, Y>
 //
 
-// for ease of use in case of a nom::Err wrapped something.
-//
-// 1. just to call with_code on an existing ParserError.
-// 2. to convert whatever to a ParserError and give it a code.
-impl<C, I, E, Y> WithCode<C, nom::Err<ParserError<C, I, Y>>> for nom::Err<E>
+impl<C, I, Y> WithCode<C, nom::Err<ParserError<C, I, Y>>> for nom::Err<ParserError<C, I, Y>>
 where
     C: Code,
     I: AsBytes + Copy,
-    E: WithCode<C, ParserError<C, I, Y>>,
     Y: Copy,
 {
     fn with_code(self, code: C) -> nom::Err<ParserError<C, I, Y>> {

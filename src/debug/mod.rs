@@ -5,9 +5,8 @@
 pub(crate) mod error;
 pub(crate) mod tracks;
 
-use nom::bytes::complete::take_while_m_n;
-use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
-use std::ops::{RangeFrom, RangeTo};
+use nom::{AsBytes, InputLength, InputTake};
+use std::cmp::min;
 
 /// Maps a width value from the formatstring to a variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,12 +33,7 @@ impl From<Option<usize>> for DebugWidth {
 /// Cuts off the text at 20/40/60 characters.
 pub(crate) fn restrict_ref<T: AsBytes + Copy>(w: DebugWidth, text: &T) -> T
 where
-    T: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    T: InputTake + InputLength,
 {
     match w {
         DebugWidth::Short => restrict_ref_n(20, text),
@@ -51,29 +45,17 @@ where
 /// Cuts off the text at max_len characters.
 pub(crate) fn restrict_ref_n<T: AsBytes + Copy>(max_len: usize, text: &T) -> T
 where
-    T: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    T: InputTake + InputLength,
 {
-    match take_while_m_n::<_, _, nom::error::Error<T>>(0, max_len, |_c| true)(*text) {
-        Ok((_, v)) => v,
-        Err(_) => *text,
-    }
+    let count = min(text.input_len(), max_len);
+    text.take(count)
 }
 
 /// Cuts off the text at 20/40/60 characters.
 pub(crate) fn restrict<I>(w: DebugWidth, span: I) -> I
 where
     I: Copy,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
 {
     match w {
         DebugWidth::Short => restrict_n(20, span),
@@ -86,15 +68,8 @@ where
 pub(crate) fn restrict_n<I>(max_len: usize, span: I) -> I
 where
     I: Copy,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
 {
-    match take_while_m_n::<_, _, nom::error::Error<I>>(0, max_len, |_c| true)(span) {
-        Ok((_, v)) => v,
-        Err(_) => span,
-    }
+    let count = min(span.input_len(), max_len);
+    span.take(count)
 }
