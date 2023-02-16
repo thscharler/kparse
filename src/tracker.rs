@@ -79,19 +79,10 @@ where
     Self: Sized,
 {
     /// Creates an Ok() Result from the parameters and tracks the result.
-    fn ok<O, Y>(
-        self,
-        parsed: Self,
-        value: O,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>;
+    fn ok<O, E>(self, parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>>;
 
     /// Tracks the error and creates a Result.
-    fn err<O, Y>(
-        &self,
-        err: nom::Err<ParserError<C, Self, Y>>,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
-    where
-        Y: Copy + Debug;
+    fn err<O, E: Debug>(&self, code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>>;
 
     /// Enter a parser function.
     fn enter(&self, func: C);
@@ -109,9 +100,7 @@ where
     fn exit_ok(&self, parsed: Self);
 
     /// Calls exit_err() on the ParseContext. You might want to use err() instead.
-    fn exit_err<Y>(&self, code: C, err: &nom::Err<ParserError<C, Self, Y>>)
-    where
-        Y: Copy + Debug;
+    fn exit_err<E: Debug>(&self, code: C, err: &nom::Err<E>);
 }
 
 /// This trait is used for error tracking.

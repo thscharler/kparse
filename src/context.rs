@@ -4,10 +4,9 @@
 
 use crate::tracker::{DynTracker, FindTracker};
 use crate::{Code, ParserError};
-use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
+use nom::{AsBytes, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::Debug;
-use std::ops::{RangeFrom, RangeTo};
 
 /// Provides access to the tracker functions for various input types.
 pub struct Context;
@@ -33,16 +32,17 @@ impl Context {
     pub fn err<C, I, O, E, Y>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
     where
         C: Code,
-        I: Copy + FindTracker<C>,
+        I: Copy + Debug + FindTracker<C>,
+        I: InputTake + InputLength,
         E: Into<nom::Err<ParserError<C, I, Y>>>,
         Y: Copy + Debug,
     {
         let err: nom::Err<ParserError<C, I, Y>> = err.into();
-        let span = match &err {
+        let (span, code) = match &err {
             nom::Err::Incomplete(_) => return Err(err),
-            nom::Err::Error(e) | nom::Err::Failure(e) => e.span,
+            nom::Err::Error(e) | nom::Err::Failure(e) => (e.span, e.code),
         };
-        span.err(err)
+        span.err(code, err)
     }
 
     /// When multiple Context.enter() calls are used within one function
@@ -64,7 +64,8 @@ impl Context {
     pub fn err_section<C, I, Y>(&self, rest: I, code: C, err: &nom::Err<ParserError<C, I, Y>>)
     where
         C: Code,
-        I: FindTracker<C>,
+        I: Copy + Debug + FindTracker<C>,
+        I: InputTake + InputLength,
         Y: Copy + Debug,
     {
         rest.exit_err(code, err);
@@ -115,40 +116,23 @@ type DynSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
 impl<'s, C, T> FindTracker<C> for DynSpan<'s, C, T>
 where
-    T: Copy + Debug,
-    T: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
     C: Code,
+    T: Copy + Debug + AsBytes + InputTake + InputLength,
 {
-    fn ok<O, Y>(
-        self,
-        parsed: Self,
-        value: O,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>> {
+    fn ok<O, E>(self, parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
         self.extra
             .0
             .exit_ok(&clear_span(&self), &clear_span(&parsed));
         Ok((self, value))
     }
 
-    fn err<O, Y>(
-        &self,
-        err: nom::Err<ParserError<C, Self, Y>>,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
-    where
-        Y: Copy + Debug,
-    {
+    fn err<O, E: Debug>(&self, code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>> {
         match &err {
             nom::Err::Incomplete(_) => {}
             nom::Err::Error(e) | nom::Err::Failure(e) => {
                 self.extra
                     .0
-                    .exit_err(&clear_span(&e.span), e.code, e.to_string());
+                    .exit_err(&clear_span(self), code, format!("{:?}", e));
             }
         }
         Err(err)
@@ -176,13 +160,10 @@ where
             .exit_ok(&clear_span(self), &clear_span(&parsed));
     }
 
-    fn exit_err<Y>(&self, code: C, err: &nom::Err<ParserError<C, Self, Y>>)
-    where
-        Y: Copy + Debug,
-    {
+    fn exit_err<E: Debug>(&self, code: C, err: &nom::Err<E>) {
         self.extra
             .0
-            .exit_err(&clear_span(self), code, err.to_string());
+            .exit_err(&clear_span(self), code, format!("{:?}", err));
     }
 }
 
@@ -206,30 +187,14 @@ type PlainSpan<'s, T> = LocatedSpan<T, ()>;
 impl<'s, C, T> FindTracker<C> for PlainSpan<'s, T>
 where
     T: Copy + Debug,
-    T: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + AsBytes
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    T: InputTake + InputLength + AsBytes,
     C: Code,
 {
-    fn ok<O, Y>(
-        self,
-        _parsed: Self,
-        value: O,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>> {
+    fn ok<O, E>(self, _parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
         Ok((self, value))
     }
 
-    fn err<O, Y>(
-        &self,
-        err: nom::Err<ParserError<C, Self, Y>>,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
-    where
-        Y: Copy + Debug,
-    {
+    fn err<O, E>(&self, _code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>> {
         Err(err)
     }
 
@@ -243,32 +208,18 @@ where
 
     fn exit_ok(&self, _parsed: PlainSpan<'s, T>) {}
 
-    fn exit_err<Y>(&self, _func: C, _err: &nom::Err<ParserError<C, Self, Y>>)
-    where
-        Y: Copy + Debug,
-    {
-    }
+    fn exit_err<E>(&self, _func: C, _err: &nom::Err<E>) {}
 }
 
 impl<'s, C> FindTracker<C> for &'s str
 where
     C: Code,
 {
-    fn ok<O, Y>(
-        self,
-        _parsed: Self,
-        value: O,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>> {
+    fn ok<O, E>(self, _parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
         Ok((self, value))
     }
 
-    fn err<O, Y>(
-        &self,
-        err: nom::Err<ParserError<C, Self, Y>>,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
-    where
-        Y: Copy + Debug,
-    {
+    fn err<O, E>(&self, _code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>> {
         Err(err)
     }
 
@@ -282,32 +233,18 @@ where
 
     fn exit_ok(&self, _input: Self) {}
 
-    fn exit_err<Y>(&self, _func: C, _err: &nom::Err<ParserError<C, Self, Y>>)
-    where
-        Y: Copy + Debug,
-    {
-    }
+    fn exit_err<E>(&self, _func: C, _err: &nom::Err<E>) {}
 }
 
 impl<'s, C> FindTracker<C> for &'s [u8]
 where
     C: Code,
 {
-    fn ok<O, Y>(
-        self,
-        _input: Self,
-        value: O,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>> {
+    fn ok<O, E>(self, _input: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
         Ok((self, value))
     }
 
-    fn err<O, Y>(
-        &self,
-        err: nom::Err<ParserError<C, Self, Y>>,
-    ) -> Result<(Self, O), nom::Err<ParserError<C, Self, Y>>>
-    where
-        Y: Copy + Debug,
-    {
+    fn err<O, E>(&self, _code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>> {
         Err(err)
     }
 
@@ -321,9 +258,5 @@ where
 
     fn exit_ok(&self, _input: Self) {}
 
-    fn exit_err<Y>(&self, _func: C, _err: &nom::Err<ParserError<C, Self, Y>>)
-    where
-        Y: Copy + Debug,
-    {
-    }
+    fn exit_err<E>(&self, _func: C, _err: &nom::Err<E>) {}
 }

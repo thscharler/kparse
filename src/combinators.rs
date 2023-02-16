@@ -23,7 +23,9 @@ where
         i.enter(code);
         match parser.parse(i) {
             Ok((r, v)) => r.ok(i, v),
-            Err(e) => i.err(e),
+            Err(nom::Err::Incomplete(e)) => i.err(C::NOM_ERROR, nom::Err::Incomplete(e)),
+            Err(nom::Err::Error(e)) => i.err(e.code, nom::Err::Error(e)),
+            Err(nom::Err::Failure(e)) => i.err(e.code, nom::Err::Failure(e)),
         }
     }
 }
