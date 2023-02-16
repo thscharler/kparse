@@ -22,13 +22,12 @@ use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
 use crate::Code;
 use nom::error::ErrorKind;
-use nom::{InputIter, InputLength, InputTake, Offset, Slice};
+use nom::{InputLength, InputTake};
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
-use std::ops::{RangeFrom, RangeTo};
 
 /// Parser error.
 pub struct ParserError<C, I, Y = ()> {
@@ -382,12 +381,7 @@ impl<C, I, Y> Error for ParserError<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    I: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
+    I: InputTake + InputLength,
     Y: Copy + Debug,
 {
     fn source(&self) -> Option<&(dyn ::std::error::Error + 'static)> {

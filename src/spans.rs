@@ -4,9 +4,9 @@
 
 use bytecount::{count, naive_num_chars, num_chars};
 use memchr::{memchr, memrchr};
-use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
+use nom::{AsBytes, InputLength, InputTake, Slice};
 use nom_locate::LocatedSpan;
-use std::ops::{Range, RangeFrom, RangeTo};
+use std::ops::Range;
 
 /// Extension trait for Spans.
 pub trait SpanUnion {
@@ -145,15 +145,8 @@ impl<'s> SpanFragment for &'s [u8] {
 
 impl<T, X> SpanUnion for LocatedSpan<T, X>
 where
-    T: AsBytes,
+    T: AsBytes + InputLength + Slice<Range<usize>>,
     X: Copy,
-    T: Offset
-        + InputTake
-        + InputIter
-        + InputLength
-        + Slice<Range<usize>>
-        + Slice<RangeFrom<usize>>
-        + Slice<RangeTo<usize>>,
 {
     fn span_union<'a>(
         &self,

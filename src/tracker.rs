@@ -4,10 +4,9 @@
 
 use crate::error::ParserError;
 use crate::Code;
-use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
+use nom::{AsBytes, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Formatter};
-use std::ops::{RangeFrom, RangeTo};
 
 mod std_tracker;
 

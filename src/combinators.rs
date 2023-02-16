@@ -4,9 +4,8 @@
 
 use crate::tracker::FindTracker;
 use crate::{Code, ParserError, WithCode, WithSpan};
-use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Parser, Slice};
+use nom::{AsBytes, InputLength, InputTake, Parser};
 use std::fmt::Debug;
-use std::ops::{RangeFrom, RangeTo};
 
 /// Tracked execution of a parser.
 pub fn track<PA, C, I, O>(
