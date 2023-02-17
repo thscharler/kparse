@@ -77,6 +77,26 @@ pub struct SpanAndCode<C, I> {
     pub span: I,
 }
 
+/// Minimal information for a ParserError.
+pub trait ParseErrorExt<C, I> {
+    fn code(&self) -> C;
+    fn span(&self) -> I;
+}
+
+impl<C, I, Y> ParseErrorExt<C, I> for ParserError<C, I, Y>
+where
+    C: Code,
+    I: Copy,
+{
+    fn code(&self) -> C {
+        self.code
+    }
+
+    fn span(&self) -> I {
+        self.span
+    }
+}
+
 /// Combines two ParserErrors.
 pub trait AppendParserError<Rhs = Self> {
     /// Result of the append. Usually (), but for nom::Err::Incomplete the error is not
@@ -262,7 +282,7 @@ where
     fn or(mut self, other: Self) -> Self {
         #[cfg(feature = "track_nom")]
         {
-            self.append(other);
+            self.append_err(other);
         }
         self
     }

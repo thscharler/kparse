@@ -2,6 +2,7 @@
 //! Provides [Context] to access the tracker.
 //!
 
+use crate::error::ParseErrorExt;
 use crate::tracker::{DynTracker, FindTracker};
 use crate::{Code, ParserError};
 use nom::{AsBytes, InputLength, InputTake};
@@ -14,33 +15,41 @@ pub struct Context;
 impl Context {
     /// Creates an Ok() Result from the parameters and tracks the result.
     #[inline]
-    pub fn ok<C, I, O, Y>(
-        &self,
-        rest: I,
-        input: I,
-        value: O,
-    ) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+    pub fn ok<C, I, O, E>(&self, rest: I, input: I, value: O) -> Result<(I, O), nom::Err<E>>
     where
         C: Code,
-        I: FindTracker<C>,
+        I: Copy + Debug + FindTracker<C>,
+        I: InputTake + InputLength,
+        E: ParseErrorExt<C, I> + Debug,
     {
         rest.ok(input, value)
     }
 
     /// Tracks the error and creates a Result.
     #[inline]
-    pub fn err<C, I, O, E, Y>(&self, err: E) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+    pub fn err<C, I, O, E>(&self, err: E) -> Result<(I, O), nom::Err<E>>
     where
         C: Code,
         I: Copy + Debug + FindTracker<C>,
         I: InputTake + InputLength,
-        E: Into<nom::Err<ParserError<C, I, Y>>>,
-        Y: Copy + Debug,
+        E: ParseErrorExt<C, I> + Debug,
     {
-        let err: nom::Err<ParserError<C, I, Y>> = err.into();
+        let (span, code) = (err.span(), err.code());
+        span.err(code, nom::Err::Error(err))
+    }
+
+    /// Tracks the error and creates a Result.
+    #[inline]
+    pub fn err_err<C, I, O, E>(&self, err: nom::Err<E>) -> Result<(I, O), nom::Err<E>>
+    where
+        C: Code,
+        I: Copy + Debug + FindTracker<C>,
+        I: InputTake + InputLength,
+        E: ParseErrorExt<C, I> + Debug,
+    {
         let (span, code) = match &err {
             nom::Err::Incomplete(_) => return Err(err),
-            nom::Err::Error(e) | nom::Err::Failure(e) => (e.span, e.code),
+            nom::Err::Error(e) | nom::Err::Failure(e) => (e.span(), e.code()),
         };
         span.err(code, err)
     }
