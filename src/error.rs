@@ -22,7 +22,7 @@ use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
 use crate::Code;
 use nom::error::ErrorKind;
-use nom::{InputLength, InputTake};
+use nom::{InputIter, InputLength, InputTake};
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -292,7 +292,7 @@ impl<C, I, Y> Display for ParserError<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
     Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -344,7 +344,7 @@ impl<C, I, Y> Debug for ParserError<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
     Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -356,7 +356,7 @@ impl<C, I, Y> Debug for Hints<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
     Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -375,7 +375,7 @@ impl<C, I> Debug for Nom<C, I>
 where
     C: Code,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
@@ -388,7 +388,7 @@ impl<C, I> Debug for SpanAndCode<C, I>
 where
     C: Code,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
@@ -401,7 +401,7 @@ impl<C, I, Y> Error for ParserError<C, I, Y>
 where
     C: Code,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
     Y: Copy + Debug,
 {
     fn source(&self) -> Option<&(dyn ::std::error::Error + 'static)> {

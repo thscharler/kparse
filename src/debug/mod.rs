@@ -5,7 +5,7 @@
 pub(crate) mod error;
 pub(crate) mod tracks;
 
-use nom::{AsBytes, InputLength, InputTake};
+use nom::{AsBytes, InputIter, InputLength, InputTake};
 use std::cmp::min;
 
 /// Maps a width value from the formatstring to a variant.
@@ -55,7 +55,7 @@ where
 pub(crate) fn restrict<I>(w: DebugWidth, span: I) -> I
 where
     I: Copy,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
 {
     match w {
         DebugWidth::Short => restrict_n(20, span),
@@ -68,8 +68,17 @@ where
 pub(crate) fn restrict_n<I>(max_len: usize, span: I) -> I
 where
     I: Copy,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
 {
-    let count = min(span.input_len(), max_len);
-    span.take(count)
+    let mut n = 0;
+    let mut x = 0;
+    for (idx, el) in span.iter_indices() {
+        x = idx;
+        n += 1;
+        if n >= max_len {
+            break;
+        }
+    }
+
+    span.take(x)
 }

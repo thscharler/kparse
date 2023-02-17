@@ -1,6 +1,6 @@
 use crate::debug::{restrict, DebugWidth};
 use crate::{Code, ParserError};
-use nom::{InputLength, InputTake};
+use nom::{InputIter, InputLength, InputTake};
 use std::fmt;
 use std::fmt::Debug;
 
@@ -13,7 +13,7 @@ where
     C: Code,
     Y: Copy + Debug,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
 {
     match f.width() {
         None | Some(0) => debug_parse_error_short(f, err),
@@ -31,7 +31,7 @@ where
     C: Code,
     Y: Copy + Debug,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
 {
     write!(
         f,
@@ -67,7 +67,7 @@ where
     C: Code,
     Y: Copy + Debug,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
 {
     writeln!(
         f,
@@ -117,7 +117,7 @@ where
     C: Code,
     Y: Copy + Debug,
     I: Copy + Debug,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
 {
     writeln!(
         f,

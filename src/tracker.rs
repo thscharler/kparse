@@ -4,7 +4,7 @@
 
 use crate::error::ParserError;
 use crate::Code;
-use nom::{AsBytes, InputLength, InputTake};
+use nom::{AsBytes, InputIter, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Formatter};
 
@@ -120,7 +120,7 @@ where
     C: Code,
     I: Copy + Debug,
     I: FindTracker<C>,
-    I: InputTake + InputLength + AsBytes,
+    I: InputTake + InputLength + InputIter + AsBytes,
 {
     /// Keep a track if self is an error.
     fn track(self) -> Self;
@@ -137,7 +137,7 @@ where
     C: Code,
     I: Copy + Debug,
     I: FindTracker<C>,
-    I: InputTake + InputLength + AsBytes,
+    I: InputTake + InputLength + InputIter + AsBytes,
     Y: Copy + Debug,
 {
     /// Keep a track if self is an error.

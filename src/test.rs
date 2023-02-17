@@ -17,7 +17,7 @@ use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanFragment;
 use crate::tracker::{StdTracker, TrackSpan};
 use crate::{Code, ParserError};
-use nom::{AsBytes, InputLength, InputTake};
+use nom::{AsBytes, InputIter, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 pub use report::*;
 pub use span::*;
@@ -453,7 +453,7 @@ where
 impl<'s, P, I, O, E> Test<'s, P, I, O, E>
 where
     I: AsBytes + Copy + Debug + PartialEq + 's,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
     O: Debug,
     E: Debug,
 {
@@ -517,7 +517,7 @@ where
 impl<'s, P, I, O> Test<'s, P, I, O, nom::error::Error<I>>
 where
     I: AsBytes + Copy + Debug + 's,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
     O: Debug,
 {
     /// Test for a nom error that occurred.
@@ -546,7 +546,7 @@ where
 impl<'s, P, C, I, O> Test<'s, P, I, O, ParserError<C, I>>
 where
     I: AsBytes + Copy + Debug + 's,
-    I: InputTake + InputLength,
+    I: InputTake + InputLength + InputIter,
     C: Code,
     O: Debug,
 {
@@ -729,6 +729,7 @@ mod report {
             + InputTake
             + InputIter
             + InputLength
+            + InputIter
             + Slice<RangeFrom<usize>>
             + Slice<RangeTo<usize>>,
         O: Debug,
@@ -750,7 +751,7 @@ mod report {
     impl<'s, P, I, O, E> Report<Test<'s, P, I, O, E>> for Timing
     where
         I: AsBytes + Copy + Debug,
-        I: InputTake + InputLength,
+        I: InputTake + InputLength + InputIter,
         O: Debug,
         E: Debug,
     {
@@ -778,7 +779,7 @@ mod report {
     impl<'s, P, I, O, E> Report<Test<'s, P, I, O, E>> for Dump
     where
         I: AsBytes + Copy + Debug,
-        I: InputTake + InputLength + Offset,
+        I: InputTake + InputLength + InputIter + Offset,
         O: Debug,
         E: Debug,
     {
@@ -790,7 +791,7 @@ mod report {
     fn dump<P, I, O, E>(test: &Test<'_, P, I, O, E>)
     where
         I: AsBytes + Copy + Debug,
-        I: InputTake + InputLength + Offset,
+        I: InputTake + InputLength + InputIter + Offset,
         O: Debug,
         E: Debug,
     {
@@ -829,6 +830,7 @@ mod report {
             + InputTake
             + InputIter
             + InputLength
+            + InputIter
             + Slice<RangeFrom<usize>>
             + Slice<RangeTo<usize>>,
         C: Code,
@@ -851,6 +853,7 @@ mod report {
             + InputTake
             + InputIter
             + InputLength
+            + InputIter
             + Slice<RangeFrom<usize>>
             + Slice<RangeTo<usize>>,
         C: Code,
@@ -914,7 +917,7 @@ mod report {
     impl<'s, T, O, E> Report<Test<'s, (), LocatedSpan<T, ()>, O, E>> for CheckTrace
     where
         T: AsBytes + Copy + Debug,
-        T: InputTake + InputLength,
+        T: InputTake + InputLength + InputIter,
         O: Debug,
         E: Debug,
     {
@@ -930,7 +933,7 @@ mod report {
     impl<'s, T, O, E> Report<Test<'s, (), LocatedSpan<T, ()>, O, E>> for Trace
     where
         T: AsBytes + Copy + Debug,
-        T: InputTake + InputLength,
+        T: InputTake + InputLength + InputIter,
         O: Debug,
         E: Debug,
     {
@@ -942,7 +945,7 @@ mod report {
     fn trace_span<T, O, E>(test: &Test<'_, (), LocatedSpan<T, ()>, O, E>)
     where
         T: AsBytes + Copy + Debug,
-        T: InputTake + InputLength,
+        T: InputTake + InputLength + InputIter,
         O: Debug,
         E: Debug,
     {

@@ -43,8 +43,7 @@ impl Context {
     pub fn err_err<C, I, O, E>(&self, err: nom::Err<E>) -> Result<(I, O), nom::Err<E>>
     where
         C: Code,
-        I: Copy + Debug + FindTracker<C>,
-        I: InputTake + InputLength,
+        I: Copy + Debug + FindTracker<C> + InputTake + InputLength,
         E: ParseErrorExt<C, I> + Debug,
     {
         let (span, code) = match &err {
@@ -70,12 +69,11 @@ impl Context {
     /// (to denote some separation), this can be used to exit such a compartment
     /// with an ok track.
     #[inline]
-    pub fn err_section<C, I, Y>(&self, rest: I, code: C, err: &nom::Err<ParserError<C, I, Y>>)
+    pub fn err_section<C, I, E>(&self, rest: I, code: C, err: &nom::Err<E>)
     where
         C: Code,
-        I: Copy + Debug + FindTracker<C>,
-        I: InputTake + InputLength,
-        Y: Copy + Debug,
+        I: Copy + Debug + FindTracker<C> + InputTake + InputLength,
+        E: ParseErrorExt<C, I> + Debug,
     {
         rest.exit_err(code, err);
     }
