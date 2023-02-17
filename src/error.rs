@@ -20,9 +20,9 @@
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
-use crate::Code;
+use crate::{AppendParserError, Code, ParseErrorExt, ResultWithSpan, WithCode, WithSpan};
 use nom::error::ErrorKind;
-use nom::{InputIter, InputLength, InputTake};
+use nom::{AsBytes, InputIter, InputLength, InputTake};
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -77,12 +77,6 @@ pub struct SpanAndCode<C, I> {
     pub span: I,
 }
 
-/// Minimal information for a ParserError.
-pub trait ParseErrorExt<C, I> {
-    fn code(&self) -> C;
-    fn span(&self) -> I;
-}
-
 impl<C, I, Y> ParseErrorExt<C, I> for ParserError<C, I, Y>
 where
     C: Code,
@@ -95,15 +89,6 @@ where
     fn span(&self) -> I {
         self.span
     }
-}
-
-/// Combines two ParserErrors.
-pub trait AppendParserError<Rhs = Self> {
-    /// Result of the append. Usually (), but for nom::Err::Incomplete the error is not
-    /// appended but passed through.
-    type Output;
-    /// Appends
-    fn append(&mut self, err: Rhs) -> Self::Output;
 }
 
 impl<C, I, Y> AppendParserError<ParserError<C, I, Y>> for ParserError<C, I, Y>
@@ -708,5 +693,223 @@ where
         }
 
         grp
+    }
+}
+
+// -----------------------------------------------------------------------
+// conversions
+// -----------------------------------------------------------------------
+
+//
+// std::num::ParseIntError
+//
+
+// from the std::wilds
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for std::num::ParseIntError
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
+        nom::Err::Failure(ParserError::new(code, span))
+    }
+}
+
+//
+// std::num::ParseFloatError
+//
+
+// from the std::wilds
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for std::num::ParseFloatError
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
+        nom::Err::Failure(ParserError::new(code, span))
+    }
+}
+
+//
+// ()
+//
+
+// from the std::wilds
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for ()
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
+        nom::Err::Failure(ParserError::new(code, span))
+    }
+}
+
+//
+// nom::error::Error
+//
+
+// take everything from nom::error::Error
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for nom::error::Error<I>
+where
+    I: AsBytes + Copy,
+    C: Code,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
+        nom::Err::Error(ParserError::new(code, span).with_nom(self.input, self.code))
+    }
+}
+
+// take everything from nom::error::Error
+impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for nom::Err<nom::error::Error<I>>
+where
+    I: AsBytes + Copy,
+    C: Code,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
+        match self {
+            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
+            nom::Err::Error(e) => {
+                nom::Err::Error(ParserError::new(code, span).with_nom(e.input, e.code))
+            }
+            nom::Err::Failure(e) => {
+                nom::Err::Failure(ParserError::new(code, span).with_nom(e.input, e.code))
+            }
+        }
+    }
+}
+
+// take everything from nom::error::Error
+impl<C, I, Y> WithCode<C, ParserError<C, I, Y>> for nom::error::Error<I>
+where
+    I: AsBytes + Copy,
+    C: Code,
+    Y: Copy,
+{
+    fn with_code(self, code: C) -> ParserError<C, I, Y> {
+        ParserError::new(code, self.input).with_nom(self.input, self.code)
+    }
+}
+
+// ***********************************************************************
+// LAYER 1 - useful conversions
+// ***********************************************************************
+
+//
+// ParserError to nom::Err<ParserError>, useful shortcut when creating
+// a fresh ParserError.
+//
+impl<C, I, Y> From<ParserError<C, I, Y>> for nom::Err<ParserError<C, I, Y>>
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn from(e: ParserError<C, I, Y>) -> Self {
+        nom::Err::Error(e)
+    }
+}
+
+impl<C, I, Y> WithCode<C, ParserError<C, I, Y>> for ParserError<C, I, Y>
+where
+    I: AsBytes + Copy,
+    C: Code,
+    Y: Copy,
+{
+    fn with_code(self, code: C) -> ParserError<C, I, Y> {
+        ParserError::with_code(self, code)
+    }
+}
+
+// ***********************************************************************
+// LAYER 2 - wrapped in a nom::Err
+// ***********************************************************************
+
+//
+// nom::Err::<ParserError<C, I, Y>
+//
+
+impl<C, I, Y> WithCode<C, nom::Err<ParserError<C, I, Y>>> for nom::Err<ParserError<C, I, Y>>
+where
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_code(self, code: C) -> nom::Err<ParserError<C, I, Y>> {
+        match self {
+            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
+            nom::Err::Error(e) => {
+                let p_err: ParserError<C, I, Y> = e.with_code(code);
+                nom::Err::Error(p_err)
+            }
+            nom::Err::Failure(e) => {
+                let p_err: ParserError<C, I, Y> = e.with_code(code);
+                nom::Err::Failure(p_err)
+            }
+        }
+    }
+}
+
+// info: cannot implement this:
+//
+// impl<C, I, E, Y> WithSpan<C, I, nom::Err<ParserError<C, I, Y>>> for nom::Err<E>
+// where
+//     C: Code,
+//     I: AsBytes + Copy,
+//     E: WithSpan<C, I, ParserError<C, I, Y>>,
+//     Y: Copy,
+//
+// WithSpan returns a nom::Err wrapped ParserError, and self is a nom::Err too.
+// There is no clear indication which of the nom::Err should be used for the result.
+
+// ***********************************************************************
+// LAYER 3 - wrapped in a Result
+// ***********************************************************************
+
+//
+// Result
+//
+
+// Any result that wraps an error type that can be converted via with_span is fine.
+impl<C, I, O, E, Y> ResultWithSpan<C, I, Result<O, nom::Err<ParserError<C, I, Y>>>> for Result<O, E>
+where
+    E: WithSpan<C, I, ParserError<C, I, Y>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_span(self, code: C, span: I) -> Result<O, nom::Err<ParserError<C, I, Y>>> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => Err(e.with_span(code, span)),
+        }
+    }
+}
+
+// everything needs a new code sometimes ... continued ...
+//
+// 1. this is a ParserResult with a nom::Err with a ParserError.
+// 2. this is a Result with a whatever which has a WithCode<ParserError>
+impl<C, I, O, E, Y> WithCode<C, Result<(I, O), nom::Err<ParserError<C, I, Y>>>>
+    for Result<(I, O), E>
+where
+    E: WithCode<C, nom::Err<ParserError<C, I, Y>>>,
+    C: Code,
+    I: AsBytes + Copy,
+    Y: Copy,
+{
+    fn with_code(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+        match self {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let p_err: nom::Err<ParserError<C, I, Y>> = e.with_code(code);
+                Err(p_err)
+            }
+        }
     }
 }
