@@ -2,7 +2,7 @@
 
 use kparse::combinators::transform;
 use kparse::prelude::*;
-use kparse::tracker::TrackResult;
+use kparse::tracker::TrackParserResult;
 #[cfg(debug_assertions)]
 use kparse::tracker::{StdTracker, TrackSpan};
 use kparse::{Code, Context, ParserError};
@@ -65,8 +65,8 @@ impl Code for ECode {
 pub type ESpan<'s> = TrackSpan<'s, ECode, &'s str>;
 #[cfg(not(debug_assertions))]
 pub type ESpan<'s> = &'s str;
-pub type EResult<'s, O> = TrackResult<ECode, ESpan<'s>, O, ()>;
-pub type ENomResult<'s> = TrackResult<ECode, ESpan<'s>, ESpan<'s>, ()>;
+pub type EResult<'s, O> = TrackParserResult<ECode, ESpan<'s>, O, ()>;
+pub type ENomResult<'s> = TrackParserResult<ECode, ESpan<'s>, ESpan<'s>, ()>;
 pub type EParserError<'s> = ParserError<ECode, ESpan<'s>, ()>;
 
 #[derive(Debug)]

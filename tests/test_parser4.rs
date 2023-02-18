@@ -291,9 +291,10 @@ mod planung4 {
         dump_diagnostics as dump_diagnostics_v4, dump_diagnostics_info as dump_diagnostics_info_v4,
         dump_trace as dump_trace_v4,
     };
-    use kparse::tracker::TrackResult;
+    use kparse::token_error::TokenizerError;
     #[cfg(debug_assertions)]
     use kparse::tracker::TrackSpan;
+    use kparse::tracker::{TrackParserResult, TrackTokenizerResult};
     use kparse::{Code, ParserError};
     #[cfg(not(debug_assertions))]
     use nom_locate::LocatedSpan;
@@ -405,8 +406,9 @@ mod planung4 {
     #[cfg(not(debug_assertions))]
     pub type APSpan<'s> = LocatedSpan<&'s str, ()>;
     pub type APParserError<'s> = ParserError<APCode, APSpan<'s>, ()>;
-    pub type APParserResult<'s, O> = TrackResult<APCode, APSpan<'s>, O, ()>;
-    pub type APNomResult<'s> = TrackResult<APCode, APSpan<'s>, APSpan<'s>, ()>;
+    pub type APTokenizerError<'s> = TokenizerError<APCode, APSpan<'s>>;
+    pub type APParserResult<'s, O> = TrackParserResult<APCode, APSpan<'s>, O, ()>;
+    pub type APTokenizerResult<'s, O> = TrackTokenizerResult<APCode, APSpan<'s>, O>;
 
     pub mod diagnostics {
         use crate::planung4::{APCode, APParserError, APSpan};
@@ -1526,12 +1528,12 @@ mod planung4 {
                         },
                     )
                 }
-                Err(e) => return Context.err(e),
+                Err(e) => return Context.err(rest, e),
             };
 
             // must be at line end now, and can eat some whitespace
             let rest = if !nom_is_nl(rest) {
-                return Context.err(ParserError::new(APCSorten, rest));
+                return Context.err(rest, ParserError::new(APCSorten, rest));
             } else {
                 nom_ws_nl(rest)
             };
@@ -1594,7 +1596,8 @@ mod planung4 {
                             if lah_number(rest2) {
                                 rest2
                             } else {
-                                return Context.err(ParserError::new(APCSortenContinue, rest1));
+                                return Context
+                                    .err(rest2, ParserError::new(APCSortenContinue, rest1));
                             }
                         }
                     }
@@ -1813,7 +1816,7 @@ mod planung4 {
     }
 
     pub mod nom_tokens {
-        use crate::planung4::{APNomResult, APSpan};
+        use crate::planung4::{APSpan, APTokenizerResult};
         use nom::branch::alt;
         use nom::bytes::complete::{tag, tag_no_case, take_till, take_till1, take_while1};
         use nom::character::complete::{char as nchar, one_of};
@@ -1827,11 +1830,11 @@ mod planung4 {
             tuple((nom_header, tag_no_case("plan")))(i).is_ok()
         }
 
-        pub fn nom_tag_plan(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_plan(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("plan")), nom_ws)(i)
         }
 
-        pub fn nom_metadata(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_metadata(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             recognize(tuple((
                 take_till1(|c: char| c == ':' || c == '\n' || c == '\r'),
                 nom_colon,
@@ -1843,7 +1846,7 @@ mod planung4 {
             tuple((opt(nom_slash_slash), tag_no_case("kdnr")))(i).is_ok()
         }
 
-        pub fn nom_tag_kdnr(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_kdnr(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("kdnr")), nom_ws)(i)
         }
 
@@ -1851,7 +1854,7 @@ mod planung4 {
             tuple((nom_header, tag_no_case("stichtag")))(i).is_ok()
         }
 
-        pub fn nom_tag_stichtag(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_stichtag(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("stichtag")), nom_ws)(i)
         }
 
@@ -1859,7 +1862,7 @@ mod planung4 {
             tuple((opt(nom_slash_slash), tag_no_case("bsnr")))(i).is_ok()
         }
 
-        pub fn nom_tag_bsnr(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_bsnr(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("bsnr")), nom_ws)(i)
         }
 
@@ -1867,7 +1870,7 @@ mod planung4 {
             tuple((nom_header, tag_no_case("monat")))(i).is_ok()
         }
 
-        pub fn nom_tag_monat(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_monat(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("monat")), nom_ws)(i)
         }
 
@@ -1875,7 +1878,7 @@ mod planung4 {
             tuple((nom_header, tag_no_case("woche")))(i).is_ok()
         }
 
-        pub fn nom_tag_woche(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_woche(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("woche")), nom_ws)(i)
         }
 
@@ -1883,7 +1886,7 @@ mod planung4 {
             tuple((nom_header, tag_no_case("tag")))(i).is_ok()
         }
 
-        pub fn nom_tag_tag(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_tag(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("tag")), nom_ws)(i)
         }
 
@@ -1891,11 +1894,11 @@ mod planung4 {
             tag::<_, _, nom::error::Error<APSpan<'_>>>("=>")(i).is_ok()
         }
 
-        pub fn nom_tag_aktion(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_aktion(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag("=>")), nom_ws)(i)
         }
 
-        pub fn nom_aktion_aktion(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_aktion_aktion(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(
                 recognize(alt((
                     tag("Überwintern"),
@@ -1914,14 +1917,14 @@ mod planung4 {
             .is_ok()
         }
 
-        pub fn nom_tag_pflanzort(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_pflanzort(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(
                 recognize(alt((recognize(nchar('@')), tag_no_case("parzelle")))),
                 nom_ws,
             )(i)
         }
 
-        pub fn nom_tag_w(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_w(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(one_of("wW")), nom_ws)(i)
         }
 
@@ -1933,11 +1936,11 @@ mod planung4 {
             tuple((opt(nom_star_star), tag_no_case("lieferant")))(i).is_ok()
         }
 
-        pub fn nom_tag_kunde(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_kunde(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("kunde")), nom_ws)(i)
         }
 
-        pub fn nom_tag_lieferant(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_lieferant(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("lieferant")), nom_ws)(i)
         }
 
@@ -1945,7 +1948,7 @@ mod planung4 {
             tuple((opt(nom_star_star), tag_no_case("markt")))(i).is_ok()
         }
 
-        pub fn nom_tag_markt(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_tag_markt(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag_no_case("markt")), nom_ws)(i)
         }
 
@@ -1953,11 +1956,11 @@ mod planung4 {
             nchar::<_, nom::error::Error<APSpan<'_>>>('#')(i).is_ok()
         }
 
-        pub fn nom_kommentar_tag(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_kommentar_tag(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag("#")), nom_ws)(i)
         }
 
-        pub fn nom_kommentar(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_kommentar(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(take_till(|c: char| c == '\n'), nom_ws)(i)
         }
 
@@ -1965,15 +1968,15 @@ mod planung4 {
             tag_no_case::<_, _, nom::error::Error<APSpan<'_>>>("##")(i).is_ok()
         }
 
-        pub fn nom_notiz_tag(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_notiz_tag(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tag("##")), nom_ws)(i)
         }
 
-        pub fn nom_notiz(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_notiz(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(take_till(|c: char| c == '\n'), nom_ws)(i)
         }
 
-        pub fn nom_name(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_name(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(
                 recognize(take_while1(|c: char| {
                     c.is_alphanumeric() || c == ' ' || "\'+-²/_.".contains(c)
@@ -1982,7 +1985,7 @@ mod planung4 {
             )(i)
         }
 
-        pub fn nom_name_kurz(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_name_kurz(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(
                 recognize(take_while1(|c: char| {
                     c.is_alphanumeric() || "\'+-²/_.".contains(c)
@@ -1991,7 +1994,7 @@ mod planung4 {
             )(i)
         }
 
-        pub fn nom_kw(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_kw(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(preceded(tag_no_case("KW"), digit1), nom_ws)(i)
         }
 
@@ -1999,15 +2002,15 @@ mod planung4 {
             digit1::<_, nom::error::Error<APSpan<'_>>>(i).is_ok()
         }
 
-        pub fn nom_number(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_number(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(digit1, nom_ws)(i)
         }
 
-        pub fn nom_dot(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_dot(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(nchar('.')), nom_ws)(i)
         }
 
-        pub fn nom_comma(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_comma(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(nchar(',')), nom_ws)(i)
         }
 
@@ -2015,23 +2018,23 @@ mod planung4 {
             nchar::<_, nom::error::Error<APSpan<'_>>>('+')(i).is_ok()
         }
 
-        pub fn nom_plus(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_plus(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(nchar('+')), nom_ws)(i)
         }
 
-        pub fn nom_colon(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_colon(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(nchar(':')), nom_ws)(i)
         }
 
-        pub fn nom_star_star(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_star_star(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tuple((nchar('*'), nchar('*')))), nom_ws)(i)
         }
 
-        pub fn nom_slash_slash(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_slash_slash(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(tuple((nchar('/'), nchar('/')))), nom_ws)(i)
         }
 
-        pub fn nom_header(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_header(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(many_m_n(0, 6, nchar('='))), nom_ws)(i)
         }
 
@@ -2039,15 +2042,15 @@ mod planung4 {
             nchar::<_, nom::error::Error<APSpan<'_>>>('(')(i).is_ok()
         }
 
-        pub fn nom_brop(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_brop(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(nchar('(')), nom_ws)(i)
         }
 
-        pub fn nom_brcl(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_brcl(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(nchar(')')), nom_ws)(i)
         }
 
-        pub fn nom_ws(i: APSpan<'_>) -> APNomResult<'_> {
+        pub fn nom_ws(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             i.split_at_position_complete(|item| {
                 let c = item.as_char();
                 !(c == ' ' || c == '\t')

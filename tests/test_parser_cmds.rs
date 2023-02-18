@@ -129,7 +129,7 @@ mod cmds_parser {
     use glob::PatternError;
     use kparse::combinators::{error_code, transform};
     use kparse::prelude::*;
-    use kparse::tracker::{TrackResult, TrackSpan};
+    use kparse::tracker::{TrackParserResult, TrackSpan};
     use kparse::{Code, Context, ParserError};
     use nom::bytes::complete::{tag, take_till1, take_while1};
     use nom::character::complete::{char as nchar, digit1};
@@ -145,8 +145,8 @@ mod cmds_parser {
 
     pub type CSpan<'s> = TrackSpan<'s, CCode, &'s str>;
     pub type CParserError<'s> = ParserError<CCode, CSpan<'s>, ()>;
-    pub type CParserResult<'s, O> = TrackResult<CCode, CSpan<'s>, O, ()>;
-    pub type CNomResult<'s> = TrackResult<CCode, CSpan<'s>, CSpan<'s>, ()>;
+    pub type CParserResult<'s, O> = TrackParserResult<CCode, CSpan<'s>, O, ()>;
+    pub type CNomResult<'s> = TrackParserResult<CCode, CSpan<'s>, CSpan<'s>, ()>;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum CCode {
@@ -1149,11 +1149,7 @@ mod cmds_parser {
                         }
                         Err(nom::Err::Error(e)) => {
                             if e.code != CIgnore {
-                                err = if let Some(err) = err {
-                                    Some(err.or(e))
-                                } else {
-                                    Some(e)
-                                };
+                                err.append(e);
                             }
                         }
                         Err(e) => return Context.err(e),
