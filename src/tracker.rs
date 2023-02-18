@@ -27,6 +27,7 @@ pub type TrackParserResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, 
 /// Equivalent to [nom::IResult]<(I, O), TokenizerError<C, I>>
 pub type TrackTokenizerResult<C, I, O> = Result<(I, O), nom::Err<TokenizerError<C, I>>>;
 
+/// Data packet for the Tracker.
 pub enum TrackerData<C, T>
 where
     C: Code,
@@ -72,9 +73,9 @@ where
     }
 }
 
-/// This trait is implemented on Context for various input types.
-/// This allows it to switch seamlessly between input types.
-pub trait FindTracker<C>
+/// This trait is implemented for an input type. It takes a tracking event and
+/// its raw data, converts if necessary and sends it to the actual tracker.
+pub trait Tracking<C>
 where
     C: Code,
     Self: Sized,
@@ -107,12 +108,9 @@ where
     fn track_exit(&self);
 }
 
-/// This trait is used for error tracking.
+/// This is an extension trait for nom-Results.
 ///
-/// It is implemented for Result<(I,O), nom::Err<ParserError<>>, so it's
-/// methods can be squeezed between the call to the parser and the ? operator.
-///
-/// Calls the tracking functions in the error case.
+/// This is for inline tracking of parser results.
 ///
 /// ```rust ignore
 /// let (rest, h0) = nom_header(input).track_as(APCHeader)?;
@@ -120,28 +118,28 @@ where
 /// let (rest, plan) = token_name(rest).track()?;
 /// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
 /// ```
-pub trait TrackError<C, I>
+pub trait ResultTracking<C, I>
 where
     C: Code,
     I: Copy + Debug,
-    I: FindTracker<C>,
+    I: Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
 {
-    /// Keep a track if self is an error.
+    /// Track an Err() result.
     fn track(self) -> Self;
 
-    /// Keep track if self is an error, and set an error code too.
+    /// Track an Err() result and modify the error code in one go.
     fn track_as(self, code: C) -> Self;
 
-    /// Keep track of self, either as error or as ok result.
+    /// Track both the Ok() and the Err() branch.
     fn track_ok(self, parsed: I) -> Self;
 }
 
-impl<C, I, O, E> TrackError<C, I> for Result<(I, O), nom::Err<E>>
+impl<C, I, O, E> ResultTracking<C, I> for Result<(I, O), nom::Err<E>>
 where
     C: Code,
     I: Copy + Debug,
-    I: FindTracker<C>,
+    I: Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
     E: WithCode<C, E>,
     E: ParseErrorExt<C, I> + Debug,

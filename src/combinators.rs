@@ -2,7 +2,7 @@
 //! Provides some extra parser combinators.
 //!
 
-use crate::tracker::FindTracker;
+use crate::tracker::Tracking;
 use crate::{Code, ParserError, WithCode};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
 use std::fmt::Debug;
@@ -15,7 +15,7 @@ pub fn track<PA, C, I, O>(
 where
     PA: Parser<I, O, ParserError<C, I>>,
     C: Code,
-    I: Copy + Debug + FindTracker<C>,
+    I: Copy + Debug + Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
 {
     move |i| -> Result<(I, O), nom::Err<ParserError<C, I>>> {

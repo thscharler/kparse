@@ -2,7 +2,7 @@
 //! Provides [Context] to access the tracker.
 //!
 
-use crate::tracker::{DynTracker, FindTracker, TrackerData};
+use crate::tracker::{DynTracker, TrackerData, Tracking};
 use crate::{Code, ErrWrapped, ParseErrorExt};
 use nom::{AsBytes, InputLength, InputTake};
 use nom_locate::LocatedSpan;
@@ -17,7 +17,7 @@ impl Context {
     pub fn ok<C, I, O, E>(&self, rest: I, input: I, value: O) -> Result<(I, O), nom::Err<E>>
     where
         C: Code,
-        I: Copy + Debug + FindTracker<C>,
+        I: Copy + Debug + Tracking<C>,
         I: InputTake + InputLength,
         E: ParseErrorExt<C, I> + Debug,
     {
@@ -32,7 +32,7 @@ impl Context {
     ) -> Result<(I, O), nom::Err<E>>
     where
         C: Code,
-        I: Copy + Debug + FindTracker<C>,
+        I: Copy + Debug + Tracking<C>,
         I: InputTake + InputLength,
         E: ParseErrorExt<C, I> + Debug,
     {
@@ -53,7 +53,7 @@ impl Context {
     pub fn ok_section<C, I>(&self, rest: I, input: I)
     where
         C: Code,
-        I: FindTracker<C>,
+        I: Tracking<C>,
     {
         rest.track_ok(input);
     }
@@ -65,7 +65,7 @@ impl Context {
     pub fn err_section<C, I, E>(&self, err: &E)
     where
         C: Code,
-        I: Copy + Debug + FindTracker<C> + InputTake + InputLength,
+        I: Copy + Debug + Tracking<C> + InputTake + InputLength,
         E: ParseErrorExt<C, I> + Debug,
     {
         let span = err.span();
@@ -78,7 +78,7 @@ impl Context {
     pub fn enter<C, I>(&self, func: C, span: I)
     where
         C: Code,
-        I: FindTracker<C>,
+        I: Tracking<C>,
     {
         span.track_enter(func);
     }
@@ -88,7 +88,7 @@ impl Context {
     pub fn debug<C, I>(&self, span: I, debug: String)
     where
         C: Code,
-        I: FindTracker<C>,
+        I: Tracking<C>,
     {
         span.track_debug(debug);
     }
@@ -98,7 +98,7 @@ impl Context {
     pub fn info<C, I>(&self, span: I, info: &'static str)
     where
         C: Code,
-        I: FindTracker<C>,
+        I: Tracking<C>,
     {
         span.track_info(info);
     }
@@ -108,7 +108,7 @@ impl Context {
     pub fn warn<C, I>(&self, span: I, warn: &'static str)
     where
         C: Code,
-        I: FindTracker<C>,
+        I: Tracking<C>,
     {
         span.track_warn(warn);
     }
@@ -116,7 +116,7 @@ impl Context {
 
 type DynSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
-impl<'s, C, T> FindTracker<C> for DynSpan<'s, C, T>
+impl<'s, C, T> Tracking<C> for DynSpan<'s, C, T>
 where
     C: Code,
     T: Copy + Debug + AsBytes + InputTake + InputLength,
@@ -202,7 +202,7 @@ where
 
 type PlainSpan<'s, T> = LocatedSpan<T, ()>;
 
-impl<'s, C, T> FindTracker<C> for PlainSpan<'s, T>
+impl<'s, C, T> Tracking<C> for PlainSpan<'s, T>
 where
     T: Copy + Debug,
     T: InputTake + InputLength + AsBytes,
@@ -224,14 +224,14 @@ where
 
     fn track_warn(&self, _warn: &'static str) {}
 
-    fn track_exit(&self) {}
-
     fn track_ok(&self, _parsed: PlainSpan<'s, T>) {}
 
     fn track_err<E>(&self, _func: C, _err: &E) {}
+
+    fn track_exit(&self) {}
 }
 
-impl<'s, C> FindTracker<C> for &'s str
+impl<'s, C> Tracking<C> for &'s str
 where
     C: Code,
 {
@@ -251,14 +251,14 @@ where
 
     fn track_warn(&self, _warn: &'static str) {}
 
-    fn track_exit(&self) {}
-
     fn track_ok(&self, _input: Self) {}
 
     fn track_err<E>(&self, _func: C, _err: &E) {}
+
+    fn track_exit(&self) {}
 }
 
-impl<'s, C> FindTracker<C> for &'s [u8]
+impl<'s, C> Tracking<C> for &'s [u8]
 where
     C: Code,
 {
@@ -278,9 +278,9 @@ where
 
     fn track_warn(&self, _warn: &'static str) {}
 
-    fn track_exit(&self) {}
-
     fn track_ok(&self, _input: Self) {}
 
     fn track_err<E>(&self, _func: C, _err: &E) {}
+
+    fn track_exit(&self) {}
 }

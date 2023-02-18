@@ -63,7 +63,7 @@ pub mod prelude {
     pub use crate::error::AppendParserError;
     pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
     pub use crate::token_error::{IntoParserError, IntoParserErrorExtra};
-    pub use crate::tracker::{FindTracker, TrackError};
+    pub use crate::tracker::{ResultTracking, Tracking};
     pub use crate::{ErrWrapped, ParseErrorExt, WithCode};
 }
 
