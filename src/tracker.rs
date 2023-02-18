@@ -3,7 +3,7 @@
 //!
 
 use crate::error::ParserError;
-use crate::Code;
+use crate::{Code, ParseErrorExt, WithCode};
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Formatter};
@@ -138,13 +138,14 @@ where
     fn track_ok(self, parsed: I) -> Self;
 }
 
-impl<C, I, O, Y> TrackError<C, I> for Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+impl<C, I, O, E> TrackError<C, I> for Result<(I, O), nom::Err<E>>
 where
     C: Code,
     I: Copy + Debug,
     I: FindTracker<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
-    Y: Copy + Debug,
+    E: WithCode<C, E>,
+    E: ParseErrorExt<C, I> + Debug,
 {
     /// Keep a track if self is an error.
     fn track(self) -> Self {
@@ -152,16 +153,16 @@ where
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
-                let span = e.span;
-                let code = e.code;
+                let span = e.span();
+                let code = e.code();
                 let err = nom::Err::Error(e);
                 span.track_err(code, &err);
                 span.track_exit();
                 Err(err)
             }
             Err(nom::Err::Failure(e)) => {
-                let span = e.span;
-                let code = e.code;
+                let span = e.span();
+                let code = e.code();
                 let err = nom::Err::Failure(e);
                 span.track_err(code, &err);
                 span.track_exit();
@@ -177,7 +178,8 @@ where
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
                 let e = e.with_code(code);
-                let span = e.span;
+                let span = e.span();
+                let code = e.code();
                 let err = nom::Err::Error(e);
                 span.track_err(code, &err);
                 span.track_exit();
@@ -185,7 +187,8 @@ where
             }
             Err(nom::Err::Failure(e)) => {
                 let e = e.with_code(code);
-                let span = e.span;
+                let span = e.span();
+                let code = e.code();
                 let err = nom::Err::Failure(e);
                 span.track_err(code, &err);
                 span.track_exit();
@@ -204,16 +207,16 @@ where
             }
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
             Err(nom::Err::Error(e)) => {
-                let span = e.span;
-                let code = e.code;
+                let span = e.span();
+                let code = e.code();
                 let err = nom::Err::Error(e);
                 span.track_err(code, &err);
                 span.track_exit();
                 Err(err)
             }
             Err(nom::Err::Failure(e)) => {
-                let span = e.span;
-                let code = e.code;
+                let span = e.span();
+                let code = e.code();
                 let err = nom::Err::Failure(e);
                 span.track_err(code, &err);
                 span.track_exit();
