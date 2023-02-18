@@ -1425,12 +1425,13 @@ mod planung4 {
         use crate::planung4::APCode::*;
         use crate::planung4::{APCode, APParserError, APParserResult, APSpan};
         use chrono::NaiveDate;
-        use kparse::combinators::transform;
+        use kparse::combinators::{error_code, transform};
         use kparse::prelude::*;
         use kparse::tracker::TrackSpan;
-        use kparse::ParserError;
+        use kparse::{Code, ParserError};
         use nom::combinator::recognize;
         use nom::sequence::tuple;
+        use std::num::ParseIntError;
 
         pub fn token_name(rest: APSpan<'_>) -> APParserResult<'_, APName<'_>> {
             match nom_name(rest) {
@@ -1466,38 +1467,32 @@ mod planung4 {
         }
 
         pub fn token_nummer(rest: APSpan<'_>) -> APParserResult<'_, APNummer<'_>> {
-            match nom_number(rest) {
-                Ok((rest, tok)) => Ok((
+            let (rest, tok) = error_code(nom_number, APCNummer)(rest)?;
+
+            match tok.parse::<u32>() {
+                Ok(v) => Ok((
                     rest,
                     APNummer {
-                        nummer: tok.parse::<u32>().with_span(APCNummer, tok)?,
+                        nummer: v,
                         span: tok,
                     },
                 )),
-                Err(e) => Err(e.with_code(APCNummer)),
+                Err(_) => Err(nom::Err::Failure(APParserError::new(APCNummer, tok))),
             }
         }
 
         pub fn token_menge(rest: APSpan<'_>) -> APParserResult<'_, APMenge<'_>> {
-            match nom_number(rest) {
-                Ok((rest, tok)) => Ok((
+            let (rest, tok) = error_code(nom_number, APCNummer)(rest)?;
+
+            match tok.parse::<i32>() {
+                Ok(v) => Ok((
                     rest,
                     APMenge {
-                        menge: tok.parse::<i32>().with_span(APCMenge, rest)?,
+                        menge: v,
                         span: tok,
                     },
                 )),
-                Err(e) => Err(e.with_code(APCMenge)),
-            }
-        }
-
-        impl<'s> WithSpan<APCode, APSpan<'s>, APParserError<'s>> for chrono::ParseError {
-            fn with_span(
-                self,
-                code: APCode,
-                span: TrackSpan<'s, APCode, &'s str>,
-            ) -> nom::Err<APParserError<'s>> {
-                nom::Err::Failure(ParserError::new(code, span))
+                Err(_) => Err(nom::Err::Failure(APParserError::new(APCNummer, tok))),
             }
         }
 
@@ -1516,6 +1511,21 @@ mod planung4 {
             k
         }
 
+        fn cnv_err<C, I, O, E>(
+            r: Result<O, E>,
+            code: C,
+            span: I,
+        ) -> Result<O, nom::Err<ParserError<C, I, ()>>>
+        where
+            C: Code,
+            I: Copy,
+        {
+            match r {
+                Ok(v) => Ok(v),
+                Err(_) => Err(nom::Err::Failure(ParserError::new(code, span))),
+            }
+        }
+
         pub fn token_datum(input: APSpan<'_>) -> APParserResult<'_, APDatum<'_>> {
             let (rest, day) = nom_number(input).with_code(APCDay)?;
             let (rest, _) = nom_dot(rest).with_code(APCDot)?;
@@ -1523,9 +1533,9 @@ mod planung4 {
             let (rest, _) = nom_dot(rest).with_code(APCDot)?;
             let (rest, year) = nom_number(rest).with_code(APCYear)?;
 
-            let iday = (*day).parse::<u32>().with_span(APCDay, day)?;
-            let imonth = (*month).parse::<u32>().with_span(APCMonth, month)?;
-            let iyear = (*year).parse::<i32>().with_span(APCYear, year)?;
+            let iday = cnv_err((*day).parse::<u32>(), APCDay, day)?;
+            let imonth = cnv_err((*month).parse::<u32>(), APCMonth, month)?;
+            let iyear = cnv_err((*year).parse::<i32>(), APCYear, year)?;
 
             let span = input.span_union(&day, &year);
             let datum = NaiveDate::from_ymd_opt(iyear, imonth, iday);

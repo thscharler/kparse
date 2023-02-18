@@ -20,7 +20,7 @@
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
-use crate::{Code, ErrWrapped, ParseErrorExt, ResultWithSpan, WithCode, WithSpan};
+use crate::{Code, ErrWrapped, ParseErrorExt, WithCode};
 use nom::error::ErrorKind;
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use std::error::Error;
@@ -737,90 +737,6 @@ where
 // conversions
 // -----------------------------------------------------------------------
 
-//
-// std::num::ParseIntError
-//
-
-// from the std::wilds
-impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for std::num::ParseIntError
-where
-    C: Code,
-    I: AsBytes + Copy,
-    Y: Copy,
-{
-    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
-        nom::Err::Failure(ParserError::new(code, span))
-    }
-}
-
-//
-// std::num::ParseFloatError
-//
-
-// from the std::wilds
-impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for std::num::ParseFloatError
-where
-    C: Code,
-    I: AsBytes + Copy,
-    Y: Copy,
-{
-    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
-        nom::Err::Failure(ParserError::new(code, span))
-    }
-}
-
-//
-// ()
-//
-
-// from the std::wilds
-impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for ()
-where
-    C: Code,
-    I: AsBytes + Copy,
-    Y: Copy,
-{
-    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
-        nom::Err::Failure(ParserError::new(code, span))
-    }
-}
-
-//
-// nom::error::Error
-//
-
-// take everything from nom::error::Error
-impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for nom::error::Error<I>
-where
-    I: AsBytes + Copy,
-    C: Code,
-    Y: Copy,
-{
-    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
-        nom::Err::Error(ParserError::new(code, span).with_nom(self.input, self.code))
-    }
-}
-
-// take everything from nom::error::Error
-impl<C, I, Y> WithSpan<C, I, ParserError<C, I, Y>> for nom::Err<nom::error::Error<I>>
-where
-    I: AsBytes + Copy,
-    C: Code,
-    Y: Copy,
-{
-    fn with_span(self, code: C, span: I) -> nom::Err<ParserError<C, I, Y>> {
-        match self {
-            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => {
-                nom::Err::Error(ParserError::new(code, span).with_nom(e.input, e.code))
-            }
-            nom::Err::Failure(e) => {
-                nom::Err::Failure(ParserError::new(code, span).with_nom(e.input, e.code))
-            }
-        }
-    }
-}
-
 // take everything from nom::error::Error
 impl<C, I, Y> WithCode<C, ParserError<C, I, Y>> for nom::error::Error<I>
 where
@@ -908,27 +824,6 @@ where
 // LAYER 3 - wrapped in a Result
 // ***********************************************************************
 
-//
-// Result
-//
-
-// Any result that wraps an error type that can be converted via with_span is fine.
-impl<C, I, O, E, Y> ResultWithSpan<C, I, Result<O, nom::Err<ParserError<C, I, Y>>>> for Result<O, E>
-where
-    E: WithSpan<C, I, ParserError<C, I, Y>>,
-    C: Code,
-    I: AsBytes + Copy,
-    Y: Copy,
-{
-    fn with_span(self, code: C, span: I) -> Result<O, nom::Err<ParserError<C, I, Y>>> {
-        match self {
-            Ok(v) => Ok(v),
-            Err(e) => Err(e.with_span(code, span)),
-        }
-    }
-}
-
-//check
 impl<C, I, O, Y> WithCode<C, Result<(I, O), nom::Err<ParserError<C, I, Y>>>>
     for Result<(I, O), nom::Err<ParserError<C, I, Y>>>
 where

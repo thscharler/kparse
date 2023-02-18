@@ -64,7 +64,7 @@ pub mod prelude {
     pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
     pub use crate::token_error::{IntoParserError, IntoParserErrorExtra};
     pub use crate::tracker::{FindTracker, TrackError};
-    pub use crate::{ErrWrapped, ParseErrorExt, ResultWithSpan, WithCode, WithSpan};
+    pub use crate::{ErrWrapped, ParseErrorExt, WithCode};
 }
 
 /// Alias for LocatedSpan.
@@ -83,20 +83,6 @@ pub type TokenizerResult<C, I, O> = Result<(I, O), nom::Err<TokenizerError<C, I>
 pub trait Code: Copy + Display + Debug + Eq {
     /// Default error code for nom-errors.
     const NOM_ERROR: Self;
-}
-
-/// Convert an external error into a ParserError and add an error code and a span.
-pub trait WithSpan<C: Code, I, E> {
-    /// Convert an external error into a ParserError.
-    /// Usually uses nom::Err::Failure to indicate the finality of the error.
-    fn with_span(self, code: C, span: I) -> nom::Err<E>;
-}
-
-/// This is used internally to work with Result instead of an error type.
-pub trait ResultWithSpan<C: Code, I, R> {
-    /// Convert an external error into a ParserError.
-    /// Usually uses nom::Err::Failure to indicate the finality of the error.
-    fn with_span(self, code: C, span: I) -> R;
 }
 
 /// Change the error code.

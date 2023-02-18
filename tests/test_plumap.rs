@@ -363,41 +363,49 @@ mod token {
     use crate::nom_parser::{nom_float, nom_minus, nom_number};
     use crate::PLUCode::*;
     use crate::{PDatum, PFaktor, PLUCode, PLUParserError, PLUParserResult, PNummer, PSpan};
+    use kparse::combinators::{error_code, transform};
     use kparse::prelude::*;
-    use kparse::ParserError;
+    use kparse::{Code, ParserError};
     use rust_decimal::Decimal;
-
-    impl<'s> WithSpan<PLUCode, PSpan<'s>, PLUParserError<'s>> for rust_decimal::Error {
-        fn with_span(self, code: PLUCode, span: PSpan<'s>) -> nom::Err<PLUParserError<'s>> {
-            nom::Err::Failure(ParserError::new(code, span).with_cause(self))
-        }
-    }
 
     /// Token für den Faktor.
     pub fn token_faktor(rest: PSpan<'_>) -> PLUParserResult<'_, PFaktor<'_>> {
-        match nom_float(rest) {
-            Ok((rest, tok)) => Ok((
-                rest,
-                PFaktor {
-                    faktor: tok.parse::<Decimal>().with_span(PLUFaktor, rest)?,
+        transform(error_code(nom_float, PLUFaktor), |tok| {
+            match tok.parse::<Decimal>() {
+                Ok(v) => Ok(PFaktor {
+                    faktor: v,
                     span: tok,
-                },
-            )),
-            Err(e) => Err(e.with_code(PLUFaktor)),
-        }
+                }),
+                Err(_) => Err(nom::Err::Failure(PLUParserError::new(PLUFaktor, tok))),
+            }
+        })(rest)
     }
 
     /// Token für die Artikelnummer.
     pub fn token_nummer(rest: PSpan<'_>) -> PLUParserResult<'_, PNummer<'_>> {
-        match nom_number(rest) {
-            Ok((rest, tok)) => Ok((
-                rest,
-                PNummer {
-                    nummer: tok.parse::<u32>().with_span(PLUNummer, rest)?,
+        transform(error_code(nom_number, PLUNummer), |tok| {
+            match tok.parse::<u32>() {
+                Ok(v) => Ok(PNummer {
+                    nummer: v,
                     span: tok,
-                },
-            )),
-            Err(e) => Err(e.with_code(PLUNummer)),
+                }),
+                Err(_) => Err(nom::Err::Failure(PLUParserError::new(PLUNummer, rest))),
+            }
+        })(rest)
+    }
+
+    fn cnv_err<C, I, O, E>(
+        r: Result<O, E>,
+        code: C,
+        span: I,
+    ) -> Result<O, nom::Err<ParserError<C, I, ()>>>
+    where
+        C: Code,
+        I: Copy,
+    {
+        match r {
+            Ok(v) => Ok(v),
+            Err(_) => Err(nom::Err::Failure(ParserError::new(code, span))),
         }
     }
 
@@ -409,9 +417,9 @@ mod token {
         let (rest, _) = nom_minus(rest).with_code(PLUMinus)?;
         let (rest, day) = nom_number(rest).with_code(PLUDay)?;
 
-        let iyear: i32 = (*year).parse::<i32>().with_span(PLUYear, year)?;
-        let imonth: u32 = (*month).parse::<u32>().with_span(PLUMonth, month)?;
-        let iday: u32 = (*day).parse::<u32>().with_span(PLUDay, day)?;
+        let iyear: i32 = cnv_err((*year).parse::<i32>(), PLUYear, year)?;
+        let imonth: u32 = cnv_err((*month).parse::<u32>(), PLUMonth, month)?;
+        let iday: u32 = cnv_err((*day).parse::<u32>(), PLUDay, day)?;
 
         let span = input.span_union(&year, &day);
         let datum = chrono::NaiveDate::from_ymd_opt(iyear, imonth, iday);

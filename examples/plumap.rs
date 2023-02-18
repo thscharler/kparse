@@ -359,13 +359,6 @@ mod token {
     use kparse::prelude::*;
     use kparse::ParserError;
 
-    // convert external error
-    impl<'s> WithSpan<PLUCode, PSpan<'s>, PLUParserError<'s>> for rust_decimal::Error {
-        fn with_span(self, code: PLUCode, span: PSpan<'s>) -> nom::Err<PLUParserError<'s>> {
-            nom::Err::Failure(ParserError::new(code, span).with_cause(Box::new(self)))
-        }
-    }
-
     /// factor
     pub fn token_factor(rest: PSpan<'_>) -> PLUParserResult<'_, PFactor<'_>> {
         match nom_float(rest) {

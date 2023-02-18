@@ -1705,7 +1705,7 @@ mod planung4 {
         use chrono::NaiveDate;
         use kparse::combinators::transform;
         use kparse::prelude::*;
-        use kparse::ParserError;
+        use kparse::{Code, ParserError};
         use nom::combinator::recognize;
         use nom::sequence::tuple;
 
@@ -1742,12 +1742,27 @@ mod planung4 {
             }
         }
 
+        fn cnv_err<C, I, O, E>(
+            r: Result<O, E>,
+            code: C,
+            span: I,
+        ) -> Result<O, nom::Err<ParserError<C, I, ()>>>
+        where
+            C: Code,
+            I: Copy,
+        {
+            match r {
+                Ok(v) => Ok(v),
+                Err(_) => Err(nom::Err::Failure(ParserError::new(code, span))),
+            }
+        }
+
         pub fn token_nummer(rest: APSpan<'_>) -> APParserResult<'_, APNummer<'_>> {
             match nom_number(rest) {
                 Ok((rest, tok)) => Ok((
                     rest,
                     APNummer {
-                        nummer: tok.parse::<u32>().with_span(APCNummer, tok)?,
+                        nummer: cnv_err(tok.parse::<u32>(), APCNummer, tok)?,
                         span: tok,
                     },
                 )),
@@ -1760,7 +1775,7 @@ mod planung4 {
                 Ok((rest, tok)) => Ok((
                     rest,
                     APMenge {
-                        menge: tok.parse::<i32>().with_span(APCMenge, rest)?,
+                        menge: cnv_err(tok.parse::<i32>(), APCMenge, rest)?,
                         span: tok,
                     },
                 )),
@@ -1791,9 +1806,9 @@ mod planung4 {
             let (rest, _) = nom_dot(rest).with_code(APCDot).into_parser_err()?;
             let (rest, year) = nom_number(rest).with_code(APCYear).into_parser_err()?;
 
-            let iday = (*day).parse::<u32>().with_span(APCDay, day)?;
-            let imonth = (*month).parse::<u32>().with_span(APCMonth, month)?;
-            let iyear = (*year).parse::<i32>().with_span(APCYear, year)?;
+            let iday = cnv_err((*day).parse::<u32>(), APCDay, day)?;
+            let imonth = cnv_err((*month).parse::<u32>(), APCMonth, month)?;
+            let iyear = cnv_err((*year).parse::<i32>(), APCYear, year)?;
 
             let span = input.span_union(&day, &year);
             let datum = NaiveDate::from_ymd_opt(iyear, imonth, iday);
