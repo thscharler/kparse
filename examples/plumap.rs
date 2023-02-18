@@ -415,7 +415,7 @@ mod token {
 
 mod nom_parser {
     use crate::PLUCode::{PLUFactor, PLUNumber};
-    use crate::{PLUNomResult, PLUParserResult, PSpan};
+    use crate::{PLUNomResult, PLUParserError, PLUParserResult, PSpan};
     use kparse::combinators::transform;
     use nom::branch::alt;
     use nom::bytes::complete::{tag, take_till, take_while1};
@@ -468,8 +468,10 @@ mod nom_parser {
                 )),
                 nom_ws,
             ),
-            |v| (*v).parse::<Decimal>(),
-            PLUFactor,
+            |v| match (*v).parse::<Decimal>() {
+                Ok(vv) => Ok(vv),
+                Err(_) => Err(nom::Err::Failure(PLUParserError::new(PLUFactor, v))),
+            },
         ))(input)
     }
 
@@ -483,11 +485,12 @@ mod nom_parser {
     }
 
     pub fn nom_number(i: PSpan<'_>) -> PLUParserResult<'_, (PSpan<'_>, u32)> {
-        consumed(transform(
-            terminated(digit1, nom_ws),
-            |v| (*v).parse::<u32>(),
-            PLUNumber,
-        ))(i)
+        consumed(transform(terminated(digit1, nom_ws), |v| {
+            match (*v).parse::<u32>() {
+                Ok(vv) => Ok(vv),
+                Err(_) => Err(nom::Err::Failure(PLUParserError::new(PLUNumber, v))),
+            }
+        }))(i)
     }
 
     pub fn nom_star_op(i: PSpan<'_>) -> PLUNomResult<'_> {

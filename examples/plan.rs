@@ -1507,13 +1507,10 @@ mod planung4 {
                 recognize(tuple((
                     nom_number, nom_dot, nom_number, nom_dot, nom_number,
                 ))),
-                |v: APSpan<'_>| -> Result<APDatum<'_>, chrono::ParseError> {
-                    Ok(APDatum {
-                        datum: NaiveDate::parse_from_str(*v, "%d.%m.%Y")?,
-                        span: v,
-                    })
+                |v: APSpan<'_>| match NaiveDate::parse_from_str(*v, "%d.%m.%Y") {
+                    Ok(vv) => Ok(APDatum { datum: vv, span: v }),
+                    Err(_) => Err(nom::Err::Failure(APParserError::new(APCDatum, v))),
                 },
-                APCDatum,
             )(rest);
 
             k

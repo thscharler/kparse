@@ -1,5 +1,5 @@
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, IntoParserError, IntoParserErrorExtra, ParseErrorExt, ParserError, WithCode};
+use crate::{Code, ParseErrorExt, ParserError, WithCode};
 use nom::error::ErrorKind;
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use std::error::Error;
@@ -126,14 +126,14 @@ where
 /// We do this for the conversion from TokenizerError to ParserError.
 pub trait IntoParserError<R> {
     /// Convert to a form of ParserError.
-    fn parser_err(self) -> R;
+    fn into_parser_err(self) -> R;
 }
 
 /// The From trait can't be used for types wrapped in a nom::Err.
 /// We do this for the conversion from TokenizerError to ParserError.
 pub trait IntoParserErrorExtra<R, Y> {
     /// Convert to a from of ParserError with
-    fn parser_err_extra(self, extra: Y) -> R;
+    fn into_parser_err_with(self, extra: Y) -> R;
 }
 
 // ***********************************************************************
@@ -169,7 +169,7 @@ where
     C: Code,
     I: Copy,
 {
-    fn parser_err(self) -> ParserError<C, I, ()> {
+    fn into_parser_err(self) -> ParserError<C, I, ()> {
         ParserError::new(self.code, self.span)
     }
 }
@@ -180,7 +180,7 @@ where
     I: Copy,
     Y: Copy,
 {
-    fn parser_err_extra(self, extra: Y) -> ParserError<C, I, Y> {
+    fn into_parser_err_with(self, extra: Y) -> ParserError<C, I, Y> {
         ParserError::new(self.code, self.span).with_user_data(extra)
     }
 }
@@ -214,11 +214,11 @@ where
     C: Code,
     I: Copy,
 {
-    fn parser_err(self) -> nom::Err<ParserError<C, I, ()>> {
+    fn into_parser_err(self) -> nom::Err<ParserError<C, I, ()>> {
         match self {
             nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => nom::Err::Error(e.parser_err()),
-            nom::Err::Failure(e) => nom::Err::Failure(e.parser_err()),
+            nom::Err::Error(e) => nom::Err::Error(e.into_parser_err()),
+            nom::Err::Failure(e) => nom::Err::Failure(e.into_parser_err()),
         }
     }
 }
@@ -230,11 +230,11 @@ where
     I: Copy,
     Y: Copy,
 {
-    fn parser_err_extra(self, extra: Y) -> nom::Err<ParserError<C, I, Y>> {
+    fn into_parser_err_with(self, extra: Y) -> nom::Err<ParserError<C, I, Y>> {
         match self {
             nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => nom::Err::Error(e.parser_err_extra(extra)),
-            nom::Err::Failure(e) => nom::Err::Failure(e.parser_err_extra(extra)),
+            nom::Err::Error(e) => nom::Err::Error(e.into_parser_err_with(extra)),
+            nom::Err::Failure(e) => nom::Err::Failure(e.into_parser_err_with(extra)),
         }
     }
 }
@@ -266,12 +266,12 @@ where
     C: Code,
     I: Copy,
 {
-    fn parser_err(self) -> Result<(I, O), nom::Err<ParserError<C, I, ()>>> {
+    fn into_parser_err(self) -> Result<(I, O), nom::Err<ParserError<C, I, ()>>> {
         match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.parser_err())),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.parser_err())),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_err())),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.into_parser_err())),
         }
     }
 }
@@ -283,12 +283,12 @@ where
     I: Copy,
     Y: Copy,
 {
-    fn parser_err_extra(self, extra: Y) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+    fn into_parser_err_with(self, extra: Y) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
         match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.parser_err_extra(extra))),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.parser_err_extra(extra))),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_err_with(extra))),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.into_parser_err_with(extra))),
         }
     }
 }

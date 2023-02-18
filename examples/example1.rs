@@ -142,11 +142,12 @@ fn nom_ws(i: ESpan<'_>) -> ENomResult<'_> {
 }
 
 fn nom_number(i: ESpan<'_>) -> EResult<'_, (ESpan<'_>, u32)> {
-    consumed(transform(
-        terminated(digit1, nom_ws),
-        |v| (*v).parse::<u32>(),
-        ENumber,
-    ))(i)
+    consumed(transform(terminated(digit1, nom_ws), |v| {
+        match (*v).parse::<u32>() {
+            Ok(vv) => Ok(vv),
+            Err(_) => Err(nom::Err::Failure(EParserError::new(ENumber, v))),
+        }
+    }))(i)
 }
 
 fn token_number(i: ESpan<'_>) -> EResult<'_, AstNumber<'_>> {

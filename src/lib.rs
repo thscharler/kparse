@@ -41,7 +41,6 @@
 #![warn(variant_size_differences)]
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::type_complexity)]
-use nom::AsBytes;
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Display};
 
@@ -63,6 +62,7 @@ use crate::token_error::TokenizerError;
 pub mod prelude {
     pub use crate::error::AppendParserError;
     pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
+    pub use crate::token_error::{IntoParserError, IntoParserErrorExtra};
     pub use crate::tracker::{FindTracker, TrackError};
     pub use crate::{ErrWrapped, ParseErrorExt, ResultWithSpan, WithCode, WithSpan};
 }

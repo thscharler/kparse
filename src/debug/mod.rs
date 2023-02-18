@@ -6,7 +6,6 @@ pub(crate) mod error;
 pub(crate) mod tracks;
 
 use nom::{AsBytes, InputIter, InputLength, InputTake};
-use std::cmp::min;
 
 /// Maps a width value from the formatstring to a variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,7 +32,7 @@ impl From<Option<usize>> for DebugWidth {
 /// Cuts off the text at 20/40/60 characters.
 pub(crate) fn restrict_ref<T: AsBytes + Copy>(w: DebugWidth, text: &T) -> T
 where
-    T: InputTake + InputLength,
+    T: InputTake + InputLength + InputIter,
 {
     match w {
         DebugWidth::Short => restrict_ref_n(20, text),
@@ -45,10 +44,19 @@ where
 /// Cuts off the text at max_len characters.
 pub(crate) fn restrict_ref_n<T: AsBytes + Copy>(max_len: usize, text: &T) -> T
 where
-    T: InputTake + InputLength,
+    T: InputTake + InputLength + InputIter,
 {
-    let count = min(text.input_len(), max_len);
-    text.take(count)
+    let mut n = 0;
+    let mut x = 0;
+    for (idx, _) in text.iter_indices() {
+        x = idx;
+        n += 1;
+        if n >= max_len {
+            break;
+        }
+    }
+
+    text.take(x)
 }
 
 /// Cuts off the text at 20/40/60 characters.

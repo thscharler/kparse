@@ -3,7 +3,7 @@
 //!
 
 use crate::tracker::FindTracker;
-use crate::{Code, ParserError, WithCode, WithSpan};
+use crate::{Code, ParserError, WithCode};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
 use std::fmt::Debug;
 
@@ -61,52 +61,16 @@ where
 /// let (rest, (tok, val)) =
 ///         consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
 /// ```
-pub fn transform<PA, TRFn, C, I, PAO, TrO, TrE, Y>(
+pub fn transform<PA, TRFn, I, O1, O2, E>(
     mut parser: PA,
     transform: TRFn,
-    code: C,
-) -> impl FnMut(I) -> Result<(I, TrO), nom::Err<ParserError<C, I, Y>>>
+) -> impl FnMut(I) -> Result<(I, O2), nom::Err<E>>
 where
-    PA: Parser<I, PAO, ParserError<C, I, Y>>,
-    TRFn: Fn(PAO) -> Result<TrO, TrE>,
-    C: Code,
+    PA: Parser<I, O1, E>,
+    TRFn: Fn(O1) -> Result<O2, nom::Err<E>>,
     I: AsBytes + Copy,
-    PAO: Copy,
-    TrE: WithSpan<C, PAO, ParserError<C, I, Y>>,
-    Y: Copy,
 {
-    move |i| -> Result<(I, TrO), nom::Err<ParserError<C, I, Y>>> {
-        parser.parse(i).and_then(|(rest, tok)| {
-            transform(tok)
-                .map(|v| (rest, v))
-                .map_err(|e| e.with_span(code, tok))
-        })
-    }
-}
-
-/// Takes a parser and a transformation of the parser result.
-/// Maps any error to the given error code.
-///
-/// ```rust ignore
-/// use nom::combinator::consumed;
-/// use nom::Parser;
-/// use kparse::{TrackParserError, transform};
-///
-/// let (rest, (tok, val)) =
-///         consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
-/// ```
-pub fn transform_p<PA, TRFn, C, I, O1, O2, Y>(
-    mut parser: PA,
-    transform: TRFn,
-) -> impl FnMut(I) -> Result<(I, O2), nom::Err<ParserError<C, I, Y>>>
-where
-    PA: Parser<I, O1, ParserError<C, I, Y>>,
-    TRFn: Fn(O1) -> Result<O2, nom::Err<ParserError<C, I, Y>>>,
-    C: Code,
-    I: AsBytes + Copy,
-    Y: Copy,
-{
-    move |i| -> Result<(I, O2), nom::Err<ParserError<C, I, Y>>> {
+    move |i| -> Result<(I, O2), nom::Err<E>> {
         parser
             .parse(i)
             .and_then(|(rest, tok)| Ok((rest, transform(tok)?)))

@@ -3,7 +3,7 @@
 //!
 
 use crate::tracker::{DynTracker, FindTracker};
-use crate::{Code, ErrWrapped, ParseErrorExt, ParserError};
+use crate::{Code, ErrWrapped, ParseErrorExt};
 use nom::{AsBytes, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::Debug;
@@ -28,7 +28,6 @@ impl Context {
     #[inline]
     pub fn err<C, I, O, E>(
         &self,
-        rest: I,
         err: impl ErrWrapped<WrappedType = E>,
     ) -> Result<(I, O), nom::Err<E>>
     where
@@ -43,10 +42,7 @@ impl Context {
                 let code = e.code();
                 span.err(code, err.wrapped())
             }
-            None => {
-                rest.track_exit();
-                Err(err.wrapped())
-            }
+            None => Err(err.wrapped()),
         }
     }
 

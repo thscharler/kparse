@@ -134,11 +134,9 @@ mod cmds_parser {
     use nom::bytes::complete::{tag, take_till1, take_while1};
     use nom::character::complete::{char as nchar, digit1};
     use nom::combinator::{consumed, recognize};
-    use nom::error::ParseError;
     use nom::sequence::{terminated, tuple};
     use nom::{AsChar, InputTake, InputTakeAtPosition};
     use std::fmt::{Debug, Display, Formatter};
-    use std::num::ParseIntError;
     use std::path::{Path, PathBuf};
     use std::{fs, io};
     use CCode::*;
@@ -1183,16 +1181,10 @@ mod cmds_parser {
     // }
 
     fn token_nummer(rest: CSpan<'_>) -> CParserResult<'_, Nummer<'_>> {
-        transform(
-            nom_number,
-            |s| -> Result<Nummer<'_>, ParseIntError> {
-                Ok(Nummer {
-                    nummer: (*s).parse::<u32>()?,
-                    span: s,
-                })
-            },
-            CNummer,
-        )(rest)
+        transform(nom_number, |s| match (*s).parse::<u32>() {
+            Ok(v) => Ok(Nummer { nummer: v, span: s }),
+            Err(_) => Err(nom::Err::Failure(CParserError::new(CNummer, s))),
+        })(rest)
 
         // match nom_number(rest) {
         //     Ok((rest, tok)) => Ok((
@@ -1218,11 +1210,20 @@ mod cmds_parser {
         // let iyear: i32 = (*year).parse().with_span(CDateYear, year)?;
 
         let (rest, (span, (day, _, month, _, year))) = consumed(tuple((
-            transform(nom_number, |s| (*s).parse::<u32>(), CDateDay),
+            transform(nom_number, |s| match (*s).parse::<u32>() {
+                Ok(v) => Ok(v),
+                Err(_) => Err(nom::Err::Failure(CParserError::new(CDateDay, s))),
+            }),
             error_code(nom_dot, CDotDay),
-            transform(nom_number, |s| (*s).parse::<u32>(), CDateMonth),
+            transform(nom_number, |s| match (*s).parse::<u32>() {
+                Ok(v) => Ok(v),
+                Err(_) => Err(nom::Err::Failure(CParserError::new(CDateMonth, s))),
+            }),
             error_code(nom_dot, CDotDay),
-            transform(nom_number, |s| (*s).parse::<i32>(), CDateYear),
+            transform(nom_number, |s| match (*s).parse::<i32>() {
+                Ok(v) => Ok(v),
+                Err(_) => Err(nom::Err::Failure(CParserError::new(CDateYear, s))),
+            }),
         )))(rest)?;
 
         let datum = NaiveDate::from_ymd_opt(year, month, day);
