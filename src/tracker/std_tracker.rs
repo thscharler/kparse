@@ -150,31 +150,34 @@ where
     T: AsBytes + Copy,
     C: Code,
 {
-    fn enter(&self, func: C, span: &LocatedSpan<T, ()>) {
+    fn track_enter(&self, func: C, span: &LocatedSpan<T, ()>) {
         self.push_func(func);
         self.track_enter(span);
     }
 
-    fn debug(&self, span: &LocatedSpan<T, ()>, debug: String) {
+    fn track_debug(&self, span: &LocatedSpan<T, ()>, debug: String) {
         self.track_debug(span, debug);
     }
 
-    fn info(&self, span: &LocatedSpan<T, ()>, info: &'static str) {
+    fn track_info(&self, span: &LocatedSpan<T, ()>, info: &'static str) {
         self.track_info(span, info);
     }
 
-    fn warn(&self, span: &LocatedSpan<T, ()>, warn: &'static str) {
+    fn track_warn(&self, span: &LocatedSpan<T, ()>, warn: &'static str) {
         self.track_warn(span, warn);
     }
 
-    fn exit_ok(&self, span: &LocatedSpan<T, ()>, parsed: &LocatedSpan<T, ()>) {
-        self.track_exit_ok(span, parsed);
+    fn track_exit(&self) {
+        self.track_exit();
         self.pop_func();
     }
 
-    fn exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String) {
-        self.track_exit_err(span, code, err_str);
-        self.pop_func()
+    fn track_ok(&self, span: &LocatedSpan<T, ()>, parsed: &LocatedSpan<T, ()>) {
+        self.track_ok(span, parsed);
+    }
+
+    fn track_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String) {
+        self.track_err(span, code, err_str);
     }
 }
 
@@ -264,7 +267,7 @@ where
         }
     }
 
-    fn track_exit_ok(&self, span: &LocatedSpan<T, ()>, parsed: &LocatedSpan<T, ()>) {
+    fn track_ok(&self, span: &LocatedSpan<T, ()>, parsed: &LocatedSpan<T, ()>) {
         if self.track {
             let parent = self.parent_vec();
             let func = self.func();
@@ -274,15 +277,10 @@ where
                 parsed: *parsed,
                 parents: parent.clone(),
             }));
-            self.data.borrow_mut().track.push(Track::Exit(ExitTrack {
-                func,
-                parents: parent,
-                _phantom: Default::default(),
-            }));
         }
     }
 
-    fn track_exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String) {
+    fn track_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String) {
         if self.track {
             let parent = self.parent_vec();
             let func = self.func();
@@ -293,6 +291,13 @@ where
                 err: err_str,
                 parents: parent.clone(),
             }));
+        }
+    }
+
+    fn track_exit(&self) {
+        if self.track {
+            let parent = self.parent_vec();
+            let func = self.func();
             self.data.borrow_mut().track.push(Track::Exit(ExitTrack {
                 func,
                 parents: parent,

@@ -4,7 +4,7 @@
 
 use bytecount::{count, naive_num_chars, num_chars};
 use memchr::{memchr, memrchr};
-use nom::{AsBytes, InputLength, InputTake, Slice};
+use nom::{AsBytes, InputLength, Slice};
 use nom_locate::LocatedSpan;
 use std::ops::Range;
 

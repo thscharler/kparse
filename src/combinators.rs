@@ -4,7 +4,7 @@
 
 use crate::tracker::FindTracker;
 use crate::{Code, ParserError, WithCode, WithSpan};
-use nom::{AsBytes, InputLength, InputTake, Parser};
+use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
 use std::fmt::Debug;
 
 /// Tracked execution of a parser.
@@ -16,10 +16,10 @@ where
     PA: Parser<I, O, ParserError<C, I>>,
     C: Code,
     I: Copy + Debug + FindTracker<C>,
-    I: InputTake + InputLength + AsBytes,
+    I: InputTake + InputLength + InputIter + AsBytes,
 {
     move |i| -> Result<(I, O), nom::Err<ParserError<C, I>>> {
-        i.enter(code);
+        i.track_enter(code);
         match parser.parse(i) {
             Ok((r, v)) => r.ok(i, v),
             Err(nom::Err::Incomplete(e)) => i.err(C::NOM_ERROR, nom::Err::Incomplete(e)),

@@ -20,7 +20,7 @@
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
-use crate::{AppendParserError, Code, ParseErrorExt, ResultWithSpan, WithCode, WithSpan};
+use crate::{Code, ErrWrapped, ParseErrorExt, ResultWithSpan, WithCode, WithSpan};
 use nom::error::ErrorKind;
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use std::error::Error;
@@ -89,6 +89,43 @@ where
     fn span(&self) -> I {
         self.span
     }
+}
+
+impl<C, I, Y> ErrWrapped for ParserError<C, I, Y> {
+    type WrappedType = ParserError<C, I, Y>;
+
+    fn wrapped(self) -> nom::Err<Self::WrappedType> {
+        nom::Err::Error(self)
+    }
+
+    fn as_ref(&self) -> Option<&Self::WrappedType> {
+        Some(self)
+    }
+}
+
+impl<C, I, Y> ErrWrapped for nom::Err<ParserError<C, I, Y>> {
+    type WrappedType = ParserError<C, I, Y>;
+
+    fn wrapped(self) -> nom::Err<Self::WrappedType> {
+        self
+    }
+
+    fn as_ref(&self) -> Option<&Self::WrappedType> {
+        match self {
+            nom::Err::Incomplete(_) => None,
+            nom::Err::Error(e) => Some(e),
+            nom::Err::Failure(e) => Some(e),
+        }
+    }
+}
+
+/// Combines two ParserErrors.
+pub trait AppendParserError<Rhs = Self> {
+    /// Result of the append. Usually (), but for nom::Err::Incomplete the error is not
+    /// appended but passed through.
+    type Output;
+    /// Appends
+    fn append(&mut self, err: Rhs) -> Self::Output;
 }
 
 impl<C, I, Y> AppendParserError<ParserError<C, I, Y>> for ParserError<C, I, Y>
@@ -891,14 +928,10 @@ where
     }
 }
 
-// everything needs a new code sometimes ... continued ...
-//
-// 1. this is a ParserResult with a nom::Err with a ParserError.
-// 2. this is a Result with a whatever which has a WithCode<ParserError>
-impl<C, I, O, E, Y> WithCode<C, Result<(I, O), nom::Err<ParserError<C, I, Y>>>>
-    for Result<(I, O), E>
+//check
+impl<C, I, O, Y> WithCode<C, Result<(I, O), nom::Err<ParserError<C, I, Y>>>>
+    for Result<(I, O), nom::Err<ParserError<C, I, Y>>>
 where
-    E: WithCode<C, nom::Err<ParserError<C, I, Y>>>,
     C: Code,
     I: AsBytes + Copy,
     Y: Copy,

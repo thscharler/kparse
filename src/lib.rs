@@ -111,11 +111,12 @@ pub trait ParseErrorExt<C, I> {
     fn span(&self) -> I;
 }
 
-/// Combines two ParserErrors.
-pub trait AppendParserError<Rhs = Self> {
-    /// Result of the append. Usually (), but for nom::Err::Incomplete the error is not
-    /// appended but passed through.
-    type Output;
-    /// Appends
-    fn append(&mut self, err: Rhs) -> Self::Output;
+/// Any type that can be wrapped in a nom::Err.
+pub trait ErrWrapped {
+    /// The wrapped type.
+    type WrappedType;
+    /// Return as wrapped.
+    fn wrapped(self) -> nom::Err<Self::WrappedType>;
+    /// Return a reference to the type itself.
+    fn as_ref(&self) -> Option<&Self::WrappedType>;
 }

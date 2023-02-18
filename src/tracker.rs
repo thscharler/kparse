@@ -33,22 +33,25 @@ where
     C: Code,
 {
     /// Tracks entering a parser function.
-    fn enter(&self, func: C, span: &LocatedSpan<T, ()>);
+    fn track_enter(&self, func: C, span: &LocatedSpan<T, ()>);
 
     /// Debugging
-    fn debug(&self, span: &LocatedSpan<T, ()>, debug: String);
+    fn track_debug(&self, span: &LocatedSpan<T, ()>, debug: String);
 
     /// Track something.
-    fn info(&self, span: &LocatedSpan<T, ()>, info: &'static str);
+    fn track_info(&self, span: &LocatedSpan<T, ()>, info: &'static str);
 
     /// Track something more important.
-    fn warn(&self, span: &LocatedSpan<T, ()>, warn: &'static str);
+    fn track_warn(&self, span: &LocatedSpan<T, ()>, warn: &'static str);
 
     /// Tracks an Ok result of a parser function.
-    fn exit_ok(&self, span: &LocatedSpan<T, ()>, parsed: &LocatedSpan<T, ()>);
+    fn track_ok(&self, span: &LocatedSpan<T, ()>, parsed: &LocatedSpan<T, ()>);
 
     /// Tracks an Err result of a parser function.    
-    fn exit_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String);
+    fn track_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String);
+
+    /// Tracks any exit of a parser function. eg nom::Err::Incomplete.
+    fn track_exit(&self);
 }
 
 /// An instance of this struct ist kept in the extra field of LocatedSpan.
@@ -84,22 +87,25 @@ where
     fn err<O, E: Debug>(&self, code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>>;
 
     /// Enter a parser function.
-    fn enter(&self, func: C);
+    fn track_enter(&self, func: C);
 
     /// Track some debug info.
-    fn debug(&self, debug: String);
+    fn track_debug(&self, debug: String);
 
     /// Track some other info.
-    fn info(&self, info: &'static str);
+    fn track_info(&self, info: &'static str);
 
     /// Track some warning.
-    fn warn(&self, warn: &'static str);
+    fn track_warn(&self, warn: &'static str);
 
     /// Calls exit_ok() on the ParseContext. You might want to use ok() instead.
-    fn exit_ok(&self, parsed: Self);
+    fn track_ok(&self, parsed: Self);
 
     /// Calls exit_err() on the ParseContext. You might want to use err() instead.
-    fn exit_err<E: Debug>(&self, code: C, err: &nom::Err<E>);
+    fn track_err<E: Debug>(&self, code: C, err: &E);
+
+    /// Calls exit() on the ParseContext. You might want to use err() or ok() instead.
+    fn track_exit(&self);
 }
 
 /// This trait is used for error tracking.
@@ -149,14 +155,16 @@ where
                 let span = e.span;
                 let code = e.code;
                 let err = nom::Err::Error(e);
-                span.exit_err(code, &err);
+                span.track_err(code, &err);
+                span.track_exit();
                 Err(err)
             }
             Err(nom::Err::Failure(e)) => {
                 let span = e.span;
                 let code = e.code;
                 let err = nom::Err::Failure(e);
-                span.exit_err(code, &err);
+                span.track_err(code, &err);
+                span.track_exit();
                 Err(err)
             }
         }
@@ -171,14 +179,16 @@ where
                 let e = e.with_code(code);
                 let span = e.span;
                 let err = nom::Err::Error(e);
-                span.exit_err(code, &err);
+                span.track_err(code, &err);
+                span.track_exit();
                 Err(err)
             }
             Err(nom::Err::Failure(e)) => {
                 let e = e.with_code(code);
                 let span = e.span;
                 let err = nom::Err::Failure(e);
-                span.exit_err(code, &err);
+                span.track_err(code, &err);
+                span.track_exit();
                 Err(err)
             }
         }
@@ -188,7 +198,8 @@ where
     fn track_ok(self, parsed: I) -> Self {
         match self {
             Ok((span, v)) => {
-                span.exit_ok(parsed);
+                span.track_ok(parsed);
+                span.track_exit();
                 Ok((span, v))
             }
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
@@ -196,14 +207,16 @@ where
                 let span = e.span;
                 let code = e.code;
                 let err = nom::Err::Error(e);
-                span.exit_err(code, &err);
+                span.track_err(code, &err);
+                span.track_exit();
                 Err(err)
             }
             Err(nom::Err::Failure(e)) => {
                 let span = e.span;
                 let code = e.code;
                 let err = nom::Err::Failure(e);
-                span.exit_err(code, &err);
+                span.track_err(code, &err);
+                span.track_exit();
                 Err(err)
             }
         }

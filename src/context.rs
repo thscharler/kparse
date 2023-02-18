@@ -2,9 +2,8 @@
 //! Provides [Context] to access the tracker.
 //!
 
-use crate::error::ParseErrorExt;
 use crate::tracker::{DynTracker, FindTracker};
-use crate::{Code, ParserError};
+use crate::{Code, ErrWrapped, ParseErrorExt, ParserError};
 use nom::{AsBytes, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::Debug;
@@ -27,30 +26,28 @@ impl Context {
 
     /// Tracks the error and creates a Result.
     #[inline]
-    pub fn err<C, I, O, E>(&self, err: E) -> Result<(I, O), nom::Err<E>>
+    pub fn err<C, I, O, E>(
+        &self,
+        rest: I,
+        err: impl ErrWrapped<WrappedType = E>,
+    ) -> Result<(I, O), nom::Err<E>>
     where
         C: Code,
         I: Copy + Debug + FindTracker<C>,
         I: InputTake + InputLength,
         E: ParseErrorExt<C, I> + Debug,
     {
-        let (span, code) = (err.span(), err.code());
-        span.err(code, nom::Err::Error(err))
-    }
-
-    /// Tracks the error and creates a Result.
-    #[inline]
-    pub fn err_err<C, I, O, E>(&self, err: nom::Err<E>) -> Result<(I, O), nom::Err<E>>
-    where
-        C: Code,
-        I: Copy + Debug + FindTracker<C> + InputTake + InputLength,
-        E: ParseErrorExt<C, I> + Debug,
-    {
-        let (span, code) = match &err {
-            nom::Err::Incomplete(_) => return Err(err),
-            nom::Err::Error(e) | nom::Err::Failure(e) => (e.span(), e.code()),
-        };
-        span.err(code, err)
+        match err.as_ref() {
+            Some(e) => {
+                let span = e.span();
+                let code = e.code();
+                span.err(code, err.wrapped())
+            }
+            None => {
+                rest.track_exit();
+                Err(err.wrapped())
+            }
+        }
     }
 
     /// When multiple Context.enter() calls are used within one function
@@ -62,20 +59,22 @@ impl Context {
         C: Code,
         I: FindTracker<C>,
     {
-        rest.exit_ok(input);
+        rest.track_ok(input);
     }
 
     /// When multiple Context.enter() calls are used within one function
     /// (to denote some separation), this can be used to exit such a compartment
     /// with an ok track.
     #[inline]
-    pub fn err_section<C, I, E>(&self, rest: I, code: C, err: &nom::Err<E>)
+    pub fn err_section<C, I, E>(&self, err: &E)
     where
         C: Code,
         I: Copy + Debug + FindTracker<C> + InputTake + InputLength,
         E: ParseErrorExt<C, I> + Debug,
     {
-        rest.exit_err(code, err);
+        let span = err.span();
+        let code = err.code();
+        span.track_err(code, err);
     }
 
     /// Enter a parser function.
@@ -85,7 +84,7 @@ impl Context {
         C: Code,
         I: FindTracker<C>,
     {
-        span.enter(func);
+        span.track_enter(func);
     }
 
     /// Track some debug info.
@@ -95,7 +94,7 @@ impl Context {
         C: Code,
         I: FindTracker<C>,
     {
-        span.debug(debug);
+        span.track_debug(debug);
     }
 
     /// Track some other info.
@@ -105,7 +104,7 @@ impl Context {
         C: Code,
         I: FindTracker<C>,
     {
-        span.info(info);
+        span.track_info(info);
     }
 
     /// Track some warning.
@@ -115,7 +114,7 @@ impl Context {
         C: Code,
         I: FindTracker<C>,
     {
-        span.warn(warn);
+        span.track_warn(warn);
     }
 }
 
@@ -129,7 +128,8 @@ where
     fn ok<O, E>(self, parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
         self.extra
             .0
-            .exit_ok(&clear_span(&self), &clear_span(&parsed));
+            .track_ok(&clear_span(&self), &clear_span(&parsed));
+        self.extra.0.track_exit();
         Ok((self, value))
     }
 
@@ -139,38 +139,43 @@ where
             nom::Err::Error(e) | nom::Err::Failure(e) => {
                 self.extra
                     .0
-                    .exit_err(&clear_span(self), code, format!("{:?}", e));
+                    .track_err(&clear_span(self), code, format!("{:?}", e));
+                self.extra.0.track_exit();
             }
         }
         Err(err)
     }
 
-    fn enter(&self, func: C) {
-        self.extra.0.enter(func, &clear_span(self));
+    fn track_enter(&self, func: C) {
+        self.extra.0.track_enter(func, &clear_span(self));
     }
 
-    fn debug(&self, debug: String) {
-        self.extra.0.debug(&clear_span(self), debug);
+    fn track_debug(&self, debug: String) {
+        self.extra.0.track_debug(&clear_span(self), debug);
     }
 
-    fn info(&self, info: &'static str) {
-        self.extra.0.info(&clear_span(self), info);
+    fn track_info(&self, info: &'static str) {
+        self.extra.0.track_info(&clear_span(self), info);
     }
 
-    fn warn(&self, warn: &'static str) {
-        self.extra.0.warn(&clear_span(self), warn);
+    fn track_warn(&self, warn: &'static str) {
+        self.extra.0.track_warn(&clear_span(self), warn);
     }
 
-    fn exit_ok(&self, parsed: DynSpan<'s, C, T>) {
+    fn track_ok(&self, parsed: DynSpan<'s, C, T>) {
         self.extra
             .0
-            .exit_ok(&clear_span(self), &clear_span(&parsed));
+            .track_ok(&clear_span(self), &clear_span(&parsed));
     }
 
-    fn exit_err<E: Debug>(&self, code: C, err: &nom::Err<E>) {
+    fn track_err<E: Debug>(&self, code: C, err: &E) {
         self.extra
             .0
-            .exit_err(&clear_span(self), code, format!("{:?}", err));
+            .track_err(&clear_span(self), code, format!("{:?}", err));
+    }
+
+    fn track_exit(&self) {
+        self.extra.0.track_exit();
     }
 }
 
@@ -205,17 +210,19 @@ where
         Err(err)
     }
 
-    fn enter(&self, _func: C) {}
+    fn track_enter(&self, _func: C) {}
 
-    fn debug(&self, _debug: String) {}
+    fn track_debug(&self, _debug: String) {}
 
-    fn info(&self, _info: &'static str) {}
+    fn track_info(&self, _info: &'static str) {}
 
-    fn warn(&self, _warn: &'static str) {}
+    fn track_warn(&self, _warn: &'static str) {}
 
-    fn exit_ok(&self, _parsed: PlainSpan<'s, T>) {}
+    fn track_exit(&self) {}
 
-    fn exit_err<E>(&self, _func: C, _err: &nom::Err<E>) {}
+    fn track_ok(&self, _parsed: PlainSpan<'s, T>) {}
+
+    fn track_err<E>(&self, _func: C, _err: &E) {}
 }
 
 impl<'s, C> FindTracker<C> for &'s str
@@ -230,17 +237,19 @@ where
         Err(err)
     }
 
-    fn enter(&self, _func: C) {}
+    fn track_enter(&self, _func: C) {}
 
-    fn debug(&self, _debug: String) {}
+    fn track_debug(&self, _debug: String) {}
 
-    fn info(&self, _info: &'static str) {}
+    fn track_info(&self, _info: &'static str) {}
 
-    fn warn(&self, _warn: &'static str) {}
+    fn track_warn(&self, _warn: &'static str) {}
 
-    fn exit_ok(&self, _input: Self) {}
+    fn track_exit(&self) {}
 
-    fn exit_err<E>(&self, _func: C, _err: &nom::Err<E>) {}
+    fn track_ok(&self, _input: Self) {}
+
+    fn track_err<E>(&self, _func: C, _err: &E) {}
 }
 
 impl<'s, C> FindTracker<C> for &'s [u8]
@@ -255,15 +264,17 @@ where
         Err(err)
     }
 
-    fn enter(&self, _func: C) {}
+    fn track_enter(&self, _func: C) {}
 
-    fn debug(&self, _debug: String) {}
+    fn track_debug(&self, _debug: String) {}
 
-    fn info(&self, _info: &'static str) {}
+    fn track_info(&self, _info: &'static str) {}
 
-    fn warn(&self, _warn: &'static str) {}
+    fn track_warn(&self, _warn: &'static str) {}
 
-    fn exit_ok(&self, _input: Self) {}
+    fn track_exit(&self) {}
 
-    fn exit_err<E>(&self, _func: C, _err: &nom::Err<E>) {}
+    fn track_ok(&self, _input: Self) {}
+
+    fn track_err<E>(&self, _func: C, _err: &E) {}
 }

@@ -3,59 +3,471 @@ Wiki-Format: zim 3.6
 
 ====== Plan 2022 ======
 
-===== Monat January ======
-
 ==== Woche 03.01.2022 (KW01) ====
 
-
 => Überwintern
-        @ W2 Karotten (+12w)
+                @ W2 Karotten +12w
 Karotten
-        @ W3 Asia (+12w)
+                @ W3 Asia +12w
 Asia
-        @ W4 Knoblauch (+12w)
+                @ W4 Knoblauch +12w
 Knoblauch
 Asia
-        @ N1/1  (+4w)
-Vogerl
-        @ N1/2  (+12w)
+                @ N1/1  +4w
+Vogerlsalat
+                @ N1/2  +12w
 Asia
-        @ N2/1  (+12w)
+                @ N2/1  +12w
 Grünkohl
-        @ N2/2  (+12w)
+                @ N2/2  +12w
 Asia
 Spinat
-        @ N5/1  (+8w)
+                @ N5/1  +8w
 Vogerlsalat
-        @ N5/3  (+8w)
+                @ N5/3  +8w
 Mangold
-        @ N5/4  (+8w)
+                @ N5/4  +8w
 Asia
 
 ==== Woche 10.01.2022 (KW02) ====
-
 # Saatgut Bestellung
-# Waramam
+# Schneebacher
+# Kargl
+# Hobiger
 
 ==== Woche 17.01.2022 (KW03) ====
-
-Stichtag 30.4.2022
-
-Tag 42
-
-        @ W1  3w+10w
+                @ W1  3w+10w
 Rote Rübe:      3 Rote Kugel, 3 Chioggia
 Kohlrabi:       2 Noriko
 Mangold:        3 Rainbow
 Fenchel:        2 Perfektion
 Broccoli:       2 Ramoso Calabrese
 Karfiol:        2 Neckarperle
-        @ NGlashaus  (3w+10w)
-Petersilie:     3 Gewöhnlicher Schnitt,
-
-
-3 Krauser
+                @ NGlashaus  3w+10w
+Petersilie:     3 Gewöhnlicher Schnitt
 Koriander:      1 Blattkoriander Thai
 
-**Markt Gleisdorf**
-Petersilie:     1 Gewöhnlicher Schnitt
+==== Woche 24.01.2022 (KW04) ====
+                @ W2  3w+8w
+Pak Choi:       3 Yang Quing Choi
+Asia:           1 Bloody Mary, 2 Fritzy Joe, 2 Frizzy Lizzy,
+                1 Garnet Gigant, 2 Golden Frills,
+                2 Golden Streaks, 2 Grün im Schnee,
+                2 Mandovi, 2 Mizuna, 1 Nagano, 1 Namenia,
+                2 Purple Wave, 1 Red Gigant, 2 Rouge Metis,
+                2 Stielmus, 2 Wasabino, 2 Ruby Streaks
+Asia:           3 Portulak, 3 Barbarakresse
+Rukola:         8 Rauke
+Babyleaf:       8 Misticanza, 8 Diablotin, 8 Oaking
+                @ W1  3w+8w
+Salat:          8 GKH, 2 Maikönig, 1 Forellenschluss,
+                2 Eichblatt Rot, 2 Eichblatt Grün,
+                2 Catalogna, 1 Hirschzunge, 1 Lollo Rosso
+
+==== Woche 31.01.2022 (KW05) ====
+                @ N3/2  +8w
+Vogerlsalat (Ki): 16 A, 16 B, 16 C
+
+=> Direktsaat
+                @ N3/1  +12w
+Karotten (R):   3 Napoli, 1 Yellowstone, 1 Eigen
+Rettich (R):    1 Ostergruß
+Mairübe (R):    1 Blanc globe a collet violet, 1 Petrowski
+Radis (R):      1 Rudi, 1 Gemischt
+
+===== Monat Februar ======
+
+==== Woche 07.02.2022 (KW06) ====
+                @ W1  3w+8w
+Salat:          8 GKH, 1 Rosha, 1 Eichblatt Rot,
+                2 Eichblatt Grün, 1 Forellenschluss,
+                1 Hirschzunge, 1 Catalogna, 1 Lollo Rosso
+                @ W4  3w+8w
+Spinat:         10 Butterflay
+                @ ZFreiland
+Pak Choi:       3 Yang Quing Choi
+Zwiebel:        5 Sturon
+
+==== Woche 14.02.2022 (KW07) ====
+# Erdäpfel Saatgut
+                @ ZFreiland
+Lauch:          7 Blaugrüner Herbst, 7 Blaugrüner Winter
+
+=> Direktsaat
+                @ N3  +8w
+Radis (R):      1 Rudi
+
+=> Pflanzen
+## Scherr
+                @ W3
+Salat
+
+==== Woche 21.02.2022 (KW08) ====
+                @ N5  2w+8w
+Salat:          8 GKH, 1 Forellenschluss, 1 Eichblatt Rot,
+                2 Eichblatt Grün, 1 Hirschzunge, 1 Rosha,
+                1 Catalogna, 1 Lollo Rosso
+                @ W2  2w+8w
+Pak Choi:       3 Yang Quing Choi
+Rukola:         8 Rauke
+                @ ZFreiland  4w+12w
+Broccoli:       4 Ramoso Calabrese
+Karfiol:        4 Neckarperle
+Kohlrabi:       3 Azur Star, 3 Noriko
+Rote Rübe:      20 Rote Kugel, 6 Chioggia
+Kraut:          2 Derby Day, 2 Express
+Spargelsalat:   1 Chinesische Keule
+
+==== Woche 28.02.2022 (KW09) ====
+                @ ZFreiland
+Zwiebel:        12 Rosso lunga di Firenze,
+                12 Rosso di Milano, 12 Grenada
+Schnittlauch (20er): 3 Mittelgrobröhriger
+Koriander:      3 Blattkoriander Thai
+Petersilie:     3 Gewöhnlicher Schnitt
+
+=> Direktsaat
+Radis (R):      1 Rudi
+
+===== Monat März ======
+
+==== Woche 07.03.2022 (KW10) ====
+                @ Freiland
+Salat:          8 GKH, 1 Maikönig, 1 Teufelsohren,
+                1 Forellenschluss, 2 Eichblatt Rot,
+                2 Eichblatt Grün, 2 Lollo Rosso,
+                1 Hirschzunge, 1 Rosha, 2 Catalogna
+Spargelsalat:   1 Chinesische Keule
+Kohlrabi:       3 Noriko, 3 Azur Star
+Pak Choi:       2 Yang Quing Choi
+Fenchel:        2 Perfektion
+
+=> Direktsaat
+Karotten (R):   8 Napoli, 2 Yellowstone, 2 Maruschka,
+                1 Deep Purple, 1 Purple Dragon, 2 Eigen
+
+==== Woche 14.03.2022 (KW11) ====
+Stangensellerie (48er): 2 Tall Utah
+Sellerie (48er): 20 Albin
+## Paradeis PM
+Paradeis
+
+=> Direktsaat
+Radis (R):      1 Rudi
+                @ Freiland
+Zwiebel
+
+==== Woche 21.03.2022 (KW12) ====
+Salat:          8 GKH, 1 Teufelsohren, 1 Forellenschluss,
+                2 Eichblatt Rot, 2 Eichblatt Grün,
+                2 Lollo Rosso, 1 Hirschzunge, 1 Rosha,
+                1 Catalogna
+Spargelsalat:   1 Chinesische Keule
+Broccoli:       3 Ramoso Calabrese
+Karfiol:        2 Neckarperle
+Frühkraut:      4 Derby Day
+Kohlrabi:       3 Noriko
+Dill:           1 Dill
+Fenchel:        2 Perfektion
+Zucchini (T):   30 Black Beauty, 15 Solara,
+                15 Striata d'Italia, 15 Romanesco
+
+==== Woche 28.03.2022 (KW13) ====
+
+=> Direktsaat
+                @ Freiland
+Radis (R):      1 Rudi
+
+===== Monat April ======
+
+==== Woche 04.04.2022 (KW14) ====
+Salat:          8 GKH, 1 Teufelsohren, 1 Forellenschluss,
+                2 Eichblatt Rot, 2 Eichblatt Grün,
+                2 Lollo Rosso, 1 Hirschzunge, 1 Catalogna
+Spargelsalat:   1 Chinesische Keule
+Kohlrabi:       3 Noriko
+Fenchel:        2 Perfektion
+
+==== Woche 11.04.2022 (KW15) ====
+Zucchini (T):   20 Black Beauty, 20 Solara,
+                20 Striata d'Italia, 20 Romanesco
+Gurke (T):      15 Marketmore, 15 Tanja, 4 Kaiser Alexander,
+                4 Weiße Salatgurke, 4 Zitronengurke,
+                15 VP de Paris, 15 Shintokiva
+                @ Freiland
+Radis (R):      1 Rudi
+
+=> Pflanzen
+Paradeis
+
+==== Woche 18.04.2022 (KW16) ====
+Salat:          12 GKH, 3 Eichblatt Rot, 3 Eichblatt Grün,
+                1 Catalogna, 2 Lollo Rosso
+Spargelsalat:   1 Chinesische Keule
+Kohlrabi:       3 Noriko
+Fenchel:        2 Perfektion
+Dill:           1 Dill
+Basilikum:      1 Genovese
+Malabarspinat (T): 100 Malabarspinat
+
+=> Direktsaat
+Stangenbohne (R): 1 Neckarkönigin, 1 Spagettibohnen
+Buschbohnen (m): 20 Maxi
+
+=> Pflanzen
+Paprika:        1000 Paprika
+
+==== Woche 25.04.2022 (KW17) ====
+
+===== Monat Mai ======
+
+==== Woche 02.05.2022 (KW18) ====
+# Pflanzenmarkt 3.5. - 21.5.
+
+=> Direktsaat
+Buschbohnen (m): 20 Maxi
+Pastinak (R):   2 Halblange Weiße
+Schwarzwurzel (R): 2 Hoffmanns Schwarze Pfahl
+Kürbis (T):     1000 Red Kuri, 25 Marina di Chioggia,
+                50 Blaue Banane, 25 Rouge vif d'Etampes,
+                50 Blauer Ungarischer, 25 Langer von Nizza,
+                25 Muscat de Provence
+Sommerkürbis
+
+=> Pflanzen
+Chili:          100 Chili
+Melanzani:      100 Melanzani
+
+==== Woche 09.05.2022 (KW19) ====
+Salat:          8 GKH, 2 Eichblatt Rot, 2 Eichblatt Grün,
+                1 Catalogna, 1 Lollo Rosso, 1 Unikum
+Spargelsalat:   1 Chinesische Keule
+Kohlrabi:       3 Noriko
+Fenchel:        2 Perfektion
+
+==== Woche 16.05.2022 (KW20) ====
+Buschbohnen (m): 20 Maxi
+
+==== Woche 23.05.2022 (KW21) ====
+Salat:          8 GKH, 2 Eichblatt Rot, 2 Eichblatt Grün,
+                2 Catalogna, 2 Lollo Rosso, 2 Unikum
+Rote Rübe:      42 Forono, 42 Rote Kugel, 6 Chioggia
+Dill:           1 Dill
+Fenchel:        2 Perfektion
+Winterkohlrübe: 10 Wilhelmsburger
+Grünkohl:       16 Grüner Krauser, 4 Rosco,
+                4 Nero di Toskana, 4 Westlandse Winter
+Lauch:          7 Blaugrüner Herbst, 7 Blaugrüner Winter
+
+=> Direktsaat
+Mais:           1 Roter Hausmais
+
+==== Woche 30.05.2022 (KW22) ====
+Buschbohnen (m): 20 Maxi
+
+===== Monat Juni ======
+
+==== Woche 06.06.2022 (KW23) ====
+Salat:          8 GKH, 2 Eichblatt Rot, 2 Eichblatt Grün,
+                2 Catalogna, 2 Lollo Rosso
+Dill:           1 Dill
+Fenchel:        2 Perfektion
+Zucchini (T):   20 Black Beauty, 20 Gold Rush,
+                20 Striata d'Italia, 20 Romanesco,
+                20 Temprano de Argelia
+Kürbis (T):     20 Pattisson
+## Eventuell
+Karotten
+Mangold
+
+==== Woche 13.06.2022 (KW24) ====
+
+==== Woche 20.06.2022 (KW25) ====
+Salat:          8 GKH, 2 Eichblatt Rot, 2 Eichblatt Grün,
+                2 Catalogna, 2 Lollo Rosso
+Dill:           1 Dill
+Fenchel:        2 Perfektion
+Radicchio:      6 Treviso 206, 6 Palla Rossa 506
+Endivie:        4 Bubikopf
+
+=> Direktsaat
+Buschbohnen (m): 20 Maxi
+
+==== Woche 27.06.2022 (KW26) ====
+
+===== Monat Juli ======
+
+==== Woche 04.07.2022 (KW27) ====
+Zuckerhut:      25 Virtus, 25 Uranus # Stichtag 10. Juli
+Radicchio:      3 Castel Franco, 2 Di Luisa, 7 Treviso 206,
+                7 Palla Rossa 706, 7 Palla Rossa 506
+Rettich:        8 Wiener Runder Kohlschwarzer # Stichtag 10. Juli
+Mairübe:        5 Blanc globe a collet violet, 5 Petrowski # Stichtag 10. Juli
+Endivie:        6 Bubikopf
+Fenchel:        2 Perfektion
+Dill:           1 Dill
+Kohlrabi:       6 Noriko
+Karfiol:        2 Neckarperle # Freiland
+Broccoli:       2 Ramoso Calabrese # Freiland
+Salat:          8 GKH, 2 Eichblatt Rot, 2 Eichblatt Grün,
+                2 Catalogna, 2 Lollo Rosso
+
+==== Woche 11.07.2022 (KW28) ====
+Radicchio:      3 Castel Franco, 2 Di Luisa, 7 Treviso 206,
+                7 Palla Rossa 706
+
+=> Direktsaat
+Buschbohnen (m): 20 Maxi
+
+==== Woche 18.07.2022 (KW29) ====
+Salat:          8 GKH, 2 Eichblatt Rot, 2 Eichblatt Grün,
+                2 Catalogna, 2 Lollo Rosso
+Dill:           1 Dill
+Fenchel:        2 Perfektion
+Endivie:        15 Bubikopf
+
+==== Woche 25.07.2022 (KW30) ====
+Mangold:        25 Rainbow
+Mairübe:        16 Blanc globe a collet violet, 4 Petrowski
+Rettich:        12 Wiener Runder Kohlschwarzer,
+                2 Blauer Herbst und Winter
+Chinakohl:      60 Bilko, 20 Atsuko, 20 Kaito, 8 Granaat,
+                4 Hiromi
+
+===== Monat August ======
+
+==== Woche 01.08.2022 (KW31) ====
+Salat:          8 GKH, 1 Eichblatt Rot, 1 Eichblatt Grün,
+                1 Catalogna, 1 Lollo Rosso
+Dill:           1 Dill
+Fenchel:        2 Perfektion
+Petersilie (20er): 10 Gewöhnlicher Schnitt
+Endivie:        8 Bubikopf
+
+=> Direktsaat
+Buschbohnen (m): 20 Maxi
+
+** Lieferant Austrosaat **
+Steckzwiebel:   10 Sturon # Herbst
+Steckknoblauch: 10 Sprint # Herbst
+
+** Lieferant Scherr **
+Vogerlsalat (Ki): 24 A, 24 B, 24 C # KW40/22
+Vogerlsalat (Ki): 30 A, 30 B, 30 C # KW45/22
+Vogerlsalat (Ki): 16 A, 16 B, 16 C # KW4/23
+Salat (Ki):     3 GKH, 2 Eichblatt Rot, 2 Kopfsalat # KW 6/23
+Kohlrabi (Ki):  1 Kohlrabi Blau, 1 Kohlrabi Weiß # KW 6/23
+Frühkraut (Ki): 2 Frühkraut # KW 6/23
+Lauch (Ki):     1 Lauch # KW 6/23
+
+==== Woche 08.08.2022 (KW32) ====
+# Kartoffel Ernte
+# Karotten Ernte
+
+=> Direktsaat
+## Folientunnel
+Karotten (R):   2 Gemischt
+
+==== Woche 15.08.2022 (KW33) ====
+Salat:          8 GKH
+Spinat:         15 Butterflay
+
+==== Woche 22.08.2022 (KW34) ====
+Asia:           1 Bloody Mary, 2 Fritzy Joe, 2 Frizzy Lizzy,
+                1 Garnet Gigant, 2 Golden Frills,
+                2 Golden Streaks, 2 Grün im Schnee,
+                2 Mandovi, 2 Mizuna, 2 Nagano, 2 Namenia,
+                2 Purple Wave, 1 Red Gigant, 2 Rouge Metis,
+                2 Stielmus, 2 Wasabino, 1 Ruby Streak
+Rukola:         8 Rauke
+Pak Choi:       4 Yang Quing Choi
+Tatsoi:         4 Tatsoi
+
+==== Woche 29.08.2022 (KW35) ====
+
+===== Monat September ======
+
+==== Woche 05.09.2022 (KW36) ====
+Asia:           10 Portulak, 10 Barbarakresse
+Rukola:         10 Rauke
+Asia:           2 Bloody Mary, 3 Fritzy Joe, 3 Frizzy Lizzy,
+                2 Garnet Gigant, 3 Golden Frills,
+                3 Golden Streaks, 3 Grün im Schnee,
+                3 Mandovi, 3 Mizuna, 3 Nagano, 3 Namenia,
+                3 Purple Wave, 2 Red Gigant, 3 Rouge Metis,
+                3 Stielmus, 3 Wasabino, 1 Ruby Streak
+Babyleaf:       4 Diablotin, 4 Oaking
+Pak Choi:       4 Yang Quing Choi
+Tatsoi:         4 Tatsoi
+
+==== Woche 12.09.2022 (KW37) ====
+
+==== Woche 19.09.2022 (KW38) ====
+Asia:           2 Bloody Mary, 3 Fritzy Joe, 3 Frizzy Lizzy,
+                2 Garnet Gigant, 3 Golden Frills,
+                3 Golden Streaks, 3 Grün im Schnee,
+                3 Mandovi, 3 Mizuna, 3 Nagano, 3 Namenia,
+                3 Purple Wave, 2 Red Gigant, 3 Rouge Metis,
+                3 Stielmus, 3 Wasabino
+Babyleaf:       4 Diablotin, 4 Oaking
+Pak Choi:       4 Yang Quing Choi
+
+==== Woche 26.09.2022 (KW39) ====
+Asia:           2 Bloody Mary, 3 Fritzy Joe, 3 Frizzy Lizzy,
+                2 Garnet Gigant, 3 Golden Frills,
+                3 Golden Streaks, 3 Grün im Schnee,
+                3 Mandovi, 3 Mizuna, 3 Nagano, 3 Namenia,
+                3 Purple Wave, 2 Red Gigant, 3 Rouge Metis,
+                3 Stielmus, 3 Wasabino
+Babyleaf:       4 Diablotin, 4 Oaking
+Spinat:         15 Butterflay
+
+===== Monat Oktober ======
+
+==== Woche 03.10.2022 (KW40) ====
+Steckzwiebel:   10 kg Sturon # Frühjahr
+Steckzwiebel:   20 kg Sturon # Freiland
+Steckknoblauch: 5 kg Sprint # Frühjahr
+Pak Choi:       4 Yang Quing Choi
+Endivie:        6 Bubikopf
+Rettich:        3 Wiener Runder Kohlschwarzer
+
+==== Woche 10.10.2022 (KW41) ====
+# Überwinter Satz
+Asia:           2 Bloody Mary, 3 Fritzy Joe, 3 Frizzy Lizzy,
+                2 Garnet Gigant, 3 Golden Frills,
+                3 Golden Streaks, 3 Grün im Schnee,
+                3 Mandovi, 3 Mizuna, 3 Nagano, 3 Namenia,
+                3 Purple Wave, 2 Red Gigant, 3 Rouge Metis,
+                3 Stielmus, 3 Wasabino
+Asia:           6 Portulak, 6 Barbarakresse
+Rukola:         10 Rauke
+Salat:          10 Winterhäuptel
+
+==== Woche 17.10.2022 (KW42) ====
+
+==== Woche 24.10.2022 (KW43) ====
+
+==== Woche 31.10.2022 (KW44) ====
+
+===== Monat November ======
+
+==== Woche 07.11.2022 (KW45) ====
+Vogerlsalat
+Radieschen (R): 1 Rudi
+
+==== Woche 14.11.2022 (KW46) ====
+
+==== Woche 21.11.2022 (KW47) ====
+
+==== Woche 28.11.2022 (KW48) ====
+
+===== Monat Dezember ======
+
+==== Woche 05.12.2022 (KW49) ====
+
+==== Woche 12.12.2022 (KW50) ====
+
+==== Woche 19.12.2022 (KW51) ====
+
+==== Woche 26.12.2022 (KW52) ====

@@ -72,7 +72,7 @@ where
 {
     let mut n = 0;
     let mut x = 0;
-    for (idx, el) in span.iter_indices() {
+    for (idx, _) in span.iter_indices() {
         x = idx;
         n += 1;
         if n >= max_len {
