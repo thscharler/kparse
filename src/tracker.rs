@@ -10,6 +10,7 @@ use std::fmt::{Debug, Formatter};
 
 mod std_tracker;
 
+use crate::token_error::TokenizerError;
 pub use std_tracker::*;
 
 /// Standard input type for tracking.
@@ -20,7 +21,11 @@ pub type TrackSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
 /// Standard Result type for tracking.
 /// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
-pub type TrackResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+pub type TrackParserResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+
+/// Standard Result type for tracking.
+/// Equivalent to [nom::IResult]<(I, O), TokenizerError<C, I>>
+pub type TrackTokenizerResult<C, I, O> = Result<(I, O), nom::Err<TokenizerError<C, I>>>;
 
 /// This trait defines the tracker functions.
 /// Create an [StdTracker] and use it's span() function to get the input for your

@@ -49,6 +49,7 @@ pub mod combinators;
 pub mod error;
 pub mod spans;
 pub mod test;
+pub mod token_error;
 pub mod tracker;
 
 mod context;
@@ -56,13 +57,14 @@ mod debug;
 
 pub use crate::context::Context;
 pub use crate::error::ParserError;
+use crate::token_error::TokenizerError;
 
 /// Prelude, import the traits.
 pub mod prelude {
     pub use crate::error::AppendParserError;
     pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
     pub use crate::tracker::{FindTracker, TrackError};
-    pub use crate::{ResultWithSpan, WithCode, WithSpan};
+    pub use crate::{ErrWrapped, ParseErrorExt, ResultWithSpan, WithCode, WithSpan};
 }
 
 /// Alias for LocatedSpan.
@@ -72,6 +74,10 @@ pub type ParserSpan<T, X> = LocatedSpan<T, X>;
 /// ParserResult without tracking.  
 /// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
 pub type ParserResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+
+/// ParserResult without tracking.  
+/// Equivalent to [nom::IResult]<(I, O), TokenizerError<C, I>>
+pub type TokenizerResult<C, I, O> = Result<(I, O), nom::Err<TokenizerError<C, I>>>;
 
 /// Parser error code.
 pub trait Code: Copy + Display + Debug + Eq {
