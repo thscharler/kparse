@@ -27,6 +27,19 @@ pub type TrackParserResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, 
 /// Equivalent to [nom::IResult]<(I, O), TokenizerError<C, I>>
 pub type TrackTokenizerResult<C, I, O> = Result<(I, O), nom::Err<TokenizerError<C, I>>>;
 
+pub enum TrackerData<C, T>
+where
+    C: Code,
+{
+    Enter(C, LocatedSpan<T, ()>),
+    Exit(),
+    Ok(LocatedSpan<T, ()>, LocatedSpan<T, ()>),
+    Err(LocatedSpan<T, ()>, C, String),
+    Warn(LocatedSpan<T, ()>, &'static str),
+    Info(LocatedSpan<T, ()>, &'static str),
+    Debug(LocatedSpan<T, ()>, String),
+}
+
 /// This trait defines the tracker functions.
 /// Create an [StdTracker] and use it's span() function to get the input for your
 /// parser.
@@ -37,26 +50,7 @@ pub trait Tracker<C, T>
 where
     C: Code,
 {
-    /// Tracks entering a parser function.
-    fn track_enter(&self, func: C, span: &LocatedSpan<T, ()>);
-
-    /// Debugging
-    fn track_debug(&self, span: &LocatedSpan<T, ()>, debug: String);
-
-    /// Track something.
-    fn track_info(&self, span: &LocatedSpan<T, ()>, info: &'static str);
-
-    /// Track something more important.
-    fn track_warn(&self, span: &LocatedSpan<T, ()>, warn: &'static str);
-
-    /// Tracks an Ok result of a parser function.
-    fn track_ok(&self, span: &LocatedSpan<T, ()>, parsed: &LocatedSpan<T, ()>);
-
-    /// Tracks an Err result of a parser function.    
-    fn track_err(&self, span: &LocatedSpan<T, ()>, code: C, err_str: String);
-
-    /// Tracks any exit of a parser function. eg nom::Err::Incomplete.
-    fn track_exit(&self);
+    fn track(&self, data: TrackerData<C, T>);
 }
 
 /// An instance of this struct ist kept in the extra field of LocatedSpan.

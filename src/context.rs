@@ -2,7 +2,7 @@
 //! Provides [Context] to access the tracker.
 //!
 
-use crate::tracker::{DynTracker, FindTracker};
+use crate::tracker::{DynTracker, FindTracker, TrackerData};
 use crate::{Code, ErrWrapped, ParseErrorExt};
 use nom::{AsBytes, InputLength, InputTake};
 use nom_locate::LocatedSpan;
@@ -124,8 +124,8 @@ where
     fn ok<O, E>(self, parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
         self.extra
             .0
-            .track_ok(&clear_span(&self), &clear_span(&parsed));
-        self.extra.0.track_exit();
+            .track(TrackerData::Ok(clear_span(&self), clear_span(&parsed)));
+        self.extra.0.track(TrackerData::Exit());
         Ok((self, value))
     }
 
@@ -135,43 +135,53 @@ where
             nom::Err::Error(e) | nom::Err::Failure(e) => {
                 self.extra
                     .0
-                    .track_err(&clear_span(self), code, format!("{:?}", e));
-                self.extra.0.track_exit();
+                    .track(TrackerData::Err(clear_span(self), code, format!("{:?}", e)));
+                self.extra.0.track(TrackerData::Exit());
             }
         }
         Err(err)
     }
 
     fn track_enter(&self, func: C) {
-        self.extra.0.track_enter(func, &clear_span(self));
+        self.extra
+            .0
+            .track(TrackerData::Enter(func, clear_span(self)));
     }
 
     fn track_debug(&self, debug: String) {
-        self.extra.0.track_debug(&clear_span(self), debug);
+        self.extra
+            .0
+            .track(TrackerData::Debug(clear_span(self), debug));
     }
 
     fn track_info(&self, info: &'static str) {
-        self.extra.0.track_info(&clear_span(self), info);
+        self.extra
+            .0
+            .track(TrackerData::Info(clear_span(self), info));
     }
 
     fn track_warn(&self, warn: &'static str) {
-        self.extra.0.track_warn(&clear_span(self), warn);
+        self.extra
+            .0
+            .track(TrackerData::Warn(clear_span(self), warn));
     }
 
     fn track_ok(&self, parsed: DynSpan<'s, C, T>) {
         self.extra
             .0
-            .track_ok(&clear_span(self), &clear_span(&parsed));
+            .track(TrackerData::Ok(clear_span(self), clear_span(&parsed)));
     }
 
     fn track_err<E: Debug>(&self, code: C, err: &E) {
-        self.extra
-            .0
-            .track_err(&clear_span(self), code, format!("{:?}", err));
+        self.extra.0.track(TrackerData::Err(
+            clear_span(self),
+            code,
+            format!("{:?}", err),
+        ));
     }
 
     fn track_exit(&self) {
-        self.extra.0.track_exit();
+        self.extra.0.track(TrackerData::Exit());
     }
 }
 
