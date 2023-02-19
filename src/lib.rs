@@ -69,7 +69,7 @@ pub mod prelude {
 
 /// Alias for LocatedSpan.
 /// No special properties, just for completeness.
-pub type ParserSpan<T, X> = LocatedSpan<T, X>;
+pub type ParseSpan<T, X> = LocatedSpan<T, X>;
 
 /// ParserResult without tracking.  
 /// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>

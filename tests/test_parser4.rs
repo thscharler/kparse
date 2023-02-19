@@ -1235,10 +1235,10 @@ mod planung4 {
         pub fn parse_plan(input: APSpan<'_>) -> APParserResult<'_, APPlan<'_>> {
             Context.enter(APCPlan, input);
 
-            let (rest, h0) = nom_header(input).track_as(APCHeader).into_parser_err()?;
-            let (rest, _) = nom_tag_plan(rest).track_as(APCPlan).into_parser_err()?;
+            let (rest, h0) = nom_header(input).track_as(APCHeader).into_parser_error()?;
+            let (rest, _) = nom_tag_plan(rest).track_as(APCPlan).into_parser_error()?;
             let (rest, plan) = token_name(rest).track()?;
-            let (rest, h1) = nom_header(rest).track_as(APCHeader).into_parser_err()?;
+            let (rest, h1) = nom_header(rest).track_as(APCHeader).into_parser_error()?;
 
             let span = input.span_union(&h0, &h1);
             Context.ok(rest, span, APPlan { name: plan, span })
@@ -1251,14 +1251,14 @@ mod planung4 {
         pub fn parse_kdnr(input: APSpan<'_>) -> APParserResult<'_, APKdNr<'_>> {
             Context.enter(APCKdNr, input);
 
-            let (rest, _) = opt(nom_star_star)(input).track().into_parser_err()?;
-            let (rest, _) = opt(nom_slash_slash)(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_star_star)(input).track().into_parser_error()?;
+            let (rest, _) = opt(nom_slash_slash)(rest).track().into_parser_error()?;
 
-            let (rest, tag) = nom_tag_kdnr(rest).track().into_parser_err()?;
+            let (rest, tag) = nom_tag_kdnr(rest).track().into_parser_error()?;
             let (rest, kdnr) = token_nummer(rest).track()?;
 
-            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_err()?;
-            let (rest, _) = opt(nom_slash_slash)(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_error()?;
+            let (rest, _) = opt(nom_slash_slash)(rest).track().into_parser_error()?;
 
             let span = input.span_union(&tag, &kdnr.span);
             Context.ok(rest, span, APKdNr { kdnr, span })
@@ -1271,15 +1271,15 @@ mod planung4 {
         pub fn parse_stichtag(input: APSpan<'_>) -> APParserResult<'_, APStichtag<'_>> {
             Context.enter(APCStichtag, input);
 
-            let (rest, h0) = nom_header(input).track().into_parser_err()?;
-            let (rest, _) = nom_tag_stichtag(rest).track().into_parser_err()?;
+            let (rest, h0) = nom_header(input).track().into_parser_error()?;
+            let (rest, _) = nom_tag_stichtag(rest).track().into_parser_error()?;
             let (rest, stichtag) = token_datum(rest).track()?;
 
-            let (rest, _brop) = opt(nom_brop)(rest).track().into_parser_err()?;
-            let (rest, _kw) = opt(nom_kw)(rest).track().into_parser_err()?;
-            let (rest, _brcl) = opt(nom_brcl)(rest).track().into_parser_err()?;
+            let (rest, _brop) = opt(nom_brop)(rest).track().into_parser_error()?;
+            let (rest, _kw) = opt(nom_kw)(rest).track().into_parser_error()?;
+            let (rest, _brcl) = opt(nom_brcl)(rest).track().into_parser_error()?;
 
-            let (rest, h1) = nom_header(rest).track().into_parser_err()?;
+            let (rest, h1) = nom_header(rest).track().into_parser_error()?;
 
             let span = input.span_union(&h0, &h1);
             Context.ok(rest, span, APStichtag { stichtag, span })
@@ -1292,14 +1292,14 @@ mod planung4 {
         pub fn parse_bsnr(input: APSpan<'_>) -> APParserResult<'_, APBsNr<'_>> {
             Context.enter(APCBsNr, input);
 
-            let (rest, _) = opt(nom_slash_slash)(input).track().into_parser_err()?;
-            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_slash_slash)(input).track().into_parser_error()?;
+            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_error()?;
 
-            let (rest, tag) = nom_tag_bsnr(rest).track().into_parser_err()?;
+            let (rest, tag) = nom_tag_bsnr(rest).track().into_parser_error()?;
             let (rest, bsnr) = token_nummer(rest).track()?;
 
-            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_err()?;
-            let (rest, _) = opt(nom_slash_slash)(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_error()?;
+            let (rest, _) = opt(nom_slash_slash)(rest).track().into_parser_error()?;
 
             let span = input.span_union(&tag, &bsnr.span);
             Context.ok(rest, span, APBsNr { bsnr, span })
@@ -1312,10 +1312,10 @@ mod planung4 {
         pub fn parse_monat(input: APSpan<'_>) -> APParserResult<'_, APMonat<'_>> {
             Context.enter(APCMonat, input);
 
-            let (rest, h0) = nom_header(input).track().into_parser_err()?;
-            let (rest, _) = nom_tag_monat(rest).track().into_parser_err()?;
+            let (rest, h0) = nom_header(input).track().into_parser_error()?;
+            let (rest, _) = nom_tag_monat(rest).track().into_parser_error()?;
             let (rest, monat) = token_name(rest).track()?;
-            let (rest, h1) = nom_header(rest).track().into_parser_err()?;
+            let (rest, h1) = nom_header(rest).track().into_parser_error()?;
 
             let span = input.span_union(&h0, &h1);
             Context.ok(rest, span, APMonat { monat, span })
@@ -1328,16 +1328,16 @@ mod planung4 {
         pub fn parse_woche(input: APSpan<'_>) -> APParserResult<'_, APWoche<'_>> {
             Context.enter(APCWoche, input);
 
-            let (rest, h0) = nom_header(input).track().into_parser_err()?;
+            let (rest, h0) = nom_header(input).track().into_parser_error()?;
 
-            let (rest, _) = nom_tag_woche(rest).track().into_parser_err()?;
+            let (rest, _) = nom_tag_woche(rest).track().into_parser_error()?;
             let (rest, datum) = token_datum(rest).track()?;
 
-            let (rest, _brop) = opt(nom_brop)(rest).track().into_parser_err()?;
-            let (rest, _kw) = opt(nom_kw)(rest).track().into_parser_err()?;
-            let (rest, _brcl) = opt(nom_brcl)(rest).track().into_parser_err()?;
+            let (rest, _brop) = opt(nom_brop)(rest).track().into_parser_error()?;
+            let (rest, _kw) = opt(nom_kw)(rest).track().into_parser_error()?;
+            let (rest, _brcl) = opt(nom_brcl)(rest).track().into_parser_error()?;
 
-            let (rest, h1) = nom_header(rest).track().into_parser_err()?;
+            let (rest, h1) = nom_header(rest).track().into_parser_error()?;
 
             let span = input.span_union(&h0, &h1);
             Context.ok(rest, span, APWoche { datum, span })
@@ -1350,10 +1350,10 @@ mod planung4 {
         pub fn parse_tag(input: APSpan<'_>) -> APParserResult<'_, APTag<'_>> {
             Context.enter(APCTag, input);
 
-            let (rest, h0) = nom_header(input).track().into_parser_err()?;
-            let (rest, _) = nom_tag_tag(rest).track().into_parser_err()?;
+            let (rest, h0) = nom_header(input).track().into_parser_error()?;
+            let (rest, _) = nom_tag_tag(rest).track().into_parser_error()?;
             let (rest, tage) = token_nummer(rest).track()?;
-            let (rest, h1) = nom_header(rest).track().into_parser_err()?;
+            let (rest, h1) = nom_header(rest).track().into_parser_error()?;
 
             let span = input.span_union(&h0, &h1);
             Context.ok(rest, span, APTag { tage, span })
@@ -1366,10 +1366,10 @@ mod planung4 {
         pub fn parse_aktion(input: APSpan<'_>) -> APParserResult<'_, APAktion<'_>> {
             Context.enter(APCAktion, input);
 
-            let (rest, tag) = nom_tag_aktion(input).track().into_parser_err()?;
+            let (rest, tag) = nom_tag_aktion(input).track().into_parser_error()?;
             let (rest, aktion) = nom_aktion_aktion(rest)
                 .track_as(APCAktionTyp)
-                .into_parser_err()?;
+                .into_parser_error()?;
 
             let span = input.span_union(&tag, &aktion);
             Context.ok(rest, span, APAktion { aktion, span })
@@ -1382,7 +1382,7 @@ mod planung4 {
         pub fn parse_pflanzort(input: APSpan<'_>) -> APParserResult<'_, APPflanzort<'_>> {
             Context.enter(APCPflanzort, input);
 
-            let (rest, tag) = nom_tag_pflanzort(input).track().into_parser_err()?;
+            let (rest, tag) = nom_tag_pflanzort(input).track().into_parser_error()?;
 
             let (rest, ort) = token_name_kurz(rest).track()?;
 
@@ -1392,10 +1392,10 @@ mod planung4 {
                 (rest, None)
             };
 
-            let (rest, brop) = opt(nom_brop)(rest).track().into_parser_err()?;
+            let (rest, brop) = opt(nom_brop)(rest).track().into_parser_error()?;
             let (rest, start) = opt(parse_wochen)(rest).track()?;
             let (rest, dauer) = opt(parse_pluswochen)(rest).track()?;
-            let (rest, brcl) = opt(nom_brcl)(rest).track().into_parser_err()?;
+            let (rest, brcl) = opt(nom_brcl)(rest).track().into_parser_error()?;
 
             let span = if let Some(brcl) = brcl {
                 input.span_union(&tag, &brcl)
@@ -1432,7 +1432,7 @@ mod planung4 {
             Context.enter(APCWochen, input);
 
             let (rest, wochen) = token_nummer(input).track()?;
-            let (rest, w) = nom_tag_w(rest).track().into_parser_err()?;
+            let (rest, w) = nom_tag_w(rest).track().into_parser_error()?;
 
             let span = input.span_union(&wochen.span, &w);
             Context.ok(rest, span, APWochen { wochen, span })
@@ -1445,9 +1445,9 @@ mod planung4 {
         pub fn parse_pluswochen(input: APSpan<'_>) -> APParserResult<'_, APWochen<'_>> {
             Context.enter(APCPlusWochen, input);
 
-            let (rest, _) = nom_plus(input).track().into_parser_err()?;
+            let (rest, _) = nom_plus(input).track().into_parser_error()?;
             let (rest, wochen) = token_nummer(rest).track()?;
-            let (rest, w) = nom_tag_w(rest).track().into_parser_err()?;
+            let (rest, w) = nom_tag_w(rest).track().into_parser_error()?;
 
             let span = input.span_union(&wochen.span, &w);
             Context.ok(rest, span, APWochen { wochen, span })
@@ -1460,10 +1460,10 @@ mod planung4 {
         pub fn parse_kunde(input: APSpan<'_>) -> APParserResult<'_, APKunde<'_>> {
             Context.enter(APCKunde, input);
 
-            let (rest, _) = opt(nom_star_star)(input).track().into_parser_err()?;
-            let (rest, tag) = nom_tag_kunde(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_star_star)(input).track().into_parser_error()?;
+            let (rest, tag) = nom_tag_kunde(rest).track().into_parser_error()?;
             let (rest, name) = token_name(rest).track()?;
-            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_error()?;
 
             let span = input.span_union(&tag, &name.span);
 
@@ -1477,10 +1477,10 @@ mod planung4 {
         pub fn parse_lieferant(input: APSpan<'_>) -> APParserResult<'_, APLieferant<'_>> {
             Context.enter(APCLieferant, input);
 
-            let (rest, _) = opt(nom_star_star)(input).track().into_parser_err()?;
-            let (rest, tag) = nom_tag_lieferant(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_star_star)(input).track().into_parser_error()?;
+            let (rest, tag) = nom_tag_lieferant(rest).track().into_parser_error()?;
             let (rest, name) = token_name(rest).track()?;
-            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_error()?;
 
             let span = input.span_union(&tag, &name.span);
 
@@ -1494,10 +1494,10 @@ mod planung4 {
         pub fn parse_markt(input: APSpan<'_>) -> APParserResult<'_, APMarkt<'_>> {
             Context.enter(APCMarkt, input);
 
-            let (rest, _) = opt(nom_star_star)(input).track().into_parser_err()?;
-            let (rest, tag) = nom_tag_markt(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_star_star)(input).track().into_parser_error()?;
+            let (rest, tag) = nom_tag_markt(rest).track().into_parser_error()?;
             let (rest, name) = token_name(rest).track()?;
-            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_err()?;
+            let (rest, _) = opt(nom_star_star)(rest).track().into_parser_error()?;
 
             let span = input.span_union(&tag, &name.span);
 
@@ -1528,7 +1528,7 @@ mod planung4 {
                         },
                     )
                 }
-                Err(e) => return Context.err(e.into_parser_err()),
+                Err(e) => return Context.err(e.into_parser_error()),
             };
 
             // must be at line end now, and can eat some whitespace
@@ -1555,9 +1555,13 @@ mod planung4 {
         pub fn parse_einheit(input: APSpan<'_>) -> APParserResult<'_, APEinheit<'_>> {
             Context.enter(APCEinheit, input);
 
-            let (rest, brop) = nom_brop(input).track_as(APCBracketOpen).into_parser_err()?;
+            let (rest, brop) = nom_brop(input)
+                .track_as(APCBracketOpen)
+                .into_parser_error()?;
             let (rest, name) = token_name(rest).track()?;
-            let (rest, brcl) = nom_brcl(rest).track_as(APCBracketClose).into_parser_err()?;
+            let (rest, brcl) = nom_brcl(rest)
+                .track_as(APCBracketClose)
+                .into_parser_error()?;
 
             let span = input.span_union(&brop, &brcl);
 
@@ -1663,8 +1667,8 @@ mod planung4 {
         pub fn parse_kommentar(rest: APSpan<'_>) -> APParserResult<'_, APKommentar<'_>> {
             Context.enter(APCKommentar, rest);
 
-            let (rest, kommentar_tag) = nom_kommentar_tag(rest).track().into_parser_err()?;
-            let (rest, kommentar) = nom_kommentar(rest).track().into_parser_err()?;
+            let (rest, kommentar_tag) = nom_kommentar_tag(rest).track().into_parser_error()?;
+            let (rest, kommentar) = nom_kommentar(rest).track().into_parser_error()?;
 
             Context.ok(
                 rest,
@@ -1683,8 +1687,8 @@ mod planung4 {
         pub fn parse_notiz(rest: APSpan<'_>) -> APParserResult<'_, APNotiz<'_>> {
             Context.enter(APCNotiz, rest);
 
-            let (rest, notiz_tag) = nom_notiz_tag(rest).track().into_parser_err()?;
-            let (rest, notiz) = nom_notiz(rest).track().into_parser_err()?;
+            let (rest, notiz_tag) = nom_notiz_tag(rest).track().into_parser_error()?;
+            let (rest, notiz) = nom_notiz(rest).track().into_parser_error()?;
 
             Context.ok(
                 rest,
@@ -1731,14 +1735,14 @@ mod planung4 {
 
                     Ok((rest, APName { span: tok }))
                 }
-                Err(e) => Err(e.into_parser_err().with_code(APCName)),
+                Err(e) => Err(e.into_parser_error().with_code(APCName)),
             }
         }
 
         pub fn token_name_kurz(rest: APSpan<'_>) -> APParserResult<'_, APName<'_>> {
             match nom_name_kurz(rest) {
                 Ok((rest, tok)) => Ok((rest, APName { span: tok })),
-                Err(e) => Err(e.into_parser_err().with_code(APCNameKurz)),
+                Err(e) => Err(e.into_parser_error().with_code(APCNameKurz)),
             }
         }
 
@@ -1766,7 +1770,7 @@ mod planung4 {
                         span: tok,
                     },
                 )),
-                Err(e) => Err(e.into_parser_err().with_code(APCNummer)),
+                Err(e) => Err(e.into_parser_error().with_code(APCNummer)),
             }
         }
 
@@ -1779,7 +1783,7 @@ mod planung4 {
                         span: tok,
                     },
                 )),
-                Err(e) => Err(e.into_parser_err().with_code(APCMenge)),
+                Err(e) => Err(e.into_parser_error().with_code(APCMenge)),
             }
         }
 
@@ -1794,17 +1798,17 @@ mod planung4 {
                     Err(_) => Err(nom::Err::Failure(APTokenizerError::new(APCDatum, v))),
                 },
             )(rest)
-            .into_parser_err();
+            .into_parser_error();
 
             k
         }
 
         pub fn token_datum(input: APSpan<'_>) -> APParserResult<'_, APDatum<'_>> {
-            let (rest, day) = nom_number(input).with_code(APCDay).into_parser_err()?;
-            let (rest, _) = nom_dot(rest).with_code(APCDot).into_parser_err()?;
-            let (rest, month) = nom_number(rest).with_code(APCMonth).into_parser_err()?;
-            let (rest, _) = nom_dot(rest).with_code(APCDot).into_parser_err()?;
-            let (rest, year) = nom_number(rest).with_code(APCYear).into_parser_err()?;
+            let (rest, day) = nom_number(input).with_code(APCDay).into_parser_error()?;
+            let (rest, _) = nom_dot(rest).with_code(APCDot).into_parser_error()?;
+            let (rest, month) = nom_number(rest).with_code(APCMonth).into_parser_error()?;
+            let (rest, _) = nom_dot(rest).with_code(APCDot).into_parser_error()?;
+            let (rest, year) = nom_number(rest).with_code(APCYear).into_parser_error()?;
 
             let iday = cnv_err((*day).parse::<u32>(), APCDay, day)?;
             let imonth = cnv_err((*month).parse::<u32>(), APCMonth, month)?;

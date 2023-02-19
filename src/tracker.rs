@@ -19,14 +19,6 @@ pub use std_tracker::*;
 /// through the parser.
 pub type TrackSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
-/// Standard Result type for tracking.
-/// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
-pub type TrackParserResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
-
-/// Standard Result type for tracking.
-/// Equivalent to [nom::IResult]<(I, O), TokenizerError<C, I>>
-pub type TrackTokenizerResult<C, I, O> = Result<(I, O), nom::Err<TokenizerError<C, I>>>;
-
 /// Data packet for the Tracker.
 pub enum TrackerData<C, T>
 where

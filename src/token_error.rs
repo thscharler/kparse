@@ -259,14 +259,14 @@ where
 /// We do this for the conversion from TokenizerError to ParserError.
 pub trait IntoParserError<R> {
     /// Convert to a form of ParserError.
-    fn into_parser_err(self) -> R;
+    fn into_parser_error(self) -> R;
 }
 
 /// The From trait can't be used for types wrapped in a nom::Err.
 /// We do this for the conversion from TokenizerError to ParserError.
 pub trait IntoParserErrorExtra<R, Y> {
     /// Convert to a from of ParserError with
-    fn into_parser_err_with(self, extra: Y) -> R;
+    fn into_parser_error_with(self, extra: Y) -> R;
 }
 
 // ***********************************************************************
@@ -292,7 +292,7 @@ where
     C: Code,
     I: Copy,
 {
-    fn into_parser_err(self) -> ParserError<C, I, ()> {
+    fn into_parser_error(self) -> ParserError<C, I, ()> {
         ParserError::new(self.code, self.span)
     }
 }
@@ -303,7 +303,7 @@ where
     I: Copy,
     Y: Copy,
 {
-    fn into_parser_err_with(self, extra: Y) -> ParserError<C, I, Y> {
+    fn into_parser_error_with(self, extra: Y) -> ParserError<C, I, Y> {
         ParserError::new(self.code, self.span).with_user_data(extra)
     }
 }
@@ -317,11 +317,11 @@ where
     C: Code,
     I: Copy,
 {
-    fn into_parser_err(self) -> nom::Err<ParserError<C, I, ()>> {
+    fn into_parser_error(self) -> nom::Err<ParserError<C, I, ()>> {
         match self {
             nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => nom::Err::Error(e.into_parser_err()),
-            nom::Err::Failure(e) => nom::Err::Failure(e.into_parser_err()),
+            nom::Err::Error(e) => nom::Err::Error(e.into_parser_error()),
+            nom::Err::Failure(e) => nom::Err::Failure(e.into_parser_error()),
         }
     }
 }
@@ -333,11 +333,11 @@ where
     I: Copy,
     Y: Copy,
 {
-    fn into_parser_err_with(self, extra: Y) -> nom::Err<ParserError<C, I, Y>> {
+    fn into_parser_error_with(self, extra: Y) -> nom::Err<ParserError<C, I, Y>> {
         match self {
             nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => nom::Err::Error(e.into_parser_err_with(extra)),
-            nom::Err::Failure(e) => nom::Err::Failure(e.into_parser_err_with(extra)),
+            nom::Err::Error(e) => nom::Err::Error(e.into_parser_error_with(extra)),
+            nom::Err::Failure(e) => nom::Err::Failure(e.into_parser_error_with(extra)),
         }
     }
 }
@@ -352,12 +352,12 @@ where
     C: Code,
     I: Copy,
 {
-    fn into_parser_err(self) -> Result<(I, O), nom::Err<ParserError<C, I, ()>>> {
+    fn into_parser_error(self) -> Result<(I, O), nom::Err<ParserError<C, I, ()>>> {
         match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_err())),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.into_parser_err())),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_error())),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.into_parser_error())),
         }
     }
 }
@@ -369,12 +369,12 @@ where
     I: Copy,
     Y: Copy,
 {
-    fn into_parser_err_with(self, extra: Y) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
+    fn into_parser_error_with(self, extra: Y) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
         match self {
             Ok(v) => Ok(v),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_err_with(extra))),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.into_parser_err_with(extra))),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_error_with(extra))),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.into_parser_error_with(extra))),
         }
     }
 }
