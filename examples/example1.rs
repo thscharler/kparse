@@ -2,10 +2,9 @@
 
 use kparse::combinators::transform;
 use kparse::prelude::*;
-use kparse::tracker::TrackParserResult;
 #[cfg(debug_assertions)]
 use kparse::tracker::{StdTracker, TrackSpan};
-use kparse::{Code, Context, ParserError};
+use kparse::{Code, Context, ParserError, ParserResult};
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
 use nom::combinator::{consumed, opt};
@@ -65,8 +64,8 @@ impl Code for ECode {
 pub type ESpan<'s> = TrackSpan<'s, ECode, &'s str>;
 #[cfg(not(debug_assertions))]
 pub type ESpan<'s> = &'s str;
-pub type EResult<'s, O> = TrackParserResult<ECode, ESpan<'s>, O, ()>;
-pub type ENomResult<'s> = TrackParserResult<ECode, ESpan<'s>, ESpan<'s>, ()>;
+pub type EResult<'s, O> = ParserResult<ECode, ESpan<'s>, O, ()>;
+pub type ENomResult<'s> = ParserResult<ECode, ESpan<'s>, ESpan<'s>, ()>;
 pub type EParserError<'s> = ParserError<ECode, ESpan<'s>, ()>;
 
 #[derive(Debug)]

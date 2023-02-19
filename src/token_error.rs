@@ -8,7 +8,7 @@
 use crate::debug::{restrict, DebugWidth};
 use crate::{Code, ParseErrorExt, ParserError};
 use nom::error::ErrorKind;
-use nom::{AsBytes, InputIter, InputLength, InputTake};
+use nom::{InputIter, InputLength, InputTake};
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -50,6 +50,12 @@ where
     type WrappedError = Self;
     fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
         nom::Err::Error(self)
+    }
+
+    type ParserError = ParserError<C, I, ()>;
+
+    fn into_parser_error(self) -> Self::ParserError {
+        ParserError::new(self.code, self.span)
     }
 }
 
@@ -102,6 +108,16 @@ where
 
     fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
         self
+    }
+
+    type ParserError = nom::Err<ParserError<C, I, ()>>;
+
+    fn into_parser_error(self) -> Self::ParserError {
+        match self {
+            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
+            nom::Err::Error(e) => nom::Err::Error(e.into_parser_error()),
+            nom::Err::Failure(e) => nom::Err::Error(e.into_parser_error()),
+        }
     }
 }
 
@@ -159,6 +175,17 @@ where
 
     fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
         unimplemented!("into_wrapped cannot be used for Result<>");
+    }
+
+    type ParserError = Result<(I, O), nom::Err<ParserError<C, I>>>;
+
+    fn into_parser_error(self) -> Self::ParserError {
+        match self {
+            Ok((rest, token)) => Ok((rest, token)),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_error())),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Error(e.into_parser_error())),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+        }
     }
 }
 
@@ -252,129 +279,5 @@ where
     pub fn with_code(mut self, code: C) -> Self {
         self.code = code;
         self
-    }
-}
-
-/// The From trait can't be used for types wrapped in a nom::Err.
-/// We do this for the conversion from TokenizerError to ParserError.
-pub trait IntoParserError<R> {
-    /// Convert to a form of ParserError.
-    fn into_parser_error(self) -> R;
-}
-
-/// The From trait can't be used for types wrapped in a nom::Err.
-/// We do this for the conversion from TokenizerError to ParserError.
-pub trait IntoParserErrorExtra<R, Y> {
-    /// Convert to a from of ParserError with
-    fn into_parser_error_with(self, extra: Y) -> R;
-}
-
-// ***********************************************************************
-// LAYER 1 - useful conversions
-// ***********************************************************************
-
-//
-// ParserError to nom::Err<ParserError>, useful shortcut when creating
-// a fresh ParserError.
-//
-impl<C, I> From<TokenizerError<C, I>> for nom::Err<TokenizerError<C, I>>
-where
-    C: Code,
-    I: AsBytes + Copy,
-{
-    fn from(e: TokenizerError<C, I>) -> Self {
-        nom::Err::Error(e)
-    }
-}
-
-impl<C, I> IntoParserError<ParserError<C, I, ()>> for TokenizerError<C, I>
-where
-    C: Code,
-    I: Copy,
-{
-    fn into_parser_error(self) -> ParserError<C, I, ()> {
-        ParserError::new(self.code, self.span)
-    }
-}
-
-impl<C, I, Y> IntoParserErrorExtra<ParserError<C, I, Y>, Y> for TokenizerError<C, I>
-where
-    C: Code,
-    I: Copy,
-    Y: Copy,
-{
-    fn into_parser_error_with(self, extra: Y) -> ParserError<C, I, Y> {
-        ParserError::new(self.code, self.span).with_user_data(extra)
-    }
-}
-
-// ***********************************************************************
-// LAYER 2 - wrapped in a nom::Err
-// ***********************************************************************
-
-impl<C, I> IntoParserError<nom::Err<ParserError<C, I, ()>>> for nom::Err<TokenizerError<C, I>>
-where
-    C: Code,
-    I: Copy,
-{
-    fn into_parser_error(self) -> nom::Err<ParserError<C, I, ()>> {
-        match self {
-            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => nom::Err::Error(e.into_parser_error()),
-            nom::Err::Failure(e) => nom::Err::Failure(e.into_parser_error()),
-        }
-    }
-}
-
-impl<C, I, Y> IntoParserErrorExtra<nom::Err<ParserError<C, I, Y>>, Y>
-    for nom::Err<TokenizerError<C, I>>
-where
-    C: Code,
-    I: Copy,
-    Y: Copy,
-{
-    fn into_parser_error_with(self, extra: Y) -> nom::Err<ParserError<C, I, Y>> {
-        match self {
-            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => nom::Err::Error(e.into_parser_error_with(extra)),
-            nom::Err::Failure(e) => nom::Err::Failure(e.into_parser_error_with(extra)),
-        }
-    }
-}
-
-// ***********************************************************************
-// LAYER 3 - wrapped in a Result
-// ***********************************************************************
-
-impl<C, I, O> IntoParserError<Result<(I, O), nom::Err<ParserError<C, I, ()>>>>
-    for Result<(I, O), nom::Err<TokenizerError<C, I>>>
-where
-    C: Code,
-    I: Copy,
-{
-    fn into_parser_error(self) -> Result<(I, O), nom::Err<ParserError<C, I, ()>>> {
-        match self {
-            Ok(v) => Ok(v),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_error())),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.into_parser_error())),
-        }
-    }
-}
-
-impl<C, I, O, Y> IntoParserErrorExtra<Result<(I, O), nom::Err<ParserError<C, I, Y>>>, Y>
-    for Result<(I, O), nom::Err<TokenizerError<C, I>>>
-where
-    C: Code,
-    I: Copy,
-    Y: Copy,
-{
-    fn into_parser_error_with(self, extra: Y) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
-        match self {
-            Ok(v) => Ok(v),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_error_with(extra))),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.into_parser_error_with(extra))),
-        }
     }
 }

@@ -10,8 +10,8 @@ use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
 
 use kparse::test::{track_parse, CheckDump};
-use kparse::tracker::{TrackParserResult, TrackSpan};
-use kparse::{Code, ParserError};
+use kparse::tracker::TrackSpan;
+use kparse::{Code, ParserError, ParserResult};
 pub use parser::*;
 
 fn main() {
@@ -103,8 +103,8 @@ impl Code for PLUCode {
 
 // type aliases to avoid typing PLUCode all the time.
 pub type PSpan<'s> = TrackSpan<'s, PLUCode, &'s str>;
-pub type PLUParserResult<'s, O> = TrackParserResult<PLUCode, PSpan<'s>, O, ()>;
-pub type PLUNomResult<'s> = TrackParserResult<PLUCode, PSpan<'s>, PSpan<'s>, ()>;
+pub type PLUParserResult<'s, O> = ParserResult<PLUCode, PSpan<'s>, O, ()>;
+pub type PLUNomResult<'s> = ParserResult<PLUCode, PSpan<'s>, PSpan<'s>, ()>;
 pub type PLUParserError<'s> = ParserError<PLUCode, PSpan<'s>, ()>;
 
 /// complete

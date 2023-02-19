@@ -62,7 +62,6 @@ use crate::token_error::TokenizerError;
 pub mod prelude {
     pub use crate::error::AppendParserError;
     pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
-    pub use crate::token_error::{IntoParserError, IntoParserErrorExtra};
     pub use crate::tracker::{ResultTracking, Tracking};
     pub use crate::ParseErrorExt;
 }
@@ -118,4 +117,10 @@ pub trait ParseErrorExt<C, I> {
     /// Converts self to a nom::Err wrapped error.
     /// This doesn't work if self is a Result, but otherwise it's fine.
     fn into_wrapped(self) -> nom::Err<Self::WrappedError>;
+
+    /// Concrete parser error type.
+    type ParserError;
+
+    /// Converts self to a variant of ParserError.
+    fn into_parser_error(self) -> Self::ParserError;
 }

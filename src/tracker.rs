@@ -2,7 +2,6 @@
 //! Everything related to tracking in a parser.
 //!
 
-use crate::error::ParserError;
 use crate::{Code, ParseErrorExt};
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use nom_locate::LocatedSpan;
@@ -10,7 +9,6 @@ use std::fmt::{Debug, Formatter};
 
 mod std_tracker;
 
-use crate::token_error::TokenizerError;
 pub use std_tracker::*;
 
 /// Standard input type for tracking.
@@ -44,7 +42,7 @@ where
 /// Create an [StdTracker] and use it's span() function to get the input for your
 /// parser.
 ///
-/// This trait is only used to implement the tracker, use [Context] to add tracking
+/// This trait is only used to implement the tracker, use [crate::Context] to add tracking
 /// to your parser.
 pub trait Tracker<C, T>
 where
@@ -57,7 +55,7 @@ where
 /// An instance of this struct ist kept in the extra field of LocatedSpan.
 /// This way it's propagated all the way through the parser.
 ///
-/// Access the tracking functions via [Context].
+/// Access the tracking functions via [crate::Context].
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct DynTracker<'c, C, T>(pub(crate) &'c dyn Tracker<C, T>)

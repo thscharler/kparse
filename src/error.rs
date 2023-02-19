@@ -19,7 +19,7 @@ use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
 use crate::{Code, ParseErrorExt};
 use nom::error::ErrorKind;
-use nom::{AsBytes, InputIter, InputLength, InputTake};
+use nom::{InputIter, InputLength, InputTake};
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -104,6 +104,12 @@ where
     fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
         nom::Err::Error(self)
     }
+
+    type ParserError = Self;
+
+    fn into_parser_error(self) -> Self::ParserError {
+        self
+    }
 }
 
 impl<C, I, Y> ParseErrorExt<C, I> for nom::Err<ParserError<C, I, Y>>
@@ -154,6 +160,12 @@ where
 
     type WrappedError = ParserError<C, I, Y>;
     fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+        self
+    }
+
+    type ParserError = Self;
+
+    fn into_parser_error(self) -> Self::ParserError {
         self
     }
 }
@@ -213,6 +225,12 @@ where
 
     fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
         unimplemented!("into_wrapped cannot be used for Result<>");
+    }
+
+    type ParserError = Self;
+
+    fn into_parser_error(self) -> Self::ParserError {
+        self
     }
 }
 
@@ -827,38 +845,5 @@ where
         }
 
         grp
-    }
-}
-
-// -----------------------------------------------------------------------
-// conversions
-// -----------------------------------------------------------------------
-
-// ... todo: nom::error::Error maybe
-
-// // take everything from nom::error::Error
-// impl<C, I, Y> WithCode<C, ParserError<C, I, Y>> for nom::error::Error<I>
-// where
-//     I: AsBytes + Copy,
-//     C: Code,
-//     Y: Copy,
-// {
-//     fn with_code(self, code: C) -> ParserError<C, I, Y> {
-//         ParserError::new(code, self.input).with_nom(self.input, self.code)
-//     }
-// }
-
-//
-// ParserError to nom::Err<ParserError>, useful shortcut when creating
-// a fresh ParserError.
-//
-impl<C, I, Y> From<ParserError<C, I, Y>> for nom::Err<ParserError<C, I, Y>>
-where
-    C: Code,
-    I: AsBytes + Copy,
-    Y: Copy,
-{
-    fn from(e: ParserError<C, I, Y>) -> Self {
-        nom::Err::Error(e)
     }
 }
