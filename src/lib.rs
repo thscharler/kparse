@@ -64,7 +64,7 @@ pub mod prelude {
     pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
     pub use crate::token_error::{IntoParserError, IntoParserErrorExtra};
     pub use crate::tracker::{ResultTracking, Tracking};
-    pub use crate::{ErrWrapped, ParseErrorExt, WithCode};
+    pub use crate::ParseErrorExt;
 }
 
 /// Alias for LocatedSpan.
@@ -85,30 +85,37 @@ pub trait Code: Copy + Display + Debug + Eq {
     const NOM_ERROR: Self;
 }
 
-/// Change the error code.
+/// This trait catches the essentials for an error type within this library.
 ///
-/// Could do a conversion from an external error too, but usually there is no span to work with.
-/// For external errors [WithSpan] is the right thing most of the time.
+/// It is built this way so that it can be implemented for the concrete error
+/// and the nom::Err wrapped error.
+/// With some restrictions for a Result containing a nom::Err wrapped error too.
 ///
-/// There are implementations for [ParserError], [nom::Err]&lt;E&gt; and [Result]&lt;O, E&gt;.
-/// And there is one for a classic nom::error::Error too.
-pub trait WithCode<C: Code, R> {
-    /// Translate the error code to a new one.
-    fn with_code(self, code: C) -> R;
-}
-
-/// Minimal information for a ParserError.
+/// The functions returning an Option return None if
+/// * self is nom::Err::Incomplete
+/// * self is Result::Ok
+///
+/// The first case is a special error path aside from parsing, and the second
+/// is not an error at all.
+///
 pub trait ParseErrorExt<C, I> {
-    fn code(&self) -> C;
-    fn span(&self) -> I;
-}
+    /// Returns the error code if applicable.
+    fn code(&self) -> Option<C>;
+    /// Returns the error span if applicable.
+    fn span(&self) -> Option<I>;
+    /// Returns the error if applicable.
+    fn err(&self) -> Option<&Self::WrappedError>;
 
-/// Any type that can be wrapped in a nom::Err.
-pub trait ErrWrapped {
-    /// The wrapped type.
-    type WrappedType;
-    /// Return as wrapped.
-    fn wrapped(self) -> nom::Err<Self::WrappedType>;
-    /// Return a reference to the type itself.
-    fn as_ref(&self) -> Option<&Self::WrappedType>;
+    /// Returns all the parts if applicable.
+    fn parts(&self) -> Option<(C, I, &Self::WrappedError)>;
+
+    /// Changes the error code.
+    fn with_code(self, code: C) -> Self;
+
+    /// The base error type.
+    type WrappedError: Debug;
+
+    /// Converts self to a nom::Err wrapped error.
+    /// This doesn't work if self is a Result, but otherwise it's fine.
+    fn into_wrapped(self) -> nom::Err<Self::WrappedError>;
 }

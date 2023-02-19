@@ -3,8 +3,8 @@
 //!
 
 use crate::tracker::{DynTracker, TrackerData, Tracking};
-use crate::{Code, ErrWrapped, ParseErrorExt};
-use nom::{AsBytes, InputLength, InputTake};
+use crate::{Code, ParseErrorExt};
+use nom::{AsBytes, InputIter, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::Debug;
 
@@ -17,32 +17,33 @@ impl Context {
     pub fn ok<C, I, O, E>(&self, rest: I, input: I, value: O) -> Result<(I, O), nom::Err<E>>
     where
         C: Code,
-        I: Copy + Debug + Tracking<C>,
-        I: InputTake + InputLength,
+        I: Copy + Debug,
+        I: Tracking<C>,
+        I: InputTake + InputLength + InputIter,
         E: ParseErrorExt<C, I> + Debug,
     {
-        rest.ok(input, value)
+        rest.track_ok(input);
+        rest.track_exit();
+        Ok((rest, value))
     }
 
     /// Tracks the error and creates a Result.
     #[inline]
-    pub fn err<C, I, O, E>(
-        &self,
-        err: impl ErrWrapped<WrappedType = E>,
-    ) -> Result<(I, O), nom::Err<E>>
+    pub fn err<C, I, O, E>(&self, err: E) -> Result<(I, O), nom::Err<E::WrappedError>>
     where
         C: Code,
-        I: Copy + Debug + Tracking<C>,
-        I: InputTake + InputLength,
+        I: Copy + Debug,
+        I: Tracking<C>,
+        I: InputTake + InputLength + InputIter,
         E: ParseErrorExt<C, I> + Debug,
     {
-        match err.as_ref() {
-            Some(e) => {
-                let span = e.span();
-                let code = e.code();
-                span.err(code, err.wrapped())
+        match err.parts() {
+            None => Err(err.into_wrapped()),
+            Some((code, span, e)) => {
+                span.track_err(code, e);
+                span.track_exit();
+                Err(err.into_wrapped())
             }
-            None => Err(err.wrapped()),
         }
     }
 
@@ -65,12 +66,17 @@ impl Context {
     pub fn err_section<C, I, E>(&self, err: &E)
     where
         C: Code,
-        I: Copy + Debug + Tracking<C> + InputTake + InputLength,
+        I: Copy + Debug,
+        I: Tracking<C>,
+        I: InputTake + InputLength + InputIter,
         E: ParseErrorExt<C, I> + Debug,
     {
-        let span = err.span();
-        let code = err.code();
-        span.track_err(code, err);
+        match err.parts() {
+            None => {}
+            Some((code, span, e)) => {
+                span.track_err(code, e);
+            }
+        }
     }
 
     /// Enter a parser function.
@@ -121,27 +127,6 @@ where
     C: Code,
     T: Copy + Debug + AsBytes + InputTake + InputLength,
 {
-    fn ok<O, E>(self, parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
-        self.extra
-            .0
-            .track(TrackerData::Ok(clear_span(&self), clear_span(&parsed)));
-        self.extra.0.track(TrackerData::Exit());
-        Ok((self, value))
-    }
-
-    fn err<O, E: Debug>(&self, code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>> {
-        match &err {
-            nom::Err::Incomplete(_) => {}
-            nom::Err::Error(e) | nom::Err::Failure(e) => {
-                self.extra
-                    .0
-                    .track(TrackerData::Err(clear_span(self), code, format!("{:?}", e)));
-                self.extra.0.track(TrackerData::Exit());
-            }
-        }
-        Err(err)
-    }
-
     fn track_enter(&self, func: C) {
         self.extra
             .0
@@ -208,14 +193,6 @@ where
     T: InputTake + InputLength + AsBytes,
     C: Code,
 {
-    fn ok<O, E>(self, _parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
-        Ok((self, value))
-    }
-
-    fn err<O, E>(&self, _code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>> {
-        Err(err)
-    }
-
     fn track_enter(&self, _func: C) {}
 
     fn track_debug(&self, _debug: String) {}
@@ -235,14 +212,6 @@ impl<'s, C> Tracking<C> for &'s str
 where
     C: Code,
 {
-    fn ok<O, E>(self, _parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
-        Ok((self, value))
-    }
-
-    fn err<O, E>(&self, _code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>> {
-        Err(err)
-    }
-
     fn track_enter(&self, _func: C) {}
 
     fn track_debug(&self, _debug: String) {}
@@ -262,14 +231,6 @@ impl<'s, C> Tracking<C> for &'s [u8]
 where
     C: Code,
 {
-    fn ok<O, E>(self, _input: Self, value: O) -> Result<(Self, O), nom::Err<E>> {
-        Ok((self, value))
-    }
-
-    fn err<O, E>(&self, _code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>> {
-        Err(err)
-    }
-
     fn track_enter(&self, _func: C) {}
 
     fn track_debug(&self, _debug: String) {}

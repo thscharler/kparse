@@ -355,9 +355,8 @@ mod parser {
 mod token {
     use crate::nom_parser::{nom_float, nom_minus, nom_number};
     use crate::PLUCode::*;
-    use crate::{PDate, PFactor, PLUCode, PLUParserError, PLUParserResult, PNumber, PSpan};
+    use crate::{PDate, PFactor, PLUParserError, PLUParserResult, PNumber, PSpan};
     use kparse::prelude::*;
-    use kparse::ParserError;
 
     /// factor
     pub fn token_factor(rest: PSpan<'_>) -> PLUParserResult<'_, PFactor<'_>> {

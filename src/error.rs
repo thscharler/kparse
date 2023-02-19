@@ -13,14 +13,11 @@
 //! old error code as expected value. with_code() also exists for Result's
 //! that contain a ParserError.
 //!
-//! To convert some error to a ParserError the trait WithSpan can be used.
-//! A From conversion works fine too.
-//!
 
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
-use crate::{Code, ErrWrapped, ParseErrorExt, WithCode};
+use crate::{Code, ParseErrorExt};
 use nom::error::ErrorKind;
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use std::error::Error;
@@ -80,42 +77,142 @@ pub struct SpanAndCode<C, I> {
 impl<C, I, Y> ParseErrorExt<C, I> for ParserError<C, I, Y>
 where
     C: Code,
-    I: Copy,
+    I: Copy + Debug + InputTake + InputLength + InputIter,
+    Y: Copy + Debug,
 {
-    fn code(&self) -> C {
-        self.code
+    fn code(&self) -> Option<C> {
+        Some(self.code)
     }
 
-    fn span(&self) -> I {
-        self.span
-    }
-}
-
-impl<C, I, Y> ErrWrapped for ParserError<C, I, Y> {
-    type WrappedType = ParserError<C, I, Y>;
-
-    fn wrapped(self) -> nom::Err<Self::WrappedType> {
-        nom::Err::Error(self)
+    fn span(&self) -> Option<I> {
+        Some(self.span)
     }
 
-    fn as_ref(&self) -> Option<&Self::WrappedType> {
+    fn err(&self) -> Option<&Self::WrappedError> {
         Some(self)
     }
-}
 
-impl<C, I, Y> ErrWrapped for nom::Err<ParserError<C, I, Y>> {
-    type WrappedType = ParserError<C, I, Y>;
-
-    fn wrapped(self) -> nom::Err<Self::WrappedType> {
-        self
+    fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
+        Some((self.code, self.span, self))
     }
 
-    fn as_ref(&self) -> Option<&Self::WrappedType> {
+    fn with_code(self, code: C) -> Self {
+        ParserError::with_code(self, code)
+    }
+
+    type WrappedError = Self;
+    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+        nom::Err::Error(self)
+    }
+}
+
+impl<C, I, Y> ParseErrorExt<C, I> for nom::Err<ParserError<C, I, Y>>
+where
+    C: Code,
+    I: Copy + Debug + InputTake + InputLength + InputIter,
+    Y: Copy + Debug,
+{
+    fn code(&self) -> Option<C> {
+        match self {
+            nom::Err::Incomplete(_) => None,
+            nom::Err::Error(e) => Some(e.code),
+            nom::Err::Failure(e) => Some(e.code),
+        }
+    }
+
+    fn span(&self) -> Option<I> {
+        match self {
+            nom::Err::Incomplete(_) => None,
+            nom::Err::Error(e) => Some(e.span),
+            nom::Err::Failure(e) => Some(e.span),
+        }
+    }
+
+    fn err(&self) -> Option<&Self::WrappedError> {
         match self {
             nom::Err::Incomplete(_) => None,
             nom::Err::Error(e) => Some(e),
             nom::Err::Failure(e) => Some(e),
         }
+    }
+
+    fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
+        match self {
+            nom::Err::Incomplete(_) => None,
+            nom::Err::Error(e) => Some((e.code, e.span, e)),
+            nom::Err::Failure(e) => Some((e.code, e.span, e)),
+        }
+    }
+
+    fn with_code(self, code: C) -> Self {
+        match self {
+            nom::Err::Incomplete(_) => self,
+            nom::Err::Error(e) => nom::Err::Error(e.with_code(code)),
+            nom::Err::Failure(e) => nom::Err::Failure(e.with_code(code)),
+        }
+    }
+
+    type WrappedError = ParserError<C, I, Y>;
+    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+        self
+    }
+}
+
+impl<C, I, O, Y> ParseErrorExt<C, I> for Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+where
+    C: Code,
+    I: Copy + Debug + InputTake + InputLength + InputIter,
+    Y: Copy + Debug,
+{
+    fn code(&self) -> Option<C> {
+        match self {
+            Ok(_) => None,
+            Err(nom::Err::Error(e)) => Some(e.code),
+            Err(nom::Err::Failure(e)) => Some(e.code),
+            Err(nom::Err::Incomplete(_)) => None,
+        }
+    }
+
+    fn span(&self) -> Option<I> {
+        match self {
+            Ok(_) => None,
+            Err(nom::Err::Error(e)) => Some(e.span),
+            Err(nom::Err::Failure(e)) => Some(e.span),
+            Err(nom::Err::Incomplete(_)) => None,
+        }
+    }
+
+    fn err(&self) -> Option<&Self::WrappedError> {
+        match self {
+            Ok(_) => None,
+            Err(nom::Err::Error(e)) => Some(e),
+            Err(nom::Err::Failure(e)) => Some(e),
+            Err(nom::Err::Incomplete(_)) => None,
+        }
+    }
+
+    fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
+        match self {
+            Ok(_) => None,
+            Err(nom::Err::Error(e)) => Some((e.code, e.span, e)),
+            Err(nom::Err::Failure(e)) => Some((e.code, e.span, e)),
+            Err(nom::Err::Incomplete(_)) => None,
+        }
+    }
+
+    fn with_code(self, code: C) -> Self {
+        match self {
+            Ok((rest, token)) => Ok((rest, token)),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(code))),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Error(e.with_code(code))),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+        }
+    }
+
+    type WrappedError = ParserError<C, I, Y>;
+
+    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+        unimplemented!("into_wrapped cannot be used for Result<>");
     }
 }
 
@@ -737,21 +834,19 @@ where
 // conversions
 // -----------------------------------------------------------------------
 
-// take everything from nom::error::Error
-impl<C, I, Y> WithCode<C, ParserError<C, I, Y>> for nom::error::Error<I>
-where
-    I: AsBytes + Copy,
-    C: Code,
-    Y: Copy,
-{
-    fn with_code(self, code: C) -> ParserError<C, I, Y> {
-        ParserError::new(code, self.input).with_nom(self.input, self.code)
-    }
-}
+// ... todo: nom::error::Error maybe
 
-// ***********************************************************************
-// LAYER 1 - useful conversions
-// ***********************************************************************
+// // take everything from nom::error::Error
+// impl<C, I, Y> WithCode<C, ParserError<C, I, Y>> for nom::error::Error<I>
+// where
+//     I: AsBytes + Copy,
+//     C: Code,
+//     Y: Copy,
+// {
+//     fn with_code(self, code: C) -> ParserError<C, I, Y> {
+//         ParserError::new(code, self.input).with_nom(self.input, self.code)
+//     }
+// }
 
 //
 // ParserError to nom::Err<ParserError>, useful shortcut when creating
@@ -765,79 +860,5 @@ where
 {
     fn from(e: ParserError<C, I, Y>) -> Self {
         nom::Err::Error(e)
-    }
-}
-
-impl<C, I, Y> WithCode<C, ParserError<C, I, Y>> for ParserError<C, I, Y>
-where
-    I: AsBytes + Copy,
-    C: Code,
-    Y: Copy,
-{
-    fn with_code(self, code: C) -> ParserError<C, I, Y> {
-        ParserError::with_code(self, code)
-    }
-}
-
-// ***********************************************************************
-// LAYER 2 - wrapped in a nom::Err
-// ***********************************************************************
-
-//
-// nom::Err::<ParserError<C, I, Y>
-//
-
-impl<C, I, Y> WithCode<C, nom::Err<ParserError<C, I, Y>>> for nom::Err<ParserError<C, I, Y>>
-where
-    C: Code,
-    I: AsBytes + Copy,
-    Y: Copy,
-{
-    fn with_code(self, code: C) -> nom::Err<ParserError<C, I, Y>> {
-        match self {
-            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => {
-                let p_err: ParserError<C, I, Y> = e.with_code(code);
-                nom::Err::Error(p_err)
-            }
-            nom::Err::Failure(e) => {
-                let p_err: ParserError<C, I, Y> = e.with_code(code);
-                nom::Err::Failure(p_err)
-            }
-        }
-    }
-}
-
-// info: cannot implement this:
-//
-// impl<C, I, E, Y> WithSpan<C, I, nom::Err<ParserError<C, I, Y>>> for nom::Err<E>
-// where
-//     C: Code,
-//     I: AsBytes + Copy,
-//     E: WithSpan<C, I, ParserError<C, I, Y>>,
-//     Y: Copy,
-//
-// WithSpan returns a nom::Err wrapped ParserError, and self is a nom::Err too.
-// There is no clear indication which of the nom::Err should be used for the result.
-
-// ***********************************************************************
-// LAYER 3 - wrapped in a Result
-// ***********************************************************************
-
-impl<C, I, O, Y> WithCode<C, Result<(I, O), nom::Err<ParserError<C, I, Y>>>>
-    for Result<(I, O), nom::Err<ParserError<C, I, Y>>>
-where
-    C: Code,
-    I: AsBytes + Copy,
-    Y: Copy,
-{
-    fn with_code(self, code: C) -> Result<(I, O), nom::Err<ParserError<C, I, Y>>> {
-        match self {
-            Ok(v) => Ok(v),
-            Err(e) => {
-                let p_err: nom::Err<ParserError<C, I, Y>> = e.with_code(code);
-                Err(p_err)
-            }
-        }
     }
 }

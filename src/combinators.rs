@@ -3,28 +3,38 @@
 //!
 
 use crate::tracker::Tracking;
-use crate::{Code, ParserError, WithCode};
+use crate::{Code, ParseErrorExt};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
 use std::fmt::Debug;
 
 /// Tracked execution of a parser.
-pub fn track<PA, C, I, O>(
-    code: C,
+pub fn track<PA, C, I, O, E>(
+    func: C,
     mut parser: PA,
-) -> impl FnMut(I) -> Result<(I, O), nom::Err<ParserError<C, I>>>
+) -> impl FnMut(I) -> Result<(I, O), nom::Err<E>>
 where
-    PA: Parser<I, O, ParserError<C, I>>,
+    PA: Parser<I, O, E>,
     C: Code,
     I: Copy + Debug + Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
+    nom::Err<E>: ParseErrorExt<C, I>,
 {
-    move |i| -> Result<(I, O), nom::Err<ParserError<C, I>>> {
-        i.track_enter(code);
-        match parser.parse(i) {
-            Ok((r, v)) => r.ok(i, v),
-            Err(nom::Err::Incomplete(e)) => i.err(C::NOM_ERROR, nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => i.err(e.code, nom::Err::Error(e)),
-            Err(nom::Err::Failure(e)) => i.err(e.code, nom::Err::Failure(e)),
+    move |input| -> Result<(I, O), nom::Err<E>> {
+        input.track_enter(func);
+        match parser.parse(input) {
+            Ok((rest, token)) => {
+                rest.track_ok(input);
+                rest.track_exit();
+                Ok((rest, token))
+            }
+            Err(err) => match err.parts() {
+                None => Err(err),
+                Some((code, span, e)) => {
+                    span.track_err(code, e);
+                    span.track_exit();
+                    Err(err)
+                }
+            },
         }
     }
 }
@@ -36,7 +46,7 @@ pub fn error_code<PA, C, I, O, E>(
 ) -> impl FnMut(I) -> Result<(I, O), nom::Err<E>>
 where
     PA: Parser<I, O, E>,
-    E: WithCode<C, E>,
+    E: ParseErrorExt<C, I>,
     C: Code,
     I: AsBytes + Copy,
 {
@@ -78,18 +88,17 @@ where
 }
 
 /// Runs a condition on the input and only executes the parser on success.
-pub fn conditional<CFn, PFn, C, I, O, Y>(
+pub fn when<CFn, PFn, C, I, O, E>(
     cond_fn: CFn,
     mut parse_fn: PFn,
-) -> impl FnMut(I) -> Result<(I, Option<O>), nom::Err<ParserError<C, I, Y>>>
+) -> impl FnMut(I) -> Result<(I, Option<O>), nom::Err<E>>
 where
     CFn: Fn(I) -> bool,
-    PFn: Parser<I, O, ParserError<C, I, Y>>,
+    PFn: Parser<I, O, E>,
     C: Code,
     I: AsBytes + Copy,
-    Y: Copy,
 {
-    move |i| -> Result<(I, Option<O>), nom::Err<ParserError<C, I, Y>>> {
+    move |i| -> Result<(I, Option<O>), nom::Err<E>> {
         if cond_fn(i) {
             parse_fn.parse(i).map(|(r, v)| (r, Some(v)))
         } else {

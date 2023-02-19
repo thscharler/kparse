@@ -3,7 +3,7 @@
 //!
 
 use crate::error::ParserError;
-use crate::{Code, ParseErrorExt, WithCode};
+use crate::{Code, ParseErrorExt};
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Formatter};
@@ -32,12 +32,19 @@ pub enum TrackerData<C, T>
 where
     C: Code,
 {
+    /// Enter function
     Enter(C, LocatedSpan<T, ()>),
+    /// Exit function
     Exit(),
+    /// Ok result
     Ok(LocatedSpan<T, ()>, LocatedSpan<T, ()>),
+    /// Err result
     Err(LocatedSpan<T, ()>, C, String),
+    /// Warning
     Warn(LocatedSpan<T, ()>, &'static str),
+    /// General info
     Info(LocatedSpan<T, ()>, &'static str),
+    /// Debug info
     Debug(LocatedSpan<T, ()>, String),
 }
 
@@ -51,6 +58,7 @@ pub trait Tracker<C, T>
 where
     C: Code,
 {
+    /// Collects the tracking data.
     fn track(&self, data: TrackerData<C, T>);
 }
 
@@ -80,12 +88,6 @@ where
     C: Code,
     Self: Sized,
 {
-    /// Creates an Ok() Result from the parameters and tracks the result.
-    fn ok<O, E>(self, parsed: Self, value: O) -> Result<(Self, O), nom::Err<E>>;
-
-    /// Tracks the error and creates a Result.
-    fn err<O, E: Debug>(&self, code: C, err: nom::Err<E>) -> Result<(Self, O), nom::Err<E>>;
-
     /// Enter a parser function.
     fn track_enter(&self, func: C);
 
@@ -141,55 +143,38 @@ where
     I: Copy + Debug,
     I: Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
-    E: WithCode<C, E>,
-    E: ParseErrorExt<C, I> + Debug,
+    E: Debug,
+    nom::Err<E>: ParseErrorExt<C, I>,
 {
     /// Keep a track if self is an error.
     fn track(self) -> Self {
         match self {
-            Ok(v) => Ok(v),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => {
-                let span = e.span();
-                let code = e.code();
-                let err = nom::Err::Error(e);
-                span.track_err(code, &err);
-                span.track_exit();
-                Err(err)
-            }
-            Err(nom::Err::Failure(e)) => {
-                let span = e.span();
-                let code = e.code();
-                let err = nom::Err::Failure(e);
-                span.track_err(code, &err);
-                span.track_exit();
-                Err(err)
-            }
+            Ok((rest, token)) => Ok((rest, token)),
+            Err(e) => match e.parts() {
+                None => Err(e),
+                Some((code, span, err)) => {
+                    span.track_err(code, err);
+                    span.track_exit();
+                    Err(e)
+                }
+            },
         }
     }
 
     /// Keep track if self is an error, and set an error code too.
     fn track_as(self, code: C) -> Self {
         match self {
-            Ok(v) => Ok(v),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => {
+            Ok((rest, token)) => Ok((rest, token)),
+            Err(e) => {
                 let e = e.with_code(code);
-                let span = e.span();
-                let code = e.code();
-                let err = nom::Err::Error(e);
-                span.track_err(code, &err);
-                span.track_exit();
-                Err(err)
-            }
-            Err(nom::Err::Failure(e)) => {
-                let e = e.with_code(code);
-                let span = e.span();
-                let code = e.code();
-                let err = nom::Err::Failure(e);
-                span.track_err(code, &err);
-                span.track_exit();
-                Err(err)
+                match e.parts() {
+                    None => Err(e),
+                    Some((code, span, err)) => {
+                        span.track_err(code, err);
+                        span.track_exit();
+                        Err(e)
+                    }
+                }
             }
         }
     }
@@ -197,28 +182,19 @@ where
     /// Keep track of self, either as error or as ok result.
     fn track_ok(self, parsed: I) -> Self {
         match self {
-            Ok((span, v)) => {
-                span.track_ok(parsed);
-                span.track_exit();
-                Ok((span, v))
+            Ok((rest, token)) => {
+                rest.track_ok(parsed);
+                rest.track_exit();
+                Ok((rest, token))
             }
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-            Err(nom::Err::Error(e)) => {
-                let span = e.span();
-                let code = e.code();
-                let err = nom::Err::Error(e);
-                span.track_err(code, &err);
-                span.track_exit();
-                Err(err)
-            }
-            Err(nom::Err::Failure(e)) => {
-                let span = e.span();
-                let code = e.code();
-                let err = nom::Err::Failure(e);
-                span.track_err(code, &err);
-                span.track_exit();
-                Err(err)
-            }
+            Err(e) => match e.parts() {
+                None => Err(e),
+                Some((code, span, err)) => {
+                    span.track_err(code, err);
+                    span.track_exit();
+                    Err(e)
+                }
+            },
         }
     }
 }

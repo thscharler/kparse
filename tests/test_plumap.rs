@@ -15,9 +15,14 @@ pub use parser::*;
 
 #[test]
 fn test_plumap() {
-    span_parsex(&mut None, "1 -> 2\n", parse_plumap)
-        .ok_any()
-        .q(CheckDump);
+    span_parsex(
+        &mut None,
+        "1 -> 2\n
+# comment",
+        parse_plumap,
+    )
+    .ok_any()
+    .q(CheckDump);
 }
 
 /// Parser Codes
@@ -362,7 +367,7 @@ mod parser {
 mod token {
     use crate::nom_parser::{nom_float, nom_minus, nom_number};
     use crate::PLUCode::*;
-    use crate::{PDatum, PFaktor, PLUCode, PLUParserError, PLUParserResult, PNummer, PSpan};
+    use crate::{PDatum, PFaktor, PLUParserError, PLUParserResult, PNummer, PSpan};
     use kparse::combinators::{error_code, transform};
     use kparse::prelude::*;
     use kparse::{Code, ParserError};

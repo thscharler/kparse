@@ -1423,15 +1423,13 @@ mod planung4 {
         use crate::planung4::ast::{APDatum, APMenge, APName, APNummer};
         use crate::planung4::nom_tokens::{nom_dot, nom_name, nom_name_kurz, nom_number};
         use crate::planung4::APCode::*;
-        use crate::planung4::{APCode, APParserError, APParserResult, APSpan};
+        use crate::planung4::{APParserError, APParserResult, APSpan};
         use chrono::NaiveDate;
         use kparse::combinators::{error_code, transform};
         use kparse::prelude::*;
-        use kparse::tracker::TrackSpan;
         use kparse::{Code, ParserError};
         use nom::combinator::recognize;
         use nom::sequence::tuple;
-        use std::num::ParseIntError;
 
         pub fn token_name(rest: APSpan<'_>) -> APParserResult<'_, APName<'_>> {
             match nom_name(rest) {

@@ -1,5 +1,12 @@
+//!
+//! Second, simpler error type. Same size as nom::error::Error.
+//!
+//! Can only hold one error code and a span.
+//!
+//!
+
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, ParseErrorExt, ParserError, WithCode};
+use crate::{Code, ParseErrorExt, ParserError};
 use nom::error::ErrorKind;
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use std::error::Error;
@@ -18,14 +25,140 @@ pub struct TokenizerError<C, I> {
 impl<C, I> ParseErrorExt<C, I> for TokenizerError<C, I>
 where
     C: Code,
-    I: Copy,
+    I: Copy + Debug + InputTake + InputLength + InputIter,
 {
-    fn code(&self) -> C {
-        self.code
+    fn code(&self) -> Option<C> {
+        Some(self.code)
     }
 
-    fn span(&self) -> I {
-        self.span
+    fn span(&self) -> Option<I> {
+        Some(self.span)
+    }
+
+    fn err(&self) -> Option<&Self::WrappedError> {
+        Some(self)
+    }
+
+    fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
+        Some((self.code, self.span, self))
+    }
+
+    fn with_code(self, code: C) -> Self {
+        TokenizerError::with_code(self, code)
+    }
+
+    type WrappedError = Self;
+    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+        nom::Err::Error(self)
+    }
+}
+
+impl<C, I> ParseErrorExt<C, I> for nom::Err<TokenizerError<C, I>>
+where
+    C: Code,
+    I: Copy + Debug + InputTake + InputLength + InputIter,
+{
+    fn code(&self) -> Option<C> {
+        match self {
+            nom::Err::Incomplete(_) => None,
+            nom::Err::Error(e) => Some(e.code),
+            nom::Err::Failure(e) => Some(e.code),
+        }
+    }
+
+    fn span(&self) -> Option<I> {
+        match self {
+            nom::Err::Incomplete(_) => None,
+            nom::Err::Error(e) => Some(e.span),
+            nom::Err::Failure(e) => Some(e.span),
+        }
+    }
+
+    fn err(&self) -> Option<&Self::WrappedError> {
+        match self {
+            nom::Err::Incomplete(_) => None,
+            nom::Err::Error(e) => Some(e),
+            nom::Err::Failure(e) => Some(e),
+        }
+    }
+
+    fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
+        match self {
+            nom::Err::Incomplete(_) => None,
+            nom::Err::Error(e) => Some((e.code, e.span, e)),
+            nom::Err::Failure(e) => Some((e.code, e.span, e)),
+        }
+    }
+
+    fn with_code(self, code: C) -> Self {
+        match self {
+            nom::Err::Incomplete(_) => self,
+            nom::Err::Error(e) => nom::Err::Error(e.with_code(code)),
+            nom::Err::Failure(e) => nom::Err::Failure(e.with_code(code)),
+        }
+    }
+
+    type WrappedError = TokenizerError<C, I>;
+
+    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+        self
+    }
+}
+
+impl<C, I, O> ParseErrorExt<C, I> for Result<(I, O), nom::Err<TokenizerError<C, I>>>
+where
+    C: Code,
+    I: Copy + Debug + InputTake + InputLength + InputIter,
+{
+    fn code(&self) -> Option<C> {
+        match self {
+            Ok(_) => None,
+            Err(nom::Err::Error(e)) => Some(e.code),
+            Err(nom::Err::Failure(e)) => Some(e.code),
+            Err(nom::Err::Incomplete(_)) => None,
+        }
+    }
+
+    fn span(&self) -> Option<I> {
+        match self {
+            Ok(_) => None,
+            Err(nom::Err::Error(e)) => Some(e.span),
+            Err(nom::Err::Failure(e)) => Some(e.span),
+            Err(nom::Err::Incomplete(_)) => None,
+        }
+    }
+
+    fn err(&self) -> Option<&Self::WrappedError> {
+        match self {
+            Ok(_) => None,
+            Err(nom::Err::Error(e)) => Some(e),
+            Err(nom::Err::Failure(e)) => Some(e),
+            Err(nom::Err::Incomplete(_)) => None,
+        }
+    }
+
+    fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
+        match self {
+            Ok(_) => None,
+            Err(nom::Err::Error(e)) => Some((e.code, e.span, e)),
+            Err(nom::Err::Failure(e)) => Some((e.code, e.span, e)),
+            Err(nom::Err::Incomplete(_)) => None,
+        }
+    }
+
+    fn with_code(self, code: C) -> Self {
+        match self {
+            Ok((rest, token)) => Ok((rest, token)),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(code))),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Error(e.with_code(code))),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+        }
+    }
+
+    type WrappedError = TokenizerError<C, I>;
+
+    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+        unimplemented!("into_wrapped cannot be used for Result<>");
     }
 }
 
@@ -154,16 +287,6 @@ where
     }
 }
 
-impl<C, I> WithCode<C, TokenizerError<C, I>> for TokenizerError<C, I>
-where
-    I: AsBytes + Copy,
-    C: Code,
-{
-    fn with_code(self, code: C) -> TokenizerError<C, I> {
-        TokenizerError::with_code(self, code)
-    }
-}
-
 impl<C, I> IntoParserError<ParserError<C, I, ()>> for TokenizerError<C, I>
 where
     C: Code,
@@ -188,26 +311,6 @@ where
 // ***********************************************************************
 // LAYER 2 - wrapped in a nom::Err
 // ***********************************************************************
-
-impl<C, I> WithCode<C, nom::Err<TokenizerError<C, I>>> for nom::Err<TokenizerError<C, I>>
-where
-    C: Code,
-    I: AsBytes + Copy,
-{
-    fn with_code(self, code: C) -> nom::Err<TokenizerError<C, I>> {
-        match self {
-            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => {
-                let p_err: TokenizerError<C, I> = e.with_code(code);
-                nom::Err::Error(p_err)
-            }
-            nom::Err::Failure(e) => {
-                let p_err: TokenizerError<C, I> = e.with_code(code);
-                nom::Err::Failure(p_err)
-            }
-        }
-    }
-}
 
 impl<C, I> IntoParserError<nom::Err<ParserError<C, I, ()>>> for nom::Err<TokenizerError<C, I>>
 where
@@ -242,23 +345,6 @@ where
 // ***********************************************************************
 // LAYER 3 - wrapped in a Result
 // ***********************************************************************
-
-impl<C, I, O> WithCode<C, Result<(I, O), nom::Err<TokenizerError<C, I>>>>
-    for Result<(I, O), nom::Err<TokenizerError<C, I>>>
-where
-    C: Code,
-    I: AsBytes + Copy,
-{
-    fn with_code(self, code: C) -> Result<(I, O), nom::Err<TokenizerError<C, I>>> {
-        match self {
-            Ok(v) => Ok(v),
-            Err(e) => {
-                let p_err: nom::Err<TokenizerError<C, I>> = e.with_code(code);
-                Err(p_err)
-            }
-        }
-    }
-}
 
 impl<C, I, O> IntoParserError<Result<(I, O), nom::Err<ParserError<C, I, ()>>>>
     for Result<(I, O), nom::Err<TokenizerError<C, I>>>
