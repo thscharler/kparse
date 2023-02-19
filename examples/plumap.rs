@@ -103,9 +103,9 @@ impl Code for PLUCode {
 
 // type aliases to avoid typing PLUCode all the time.
 pub type PSpan<'s> = TrackSpan<'s, PLUCode, &'s str>;
-pub type PLUParserResult<'s, O> = ParserResult<PLUCode, PSpan<'s>, O, ()>;
-pub type PLUNomResult<'s> = ParserResult<PLUCode, PSpan<'s>, PSpan<'s>, ()>;
-pub type PLUParserError<'s> = ParserError<PLUCode, PSpan<'s>, ()>;
+pub type PLUParserResult<'s, O> = ParserResult<PLUCode, PSpan<'s>, O>;
+pub type PLUNomResult<'s> = ParserResult<PLUCode, PSpan<'s>, PSpan<'s>>;
+pub type PLUParserError<'s> = ParserError<PLUCode, PSpan<'s>>;
 
 /// complete
 #[derive(Debug)]

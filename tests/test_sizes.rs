@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use kparse::error::Hints;
-use kparse::tracker::{DynTracker, StdTracker, Track, TrackParserResult, TrackSpan};
-use kparse::{Code, Context, ParserError};
+use kparse::tracker::{DynTracker, StdTracker, Track, TrackSpan};
+use kparse::{Code, Context, ParserError, ParserResult};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Display, Formatter};
 use std::mem::size_of;
@@ -60,13 +60,13 @@ fn test_size2() {
     dbg!(size_of::<TrackSpan<'_, ZCode, &str>>());
 
     dbg!(size_of::<nom::error::Error<&str>>());
-    dbg!(size_of::<ParserError<ZCode, &str, ()>>());
-    dbg!(size_of::<Vec<Hints<ZCode, &str, ()>>>());
+    dbg!(size_of::<ParserError<ZCode, &str>>());
+    dbg!(size_of::<Vec<Hints<ZCode, &str>>>());
 
     dbg!(size_of::<Context>());
-    dbg!(size_of::<TrackParserResult<ZCode, &str, &str, ()>>());
-    dbg!(size_of::<TrackParserResult<ZCode, &str, (), ()>>());
-    dbg!(size_of::<TrackParserResult<ZCode, &str, Nummer<'_>, ()>>());
+    dbg!(size_of::<ParserResult<ZCode, &str, &str>>());
+    dbg!(size_of::<ParserResult<ZCode, &str, ()>>());
+    dbg!(size_of::<ParserResult<ZCode, &str, Nummer<'_>>>());
     dbg!(size_of::<TrackSpan<ZCode, &str>>());
     dbg!(size_of::<LocatedSpan<&str>>());
 

@@ -105,11 +105,10 @@ impl Code for PLUCode {
 }
 
 pub type PSpan<'s> = LocatedSpan<&'s str, ()>;
-pub type PLUParserResult<'s, O> =
-    Result<(PSpan<'s>, O), nom::Err<ParserError<PLUCode, PSpan<'s>, ()>>>;
+pub type PLUParserResult<'s, O> = Result<(PSpan<'s>, O), nom::Err<ParserError<PLUCode, PSpan<'s>>>>;
 pub type PLUNomResult<'s> =
-    Result<(PSpan<'s>, PSpan<'s>), nom::Err<ParserError<PLUCode, PSpan<'s>, ()>>>;
-pub type PLUParserError<'s> = ParserError<PLUCode, PSpan<'s>, ()>;
+    Result<(PSpan<'s>, PSpan<'s>), nom::Err<ParserError<PLUCode, PSpan<'s>>>>;
+pub type PLUParserError<'s> = ParserError<PLUCode, PSpan<'s>>;
 
 /// Gesamte Map.
 #[derive(Debug)]
@@ -403,7 +402,7 @@ mod token {
         r: Result<O, E>,
         code: C,
         span: I,
-    ) -> Result<O, nom::Err<ParserError<C, I, ()>>>
+    ) -> Result<O, nom::Err<ParserError<C, I>>>
     where
         C: Code,
         I: Copy,

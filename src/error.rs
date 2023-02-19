@@ -20,6 +20,7 @@ use crate::spans::SpanLocation;
 use crate::{Code, ParseErrorExt};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
+use std::any::Any;
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -27,17 +28,17 @@ use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
 /// Parser error.
-pub struct ParserError<C, I, Y = ()> {
+pub struct ParserError<C, I> {
     /// Error code
     pub code: C,
     /// Error span
     pub span: I,
     /// Extra information
-    pub hints: Vec<Hints<C, I, Y>>,
+    pub hints: Vec<Hints<C, I>>,
 }
 
 /// Extra information added to a ParserError.
-pub enum Hints<C, I, Y> {
+pub enum Hints<C, I> {
     /// Contains any nom error that occurred.
     Nom(Nom<C, I>),
     /// Contains the nom needed information.
@@ -49,7 +50,7 @@ pub enum Hints<C, I, Y> {
     /// External cause for the error.
     Cause(Box<dyn Error>),
     /// Extra user context.
-    UserData(Y),
+    UserData(Box<dyn Any>),
 }
 
 /// Contains the data of a nom error.
@@ -74,11 +75,10 @@ pub struct SpanAndCode<C, I> {
     pub span: I,
 }
 
-impl<C, I, Y> ParseErrorExt<C, I> for ParserError<C, I, Y>
+impl<C, I> ParseErrorExt<C, I> for ParserError<C, I>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
-    Y: Copy + Debug,
 {
     fn code(&self) -> Option<C> {
         Some(self.code)
@@ -112,11 +112,10 @@ where
     }
 }
 
-impl<C, I, Y> ParseErrorExt<C, I> for nom::Err<ParserError<C, I, Y>>
+impl<C, I> ParseErrorExt<C, I> for nom::Err<ParserError<C, I>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
-    Y: Copy + Debug,
 {
     fn code(&self) -> Option<C> {
         match self {
@@ -158,7 +157,7 @@ where
         }
     }
 
-    type WrappedError = ParserError<C, I, Y>;
+    type WrappedError = ParserError<C, I>;
     fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
         self
     }
@@ -170,11 +169,10 @@ where
     }
 }
 
-impl<C, I, O, Y> ParseErrorExt<C, I> for Result<(I, O), nom::Err<ParserError<C, I, Y>>>
+impl<C, I, O> ParseErrorExt<C, I> for Result<(I, O), nom::Err<ParserError<C, I>>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
-    Y: Copy + Debug,
 {
     fn code(&self) -> Option<C> {
         match self {
@@ -221,7 +219,7 @@ where
         }
     }
 
-    type WrappedError = ParserError<C, I, Y>;
+    type WrappedError = ParserError<C, I>;
 
     fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
         unimplemented!("into_wrapped cannot be used for Result<>");
@@ -243,28 +241,26 @@ pub trait AppendParserError<Rhs = Self> {
     fn append(&mut self, err: Rhs) -> Self::Output;
 }
 
-impl<C, I, Y> AppendParserError<ParserError<C, I, Y>> for ParserError<C, I, Y>
+impl<C, I> AppendParserError<ParserError<C, I>> for ParserError<C, I>
 where
     C: Code,
     I: Copy,
-    Y: Copy,
 {
     type Output = ();
 
-    fn append(&mut self, err: ParserError<C, I, Y>) {
+    fn append(&mut self, err: ParserError<C, I>) {
         self.append_err(err);
     }
 }
 
-impl<C, I, Y> AppendParserError<ParserError<C, I, Y>> for Option<ParserError<C, I, Y>>
+impl<C, I> AppendParserError<ParserError<C, I>> for Option<ParserError<C, I>>
 where
     C: Code,
     I: Copy,
-    Y: Copy,
 {
     type Output = ();
 
-    fn append(&mut self, err: ParserError<C, I, Y>) {
+    fn append(&mut self, err: ParserError<C, I>) {
         match self {
             None => *self = Some(err),
             Some(self_err) => self_err.append_err(err),
@@ -272,18 +268,17 @@ where
     }
 }
 
-impl<C, I, Y> AppendParserError<nom::Err<ParserError<C, I, Y>>> for Option<ParserError<C, I, Y>>
+impl<C, I> AppendParserError<nom::Err<ParserError<C, I>>> for Option<ParserError<C, I>>
 where
     C: Code,
     I: Copy,
-    Y: Copy,
 {
-    type Output = Result<(), nom::Err<ParserError<C, I, Y>>>;
+    type Output = Result<(), nom::Err<ParserError<C, I>>>;
 
     fn append(
         &mut self,
-        err: nom::Err<ParserError<C, I, Y>>,
-    ) -> Result<(), nom::Err<ParserError<C, I, Y>>> {
+        err: nom::Err<ParserError<C, I>>,
+    ) -> Result<(), nom::Err<ParserError<C, I>>> {
         match self {
             None => match err {
                 nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(e)),
@@ -300,15 +295,14 @@ where
     }
 }
 
-impl<C, I, Y> AppendParserError<ParserError<C, I, Y>> for nom::Err<ParserError<C, I, Y>>
+impl<C, I> AppendParserError<ParserError<C, I>> for nom::Err<ParserError<C, I>>
 where
     C: Code,
     I: Copy,
-    Y: Copy,
 {
-    type Output = Result<(), nom::Err<ParserError<C, I, Y>>>;
+    type Output = Result<(), nom::Err<ParserError<C, I>>>;
 
-    fn append(&mut self, err: ParserError<C, I, Y>) -> Self::Output {
+    fn append(&mut self, err: ParserError<C, I>) -> Self::Output {
         match self {
             nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(*e)),
             nom::Err::Error(e) => e.append_err(err),
@@ -318,15 +312,14 @@ where
     }
 }
 
-impl<C, I, Y> AppendParserError<nom::Err<ParserError<C, I, Y>>> for ParserError<C, I, Y>
+impl<C, I> AppendParserError<nom::Err<ParserError<C, I>>> for ParserError<C, I>
 where
     C: Code,
     I: Copy,
-    Y: Copy,
 {
-    type Output = Result<(), nom::Err<ParserError<C, I, Y>>>;
+    type Output = Result<(), nom::Err<ParserError<C, I>>>;
 
-    fn append(&mut self, err: nom::Err<ParserError<C, I, Y>>) -> Self::Output {
+    fn append(&mut self, err: nom::Err<ParserError<C, I>>) -> Self::Output {
         match err {
             nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(e)),
             nom::Err::Error(e) => self.append_err(e),
@@ -336,15 +329,14 @@ where
     }
 }
 
-impl<C, I, Y> AppendParserError<nom::Err<ParserError<C, I, Y>>> for nom::Err<ParserError<C, I, Y>>
+impl<C, I> AppendParserError<nom::Err<ParserError<C, I>>> for nom::Err<ParserError<C, I>>
 where
     C: Code,
     I: Copy,
-    Y: Copy,
 {
-    type Output = Result<(), nom::Err<ParserError<C, I, Y>>>;
+    type Output = Result<(), nom::Err<ParserError<C, I>>>;
 
-    fn append(&mut self, err: nom::Err<ParserError<C, I, Y>>) -> Self::Output {
+    fn append(&mut self, err: nom::Err<ParserError<C, I>>) -> Self::Output {
         match self {
             nom::Err::Incomplete(e) => return Err(nom::Err::Incomplete(*e)),
             nom::Err::Error(e) | nom::Err::Failure(e) => match err {
@@ -356,11 +348,10 @@ where
     }
 }
 
-impl<C, I, Y> nom::error::ParseError<I> for ParserError<C, I, Y>
+impl<C, I> nom::error::ParseError<I> for ParserError<C, I>
 where
     C: Code,
     I: Copy,
-    Y: Copy,
 {
     fn from_error_kind(input: I, kind: ErrorKind) -> Self {
         #[cfg(feature = "track_nom")]
@@ -425,12 +416,11 @@ where
     }
 }
 
-impl<C, I, Y> Display for ParserError<C, I, Y>
+impl<C, I> Display for ParserError<C, I>
 where
     C: Code,
     I: Copy + Debug,
     I: InputTake + InputLength + InputIter,
-    Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.code)?;
@@ -467,9 +457,9 @@ where
             write!(f, " cause {:0?}, ", cause)?;
         }
 
-        if let Some(user_data) = self.user_data() {
-            write!(f, " user_data {:?}, ", user_data)?;
-        }
+        // if let Some(user_data) = self.user_data() {
+        //     write!(f, " user_data {:?}, ", user_data)?;
+        // }
 
         // no suggest
         write!(f, " for span {:?}", restrict(DebugWidth::Short, self.span))?;
@@ -477,24 +467,22 @@ where
     }
 }
 
-impl<C, I, Y> Debug for ParserError<C, I, Y>
+impl<C, I> Debug for ParserError<C, I>
 where
     C: Code,
     I: Copy + Debug,
     I: InputTake + InputLength + InputIter,
-    Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         debug_parse_error(f, self)
     }
 }
 
-impl<C, I, Y> Debug for Hints<C, I, Y>
+impl<C, I> Debug for Hints<C, I>
 where
     C: Code,
     I: Copy + Debug,
     I: InputTake + InputLength + InputIter,
-    Y: Copy + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -534,12 +522,11 @@ where
     }
 }
 
-impl<C, I, Y> Error for ParserError<C, I, Y>
+impl<C, I> Error for ParserError<C, I>
 where
     C: Code,
     I: Copy + Debug,
     I: InputTake + InputLength + InputIter,
-    Y: Copy + Debug,
 {
     fn source(&self) -> Option<&(dyn ::std::error::Error + 'static)> {
         self.hints
@@ -555,11 +542,10 @@ where
     }
 }
 
-impl<C, I, Y> ParserError<C, I, Y>
+impl<C, I> ParserError<C, I>
 where
     C: Code,
     I: Copy,
-    Y: Copy,
 {
     /// New error.
     pub fn new(code: C, span: I) -> Self {
@@ -591,8 +577,11 @@ where
     }
 
     /// With user data.
-    pub fn with_user_data(mut self, user_data: Y) -> Self {
-        self.hints.push(Hints::UserData(user_data));
+    pub fn with_user_data<Y>(mut self, user_data: Y) -> Self
+    where
+        Y: 'static,
+    {
+        self.hints.push(Hints::UserData(Box::new(user_data)));
         self
     }
 
@@ -619,12 +608,12 @@ where
     }
 
     /// Finds the first (single) user data.
-    pub fn user_data(&self) -> Option<&Y> {
+    pub fn user_data<Y: 'static>(&self) -> Option<&Y> {
         self.hints
             .iter()
             .find(|v| matches!(v, Hints::UserData(_)))
             .and_then(|v| match v {
-                Hints::UserData(e) => Some(e),
+                Hints::UserData(e) => e.downcast_ref::<Y>(),
                 _ => None,
             })
     }
@@ -633,7 +622,7 @@ where
     ///
     /// Adds the others code and span as expect values.
     /// Adds all the others expect values.
-    pub fn append_err(&mut self, other: ParserError<C, I, Y>) {
+    pub fn append_err(&mut self, other: ParserError<C, I>) {
         if other.code != C::NOM_ERROR {
             self.expect(other.code, other.span);
         }

@@ -129,8 +129,8 @@ mod cmds_parser {
     use glob::PatternError;
     use kparse::combinators::{error_code, transform};
     use kparse::prelude::*;
-    use kparse::tracker::{TrackParserResult, TrackSpan};
-    use kparse::{Code, Context, ParserError};
+    use kparse::tracker::TrackSpan;
+    use kparse::{Code, Context, ParserError, ParserResult};
     use nom::bytes::complete::{tag, take_till1, take_while1};
     use nom::character::complete::{char as nchar, digit1};
     use nom::combinator::{consumed, recognize};
@@ -142,9 +142,9 @@ mod cmds_parser {
     use CCode::*;
 
     pub type CSpan<'s> = TrackSpan<'s, CCode, &'s str>;
-    pub type CParserError<'s> = ParserError<CCode, CSpan<'s>, ()>;
-    pub type CParserResult<'s, O> = TrackParserResult<CCode, CSpan<'s>, O, ()>;
-    pub type CNomResult<'s> = TrackParserResult<CCode, CSpan<'s>, CSpan<'s>, ()>;
+    pub type CParserError<'s> = ParserError<CCode, CSpan<'s>>;
+    pub type CParserResult<'s, O> = ParserResult<CCode, CSpan<'s>, O>;
+    pub type CNomResult<'s> = ParserResult<CCode, CSpan<'s>, CSpan<'s>>;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub enum CCode {

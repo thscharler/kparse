@@ -5,13 +5,12 @@ use std::fmt;
 use std::fmt::Debug;
 
 /// impl of debug for ParserError.
-pub(crate) fn debug_parse_error<C, I, Y>(
+pub(crate) fn debug_parse_error<C, I>(
     f: &mut fmt::Formatter<'_>,
-    err: &ParserError<C, I, Y>,
+    err: &ParserError<C, I>,
 ) -> fmt::Result
 where
     C: Code,
-    Y: Copy + Debug,
     I: Copy + Debug,
     I: InputTake + InputLength + InputIter,
 {
@@ -23,13 +22,9 @@ where
     }
 }
 
-fn debug_parse_error_short<C, I, Y>(
-    f: &mut impl fmt::Write,
-    err: &ParserError<C, I, Y>,
-) -> fmt::Result
+fn debug_parse_error_short<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
 where
     C: Code,
-    Y: Copy + Debug,
     I: Copy + Debug,
     I: InputTake + InputLength + InputIter,
 {
@@ -52,20 +47,16 @@ where
     if let Some(cause) = err.cause() {
         write!(f, "cause={:0?}, ", cause)?;
     }
-    if let Some(user_data) = err.user_data() {
-        write!(f, "user_data={:0?}, ", user_data)?;
-    }
+    // if let Some(user_data) = err.user_data() {
+    //     write!(f, "user_data={:0?}, ", user_data)?;
+    // }
 
     Ok(())
 }
 
-fn debug_parse_error_medium<C, I, Y>(
-    f: &mut impl fmt::Write,
-    err: &ParserError<C, I, Y>,
-) -> fmt::Result
+fn debug_parse_error_medium<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
 where
     C: Code,
-    Y: Copy + Debug,
     I: Copy + Debug,
     I: InputTake + InputLength + InputIter,
 {
@@ -100,22 +91,18 @@ where
         indent(f, 1)?;
         writeln!(f, "{:1?}, ", cause)?;
     }
-    if let Some(user_data) = err.user_data() {
-        writeln!(f, "user_data")?;
-        indent(f, 1)?;
-        writeln!(f, "{:1?}, ", user_data)?;
-    }
+    // if let Some(user_data) = err.user_data() {
+    //     writeln!(f, "user_data")?;
+    //     indent(f, 1)?;
+    //     writeln!(f, "{:1?}, ", user_data)?;
+    // }
 
     Ok(())
 }
 
-fn debug_parse_error_long<C, I, Y>(
-    f: &mut impl fmt::Write,
-    err: &ParserError<C, I, Y>,
-) -> fmt::Result
+fn debug_parse_error_long<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
 where
     C: Code,
-    Y: Copy + Debug,
     I: Copy + Debug,
     I: InputTake + InputLength + InputIter,
 {
@@ -150,11 +137,11 @@ where
         indent(f, 1)?;
         writeln!(f, "{:2?}, ", cause)?;
     }
-    if let Some(user_data) = err.user_data() {
-        writeln!(f, "user_data")?;
-        indent(f, 1)?;
-        writeln!(f, "{:2?}, ", user_data)?;
-    }
+    // if let Some(user_data) = err.user_data() {
+    //     writeln!(f, "user_data")?;
+    //     indent(f, 1)?;
+    //     writeln!(f, "{:2?}, ", user_data)?;
+    // }
 
     Ok(())
 }

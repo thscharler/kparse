@@ -131,9 +131,9 @@ mod planung4 {
     }
 
     pub type APSpan<'s> = TrackSpan<'s, APCode, &'s str>;
-    pub type APParserError<'s> = ParserError<APCode, APSpan<'s>, ()>;
-    pub type APParserResult<'s, O> = ParserResult<APCode, APSpan<'s>, O, ()>;
-    pub type APNomResult<'s> = ParserResult<APCode, APSpan<'s>, APSpan<'s>, ()>;
+    pub type APParserError<'s> = ParserError<APCode, APSpan<'s>>;
+    pub type APParserResult<'s, O> = ParserResult<APCode, APSpan<'s>, O>;
+    pub type APNomResult<'s> = ParserResult<APCode, APSpan<'s>, APSpan<'s>>;
 
     pub mod diagnostics {
         use crate::planung4::{APCode, APParserError, APSpan};
@@ -1513,7 +1513,7 @@ mod planung4 {
             r: Result<O, E>,
             code: C,
             span: I,
-        ) -> Result<O, nom::Err<ParserError<C, I, ()>>>
+        ) -> Result<O, nom::Err<ParserError<C, I>>>
         where
             C: Code,
             I: Copy,

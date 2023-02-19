@@ -72,7 +72,7 @@ pub type ParseSpan<T, X> = LocatedSpan<T, X>;
 
 /// ParserResult without tracking.  
 /// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
-pub type ParserResult<C, I, O, Y> = Result<(I, O), nom::Err<ParserError<C, I, Y>>>;
+pub type ParserResult<C, I, O> = Result<(I, O), nom::Err<ParserError<C, I>>>;
 
 /// ParserResult without tracking.  
 /// Equivalent to [nom::IResult]<(I, O), TokenizerError<C, I>>

@@ -52,7 +52,7 @@ where
         nom::Err::Error(self)
     }
 
-    type ParserError = ParserError<C, I, ()>;
+    type ParserError = ParserError<C, I>;
 
     fn into_parser_error(self) -> Self::ParserError {
         ParserError::new(self.code, self.span)
@@ -110,7 +110,7 @@ where
         self
     }
 
-    type ParserError = nom::Err<ParserError<C, I, ()>>;
+    type ParserError = nom::Err<ParserError<C, I>>;
 
     fn into_parser_error(self) -> Self::ParserError {
         match self {

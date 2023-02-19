@@ -292,8 +292,7 @@ mod planung4 {
     use kparse::token_error::TokenizerError;
     #[cfg(debug_assertions)]
     use kparse::tracker::TrackSpan;
-    use kparse::tracker::{TrackParserResult, TrackTokenizerResult};
-    use kparse::{Code, ParserError};
+    use kparse::{Code, ParserError, ParserResult, TokenizerResult};
     #[cfg(not(debug_assertions))]
     use nom_locate::LocatedSpan;
     use std::fmt::{Display, Formatter};
@@ -403,10 +402,10 @@ mod planung4 {
     pub type APSpan<'s> = TrackSpan<'s, APCode, &'s str>;
     #[cfg(not(debug_assertions))]
     pub type APSpan<'s> = LocatedSpan<&'s str, ()>;
-    pub type APParserError<'s> = ParserError<APCode, APSpan<'s>, ()>;
+    pub type APParserError<'s> = ParserError<APCode, APSpan<'s>>;
     pub type APTokenizerError<'s> = TokenizerError<APCode, APSpan<'s>>;
-    pub type APParserResult<'s, O> = TrackParserResult<APCode, APSpan<'s>, O, ()>;
-    pub type APTokenizerResult<'s, O> = TrackTokenizerResult<APCode, APSpan<'s>, O>;
+    pub type APParserResult<'s, O> = ParserResult<APCode, APSpan<'s>, O>;
+    pub type APTokenizerResult<'s, O> = TokenizerResult<APCode, APSpan<'s>, O>;
 
     pub mod diagnostics {
         use crate::planung4::{APCode, APParserError, APSpan};
@@ -1750,7 +1749,7 @@ mod planung4 {
             r: Result<O, E>,
             code: C,
             span: I,
-        ) -> Result<O, nom::Err<ParserError<C, I, ()>>>
+        ) -> Result<O, nom::Err<ParserError<C, I>>>
         where
             C: Code,
             I: Copy,
