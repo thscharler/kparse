@@ -13,7 +13,7 @@ pub struct Context;
 
 impl Context {
     /// Creates an Ok() Result from the parameters and tracks the result.
-    #[inline]
+    #[inline(always)]
     pub fn ok<C, I, O, E>(&self, rest: I, input: I, value: O) -> Result<(I, O), nom::Err<E>>
     where
         C: Code,
@@ -28,7 +28,7 @@ impl Context {
     }
 
     /// Tracks the error and creates a Result.
-    #[inline]
+    #[inline(always)]
     pub fn err<C, I, O, E>(&self, err: E) -> Result<(I, O), nom::Err<E::WrappedError>>
     where
         C: Code,
@@ -50,7 +50,7 @@ impl Context {
     /// When multiple Context.enter() calls are used within one function
     /// (to denote some separation), this can be used to exit such a compartment
     /// with an ok track.
-    #[inline]
+    #[inline(always)]
     pub fn ok_section<C, I>(&self, rest: I, input: I)
     where
         C: Code,
@@ -62,7 +62,7 @@ impl Context {
     /// When multiple Context.enter() calls are used within one function
     /// (to denote some separation), this can be used to exit such a compartment
     /// with an ok track.
-    #[inline]
+    #[inline(always)]
     pub fn err_section<C, I, E>(&self, err: &E)
     where
         C: Code,
@@ -80,7 +80,7 @@ impl Context {
     }
 
     /// Enter a parser function.
-    #[inline]
+    #[inline(always)]
     pub fn enter<C, I>(&self, func: C, span: I)
     where
         C: Code,
@@ -90,7 +90,7 @@ impl Context {
     }
 
     /// Track some debug info.
-    #[inline]
+    #[inline(always)]
     pub fn debug<C, I>(&self, span: I, debug: String)
     where
         C: Code,
@@ -100,7 +100,7 @@ impl Context {
     }
 
     /// Track some other info.
-    #[inline]
+    #[inline(always)]
     pub fn info<C, I>(&self, span: I, info: &'static str)
     where
         C: Code,
@@ -110,7 +110,7 @@ impl Context {
     }
 
     /// Track some warning.
-    #[inline]
+    #[inline(always)]
     pub fn warn<C, I>(&self, span: I, warn: &'static str)
     where
         C: Code,
@@ -127,36 +127,42 @@ where
     C: Code,
     T: Copy + Debug + AsBytes + InputTake + InputLength,
 {
+    #[inline(always)]
     fn track_enter(&self, func: C) {
         self.extra
             .0
             .track(TrackerData::Enter(func, clear_span(self)));
     }
 
+    #[inline(always)]
     fn track_debug(&self, debug: String) {
         self.extra
             .0
             .track(TrackerData::Debug(clear_span(self), debug));
     }
 
+    #[inline(always)]
     fn track_info(&self, info: &'static str) {
         self.extra
             .0
             .track(TrackerData::Info(clear_span(self), info));
     }
 
+    #[inline(always)]
     fn track_warn(&self, warn: &'static str) {
         self.extra
             .0
             .track(TrackerData::Warn(clear_span(self), warn));
     }
 
+    #[inline(always)]
     fn track_ok(&self, parsed: DynSpan<'s, C, T>) {
         self.extra
             .0
             .track(TrackerData::Ok(clear_span(self), clear_span(&parsed)));
     }
 
+    #[inline(always)]
     fn track_err<E: Debug>(&self, code: C, err: &E) {
         self.extra.0.track(TrackerData::Err(
             clear_span(self),
@@ -165,6 +171,7 @@ where
         ));
     }
 
+    #[inline(always)]
     fn track_exit(&self) {
         self.extra.0.track(TrackerData::Exit());
     }
@@ -193,18 +200,25 @@ where
     T: InputTake + InputLength + AsBytes,
     C: Code,
 {
+    #[inline(always)]
     fn track_enter(&self, _func: C) {}
 
+    #[inline(always)]
     fn track_debug(&self, _debug: String) {}
 
+    #[inline(always)]
     fn track_info(&self, _info: &'static str) {}
 
+    #[inline(always)]
     fn track_warn(&self, _warn: &'static str) {}
 
+    #[inline(always)]
     fn track_ok(&self, _parsed: PlainSpan<'s, T>) {}
 
+    #[inline(always)]
     fn track_err<E>(&self, _func: C, _err: &E) {}
 
+    #[inline(always)]
     fn track_exit(&self) {}
 }
 
@@ -212,18 +226,25 @@ impl<'s, C> Tracking<C> for &'s str
 where
     C: Code,
 {
+    #[inline(always)]
     fn track_enter(&self, _func: C) {}
 
+    #[inline(always)]
     fn track_debug(&self, _debug: String) {}
 
+    #[inline(always)]
     fn track_info(&self, _info: &'static str) {}
 
+    #[inline(always)]
     fn track_warn(&self, _warn: &'static str) {}
 
+    #[inline(always)]
     fn track_ok(&self, _input: Self) {}
 
+    #[inline(always)]
     fn track_err<E>(&self, _func: C, _err: &E) {}
 
+    #[inline(always)]
     fn track_exit(&self) {}
 }
 
@@ -231,17 +252,24 @@ impl<'s, C> Tracking<C> for &'s [u8]
 where
     C: Code,
 {
+    #[inline(always)]
     fn track_enter(&self, _func: C) {}
 
+    #[inline(always)]
     fn track_debug(&self, _debug: String) {}
 
+    #[inline(always)]
     fn track_info(&self, _info: &'static str) {}
 
+    #[inline(always)]
     fn track_warn(&self, _warn: &'static str) {}
 
+    #[inline(always)]
     fn track_ok(&self, _input: Self) {}
 
+    #[inline(always)]
     fn track_err<E>(&self, _func: C, _err: &E) {}
 
+    #[inline(always)]
     fn track_exit(&self) {}
 }

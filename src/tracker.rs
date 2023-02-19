@@ -137,6 +137,7 @@ where
     nom::Err<E>: ParseErrorExt<C, I>,
 {
     /// Keep a track if self is an error.
+    #[inline(always)]
     fn track(self) -> Self {
         match self {
             Ok((rest, token)) => Ok((rest, token)),
@@ -152,6 +153,7 @@ where
     }
 
     /// Keep track if self is an error, and set an error code too.
+    #[inline(always)]
     fn track_as(self, code: C) -> Self {
         match self {
             Ok((rest, token)) => Ok((rest, token)),
@@ -170,6 +172,7 @@ where
     }
 
     /// Keep track of self, either as error or as ok result.
+    #[inline(always)]
     fn track_ok(self, parsed: I) -> Self {
         match self {
             Ok((rest, token)) => {

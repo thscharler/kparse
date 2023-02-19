@@ -8,6 +8,7 @@ use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
 use std::fmt::Debug;
 
 /// Tracked execution of a parser.
+#[inline(always)]
 pub fn track<PA, C, I, O, E>(
     func: C,
     mut parser: PA,
@@ -40,6 +41,7 @@ where
 }
 
 /// Takes a parser and converts the error via the WithCode trait.
+#[inline(always)]
 pub fn error_code<PA, C, I, O, E>(
     mut parser: PA,
     code: C,
@@ -71,6 +73,7 @@ where
 /// let (rest, (tok, val)) =
 ///         consumed(transform(nom_parse_c, |v| (*v).parse::<u32>(), ICInteger))(rest).track()?;
 /// ```
+#[inline(always)]
 pub fn transform<PA, TRFn, I, O1, O2, E>(
     mut parser: PA,
     transform: TRFn,
@@ -88,6 +91,7 @@ where
 }
 
 /// Runs a condition on the input and only executes the parser on success.
+#[inline(always)]
 pub fn when<CFn, PFn, C, I, O, E>(
     cond_fn: CFn,
     mut parse_fn: PFn,
