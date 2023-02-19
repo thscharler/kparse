@@ -101,14 +101,8 @@ where
     }
 
     type WrappedError = Self;
-    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
         nom::Err::Error(self)
-    }
-
-    type ParserError = Self;
-
-    fn into_parser_error(self) -> Self::ParserError {
-        self
     }
 }
 
@@ -158,13 +152,7 @@ where
     }
 
     type WrappedError = ParserError<C, I>;
-    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
-        self
-    }
-
-    type ParserError = Self;
-
-    fn into_parser_error(self) -> Self::ParserError {
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
         self
     }
 }
@@ -221,14 +209,8 @@ where
 
     type WrappedError = ParserError<C, I>;
 
-    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
         unimplemented!("into_wrapped cannot be used for Result<>");
-    }
-
-    type ParserError = Self;
-
-    fn into_parser_error(self) -> Self::ParserError {
-        self
     }
 }
 

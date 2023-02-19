@@ -48,14 +48,18 @@ where
     }
 
     type WrappedError = Self;
-    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
         nom::Err::Error(self)
     }
+}
 
-    type ParserError = ParserError<C, I>;
-
-    fn into_parser_error(self) -> Self::ParserError {
-        ParserError::new(self.code, self.span)
+impl<C, I> From<TokenizerError<C, I>> for ParserError<C, I>
+where
+    C: Code,
+    I: Copy,
+{
+    fn from(value: TokenizerError<C, I>) -> Self {
+        ParserError::new(value.code, value.span)
     }
 }
 
@@ -106,18 +110,8 @@ where
 
     type WrappedError = TokenizerError<C, I>;
 
-    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
         self
-    }
-
-    type ParserError = nom::Err<ParserError<C, I>>;
-
-    fn into_parser_error(self) -> Self::ParserError {
-        match self {
-            nom::Err::Incomplete(e) => nom::Err::Incomplete(e),
-            nom::Err::Error(e) => nom::Err::Error(e.into_parser_error()),
-            nom::Err::Failure(e) => nom::Err::Error(e.into_parser_error()),
-        }
     }
 }
 
@@ -173,19 +167,8 @@ where
 
     type WrappedError = TokenizerError<C, I>;
 
-    fn into_wrapped(self) -> nom::Err<Self::WrappedError> {
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
         unimplemented!("into_wrapped cannot be used for Result<>");
-    }
-
-    type ParserError = Result<(I, O), nom::Err<ParserError<C, I>>>;
-
-    fn into_parser_error(self) -> Self::ParserError {
-        match self {
-            Ok((rest, token)) => Ok((rest, token)),
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into_parser_error())),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Error(e.into_parser_error())),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
-        }
     }
 }
 
@@ -279,5 +262,15 @@ where
     pub fn with_code(mut self, code: C) -> Self {
         self.code = code;
         self
+    }
+
+    /// Convert to a nom::Err::Error.
+    pub fn wrap_error(self) -> nom::Err<Self> {
+        nom::Err::Error(self)
+    }
+
+    /// Convert to a nom::Err::Failure.
+    pub fn wrap_failure(self) -> nom::Err<Self> {
+        nom::Err::Failure(self)
     }
 }

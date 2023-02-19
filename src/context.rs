@@ -38,11 +38,11 @@ impl Context {
         E: ParseErrorExt<C, I> + Debug,
     {
         match err.parts() {
-            None => Err(err.into_wrapped()),
+            None => Err(err.wrap()),
             Some((code, span, e)) => {
                 span.track_err(code, e);
                 span.track_exit();
-                Err(err.into_wrapped())
+                Err(err.wrap())
             }
         }
     }

@@ -1,12 +1,18 @@
 //!
 //! Test framework for parsers.
 //!
-//! ```rust ignore
-//! use kparse::test::{CheckDump, track_parse};
+//! ```rust
+//! use nom::bytes::complete::tag;
+//! use kparse::combinators::error_code;
+//! use kparse::examples::{ExSpan, ExTagB, ExTokenizerResult};
+//! use kparse::test::{CheckDump, span_parse};
 //!
 //! // run the parser and expect Ok(). Otherwise dump & panic.
-//! track_parse(&mut None, "sample", parser_fn).okok().q(CheckDump);
+//! span_parse(&mut None, "b", nom_parse_b).ok_any().q(CheckDump);
 //!
+//! fn nom_parse_b(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
+//!     error_code(tag("b"), ExTagB)(i)
+//! }
 //! ```
 //! Runs the parser and works like a builder to evaluate the results.
 //! The final function is q() which runs the given report.

@@ -1,81 +1,30 @@
 #![allow(dead_code)]
 
-use kparse::combinators::transform;
+use kparse::combinators::{error_code, track, transform};
+use kparse::examples::{
+    ExABNum, ExABstar, ExAoptB, ExAorB, ExAstarB, ExAthenB, ExNumber, ExParserError,
+    ExParserResult, ExSpan, ExTagA, ExTagB, ExTokenizerError, ExTokenizerResult,
+};
 use kparse::prelude::*;
 #[cfg(debug_assertions)]
 use kparse::tracker::{StdTracker, TrackSpan};
-use kparse::{Code, Context, ParserError, ParserResult};
+use kparse::Context;
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
 use nom::combinator::{consumed, opt};
 use nom::multi::many0;
 use nom::sequence::{terminated, tuple};
-use nom::{AsChar, InputTakeAtPosition};
+use nom::{AsChar, InputTakeAtPosition, Parser};
 use std::env;
-use std::fmt::{Display, Formatter};
-
-//
-// example parser
-//
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ECode {
-    ENomError,
-
-    ETagA,
-    ETagB,
-    ENumber,
-
-    EAthenB,
-    EAoptB,
-    EAstarB,
-    EABstar,
-    EAorB,
-    EABNum,
-}
-
-pub use ECode::*;
-
-impl Display for ECode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                ENomError => "nom",
-                ETagA => "a",
-                ETagB => "b",
-                ENumber => "number",
-                EAthenB => "A B",
-                EAoptB => "A? B",
-                EAstarB => "A* B",
-                EABstar => "(A | B)*",
-                EAorB => "A | B",
-                EABNum => "A B Number",
-            }
-        )
-    }
-}
-
-impl Code for ECode {
-    const NOM_ERROR: Self = Self::ENomError;
-}
-
-#[cfg(debug_assertions)]
-pub type ESpan<'s> = TrackSpan<'s, ECode, &'s str>;
-#[cfg(not(debug_assertions))]
-pub type ESpan<'s> = &'s str;
-pub type EResult<'s, O> = ParserResult<ECode, ESpan<'s>, O>;
-pub type ENomResult<'s> = ParserResult<ECode, ESpan<'s>, ESpan<'s>>;
-pub type EParserError<'s> = ParserError<ECode, ESpan<'s>>;
 
 #[derive(Debug)]
 struct AstA<'s> {
-    pub span: ESpan<'s>,
+    pub span: ExSpan<'s>,
 }
 
 #[derive(Debug)]
 struct AstB<'s> {
-    pub span: ESpan<'s>,
+    pub span: ExSpan<'s>,
 }
 
 #[derive(Debug)]
@@ -118,38 +67,40 @@ struct AstABNum<'s> {
 #[derive(Debug)]
 struct AstNumber<'s> {
     pub number: u32,
-    pub span: ESpan<'s>,
+    pub span: ExSpan<'s>,
 }
 
-fn nom_parse_a(i: ESpan<'_>) -> ENomResult<'_> {
-    tag("a")(i)
+fn nom_parse_a(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
+    error_code(tag("a"), ExTagA)(i)
 }
 
-fn nom_parse_b(i: ESpan<'_>) -> ENomResult<'_> {
-    tag("b")(i)
+fn nom_parse_b(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
+    error_code(tag("b"), ExTagB)(i)
 }
 
-fn nom_digits(i: ESpan<'_>) -> ENomResult<'_> {
+fn nom_digits(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
     digit1(i)
 }
 
-fn nom_ws(i: ESpan<'_>) -> ENomResult<'_> {
+fn nom_ws(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
     i.split_at_position_complete(|item| {
         let c = item.as_char();
         !(c == ' ' || c == '\t')
     })
 }
 
-fn nom_number(i: ESpan<'_>) -> EResult<'_, (ESpan<'_>, u32)> {
-    consumed(transform(terminated(digit1, nom_ws), |v| {
-        match (*v).parse::<u32>() {
+fn nom_number(i: ExSpan<'_>) -> ExParserResult<'_, (ExSpan<'_>, u32)> {
+    Parser::into(consumed(transform(
+        terminated(digit1, nom_ws),
+        |v| match (*v).parse::<u32>() {
             Ok(vv) => Ok(vv),
-            Err(_) => Err(nom::Err::Failure(EParserError::new(ENumber, v))),
-        }
-    }))(i)
+            Err(_) => Err(ExTokenizerError::new(ExNumber, v).wrap_failure()),
+        },
+    )))
+    .parse(i)
 }
 
-fn token_number(i: ESpan<'_>) -> EResult<'_, AstNumber<'_>> {
+fn token_number(i: ExSpan<'_>) -> ExParserResult<'_, AstNumber<'_>> {
     match nom_number(i) {
         Ok((rest, (tok, val))) => Ok((
             rest,
@@ -158,25 +109,27 @@ fn token_number(i: ESpan<'_>) -> EResult<'_, AstNumber<'_>> {
                 span: tok,
             },
         )),
-        Err(e) => Err(e.with_code(ENumber)),
+        Err(e) => Err(e.with_code(ExNumber)),
     }
 }
 
-fn parse_a(input: ESpan<'_>) -> EResult<'_, AstA> {
-    Context.enter(ETagA, input);
-    let (rest, tok) = nom_parse_a(input).track()?;
+fn parse_a(input: ExSpan<'_>) -> ExParserResult<'_, AstA> {
+    Context.enter(ExTagA, input);
+    let (rest, tok) = Parser::into(nom_parse_a).parse(input).track()?;
     Context.ok(rest, tok, AstA { span: tok })
 }
 
-fn parse_b(input: ESpan<'_>) -> EResult<'_, AstB> {
-    Context.enter(ETagB, input);
-    let (rest, tok) = nom_parse_b(input).track()?;
-    Context.ok(rest, tok, AstB { span: tok })
+fn parse_b(input: ExSpan<'_>) -> ExParserResult<'_, AstB> {
+    Parser::into(track(
+        ExTagB,
+        nom_parse_b.and_then(|span| Ok((span, AstB { span }))),
+    ))
+    .parse(input)
 }
 
 // := a b
-fn parse_ab(input: ESpan<'_>) -> EResult<'_, AstAthenB> {
-    Context.enter(EAthenB, input);
+fn parse_ab(input: ExSpan<'_>) -> ExParserResult<'_, AstAthenB> {
+    Context.enter(ExAthenB, input);
 
     let rest = input;
 
@@ -189,29 +142,29 @@ fn parse_ab(input: ESpan<'_>) -> EResult<'_, AstAthenB> {
 }
 
 // := a b
-fn parse_ab_v2(input: ESpan<'_>) -> EResult<'_, AstAthenB> {
-    Context.enter(EAthenB, input);
+fn parse_ab_v2(input: ExSpan<'_>) -> ExParserResult<'_, AstAthenB> {
+    Context.enter(ExAthenB, input);
     let (rest, (span, (a, b))) = consumed(tuple((parse_a, parse_b)))(input).track()?;
     Context.ok(rest, span, AstAthenB { a, b })
 }
 
 // := a? b
-fn parse_a_opt_b(input: ESpan<'_>) -> EResult<'_, AstAoptB> {
-    Context.enter(EAoptB, input);
+fn parse_a_opt_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAoptB> {
+    Context.enter(ExAoptB, input);
     let (rest, (span, val)) = consumed(tuple((opt(parse_a), parse_b)))(input).track()?;
     Context.ok(rest, span, AstAoptB { a: val.0, b: val.1 })
 }
 
 // := a* b
-fn parse_a_star_b(input: ESpan<'_>) -> EResult<'_, AstAstarB> {
-    Context.enter(EAstarB, input);
+fn parse_a_star_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAstarB> {
+    Context.enter(ExAstarB, input);
     let (rest, (span, val)) = consumed(tuple((many0(parse_a), parse_b)))(input).track()?;
     Context.ok(rest, span, AstAstarB { a: val.0, b: val.1 })
 }
 
 // := ( a | b )*
-fn parse_a_b_star(input: ESpan<'_>) -> EResult<'_, AstABstar> {
-    Context.enter(EABstar, input);
+fn parse_a_b_star(input: ExSpan<'_>) -> ExParserResult<'_, AstABstar> {
+    Context.enter(ExABstar, input);
 
     let mut loop_rest = input;
     let mut res = AstABstar {
@@ -254,8 +207,8 @@ fn parse_a_b_star(input: ESpan<'_>) -> EResult<'_, AstABstar> {
     Context.ok(loop_rest, input, res)
 }
 
-fn parse_a_or_b(input: ESpan<'_>) -> EResult<'_, AstAorB> {
-    Context.enter(EAorB, input);
+fn parse_a_or_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAorB> {
+    Context.enter(ExAorB, input);
 
     let rest = input;
 
@@ -271,14 +224,14 @@ fn parse_a_or_b(input: ESpan<'_>) -> EResult<'_, AstAorB> {
     } else if let Some(b) = &b {
         b.span
     } else {
-        return Context.err(EParserError::new(EAorB, input));
+        return Context.err(ExParserError::new(ExAorB, input));
     };
 
     Context.ok(rest, span, AstAorB { a, b })
 }
 
-fn parse_a_b_num(input: ESpan<'_>) -> EResult<'_, AstABNum> {
-    Context.enter(EABNum, input);
+fn parse_a_b_num(input: ExSpan<'_>) -> ExParserResult<'_, AstABNum> {
+    Context.enter(ExABNum, input);
 
     let rest = input;
 

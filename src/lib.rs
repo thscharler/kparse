@@ -3,9 +3,12 @@
 //!
 //! * A error code trait.
 //! * A richer error type ParserError.
-//! * Traits to integrate external errors.
-//! * A tracking system for the parser.
+//! * A thin error type TokenizerError.
+//!
+//! * A tracking/logging system for the parser.
+//!
 //! * A simple framework to test parser functions.
+//!
 //! * SpanLines and SpanBytes to get the context around a span.
 //!
 
@@ -46,6 +49,7 @@ use std::fmt::{Debug, Display};
 
 pub mod combinators;
 pub mod error;
+pub mod examples;
 pub mod spans;
 pub mod test;
 pub mod token_error;
@@ -116,11 +120,5 @@ pub trait ParseErrorExt<C, I> {
 
     /// Converts self to a nom::Err wrapped error.
     /// This doesn't work if self is a Result, but otherwise it's fine.
-    fn into_wrapped(self) -> nom::Err<Self::WrappedError>;
-
-    /// Concrete parser error type.
-    type ParserError;
-
-    /// Converts self to a variant of ParserError.
-    fn into_parser_error(self) -> Self::ParserError;
+    fn wrap(self) -> nom::Err<Self::WrappedError>;
 }
