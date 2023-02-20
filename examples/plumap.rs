@@ -243,7 +243,7 @@ mod parser {
     use crate::token::{token_date, token_factor, token_number};
     use crate::PLUCode::*;
     use crate::{PLUParserError, PLUParserResult, PMap, PPluMap, PSpan};
-    use kparse::combinators::error_code;
+    use kparse::combinators::with_code;
     use kparse::prelude::*;
     use kparse::Context;
     use nom::combinator::opt;
@@ -314,15 +314,15 @@ mod parser {
         let (rest, faktor) = opt(preceded(nom_star_op, token_factor))(rest).track()?;
 
         let (rest, to_nummer) =
-            preceded(error_code(nom_map_op, PLUMapOp), token_number)(rest).track()?;
+            preceded(with_code(nom_map_op, PLUMapOp), token_number)(rest).track()?;
 
         let (rest, from_datum) = opt(preceded(
-            error_code(nom_range_start, PLURangeStart),
+            with_code(nom_range_start, PLURangeStart),
             token_date,
         ))(rest)
         .track()?;
         let (rest, to_datum) =
-            opt(preceded(error_code(nom_range_end, PLURangeEnd), token_date))(rest).track()?;
+            opt(preceded(with_code(nom_range_end, PLURangeEnd), token_date))(rest).track()?;
 
         if !nom_is_nl(rest) {
             return Context.err(PLUParserError::new(PLUMapping, rest));
@@ -408,7 +408,7 @@ mod token {
 mod nom_parser {
     use crate::PLUCode::{PLUFactor, PLUNumber};
     use crate::{PLUNomResult, PLUParserError, PLUParserResult, PSpan};
-    use kparse::combinators::transform;
+    use kparse::combinators::map_res;
     use nom::branch::alt;
     use nom::bytes::complete::{tag, take_till, take_while1};
     use nom::character::complete::{char as nchar, digit1, one_of};
@@ -432,7 +432,7 @@ mod nom_parser {
 
     /// numeric value.
     pub fn nom_float(input: PSpan<'_>) -> PLUParserResult<'_, (PSpan<'_>, Decimal)> {
-        consumed(transform(
+        consumed(map_res(
             terminated(
                 alt((
                     // Case one: .42
@@ -477,7 +477,7 @@ mod nom_parser {
     }
 
     pub fn nom_number(i: PSpan<'_>) -> PLUParserResult<'_, (PSpan<'_>, u32)> {
-        consumed(transform(terminated(digit1, nom_ws), |v| {
+        consumed(map_res(terminated(digit1, nom_ws), |v| {
             match (*v).parse::<u32>() {
                 Ok(vv) => Ok(vv),
                 Err(_) => Err(nom::Err::Failure(PLUParserError::new(PLUNumber, v))),

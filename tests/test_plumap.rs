@@ -252,7 +252,7 @@ mod parser {
     use crate::token::{token_datum, token_faktor, token_nummer};
     use crate::PLUCode::*;
     use crate::{PLUParserError, PLUParserResult, PMap, PPluMap, PSpan};
-    use kparse::combinators::error_code;
+    use kparse::combinators::with_code;
     use kparse::prelude::*;
     use kparse::Context;
     use nom::combinator::opt;
@@ -323,18 +323,15 @@ mod parser {
         let (rest, faktor) = opt(preceded(nom_star_op, token_faktor))(rest).track()?;
 
         let (rest, to_nummer) =
-            preceded(error_code(nom_map_op, PLUMapOp), token_nummer)(rest).track()?;
+            preceded(with_code(nom_map_op, PLUMapOp), token_nummer)(rest).track()?;
 
         let (rest, from_datum) = opt(preceded(
-            error_code(nom_range_start, PLURangeStart),
+            with_code(nom_range_start, PLURangeStart),
             token_datum,
         ))(rest)
         .track()?;
-        let (rest, to_datum) = opt(preceded(
-            error_code(nom_range_end, PLURangeEnd),
-            token_datum,
-        ))(rest)
-        .track()?;
+        let (rest, to_datum) =
+            opt(preceded(with_code(nom_range_end, PLURangeEnd), token_datum))(rest).track()?;
 
         if !nom_is_nl(rest) {
             return Context.err(PLUParserError::new(PLUMapping, rest));
@@ -367,14 +364,15 @@ mod token {
     use crate::nom_parser::{nom_float, nom_minus, nom_number};
     use crate::PLUCode::*;
     use crate::{PDatum, PFaktor, PLUParserError, PLUParserResult, PNummer, PSpan};
-    use kparse::combinators::{error_code, transform};
+    use kparse::combinators::{map_res, with_code};
     use kparse::prelude::*;
     use kparse::{Code, ParserError};
+    use nom::Parser;
     use rust_decimal::Decimal;
 
     /// Token für den Faktor.
     pub fn token_faktor(rest: PSpan<'_>) -> PLUParserResult<'_, PFaktor<'_>> {
-        transform(error_code(nom_float, PLUFaktor), |tok| {
+        map_res(with_code(nom_float, PLUFaktor), |tok| {
             match tok.parse::<Decimal>() {
                 Ok(v) => Ok(PFaktor {
                     faktor: v,
@@ -382,12 +380,13 @@ mod token {
                 }),
                 Err(_) => Err(nom::Err::Failure(PLUParserError::new(PLUFaktor, tok))),
             }
-        })(rest)
+        })
+        .parse(rest)
     }
 
     /// Token für die Artikelnummer.
     pub fn token_nummer(rest: PSpan<'_>) -> PLUParserResult<'_, PNummer<'_>> {
-        transform(error_code(nom_number, PLUNummer), |tok| {
+        map_res(with_code(nom_number, PLUNummer), |tok| {
             match tok.parse::<u32>() {
                 Ok(v) => Ok(PNummer {
                     nummer: v,
@@ -395,7 +394,8 @@ mod token {
                 }),
                 Err(_) => Err(nom::Err::Failure(PLUParserError::new(PLUNummer, rest))),
             }
-        })(rest)
+        })
+        .parse(rest)
     }
 
     fn cnv_err<C, I, O, E>(

@@ -127,7 +127,7 @@ fn test_1() {
 mod cmds_parser {
     use chrono::{Local, NaiveDate};
     use glob::PatternError;
-    use kparse::combinators::{error_code, transform};
+    use kparse::combinators::{map_res, with_code};
     use kparse::prelude::*;
     use kparse::tracker::TrackSpan;
     use kparse::{Code, Context, ParserError, ParserResult};
@@ -135,7 +135,7 @@ mod cmds_parser {
     use nom::character::complete::{char as nchar, digit1};
     use nom::combinator::{consumed, recognize};
     use nom::sequence::{terminated, tuple};
-    use nom::{AsChar, InputTake, InputTakeAtPosition};
+    use nom::{AsChar, InputTake, InputTakeAtPosition, Parser};
     use std::fmt::{Debug, Display, Formatter};
     use std::path::{Path, PathBuf};
     use std::{fs, io};
@@ -1181,10 +1181,11 @@ mod cmds_parser {
     // }
 
     fn token_nummer(rest: CSpan<'_>) -> CParserResult<'_, Nummer<'_>> {
-        transform(nom_number, |s| match (*s).parse::<u32>() {
+        map_res(nom_number, |s| match (*s).parse::<u32>() {
             Ok(v) => Ok(Nummer { nummer: v, span: s }),
             Err(_) => Err(nom::Err::Failure(CParserError::new(CNummer, s))),
-        })(rest)
+        })
+        .parse(rest)
 
         // match nom_number(rest) {
         //     Ok((rest, tok)) => Ok((
@@ -1210,17 +1211,17 @@ mod cmds_parser {
         // let iyear: i32 = (*year).parse().with_span(CDateYear, year)?;
 
         let (rest, (span, (day, _, month, _, year))) = consumed(tuple((
-            transform(nom_number, |s| match (*s).parse::<u32>() {
+            map_res(nom_number, |s| match (*s).parse::<u32>() {
                 Ok(v) => Ok(v),
                 Err(_) => Err(nom::Err::Failure(CParserError::new(CDateDay, s))),
             }),
-            error_code(nom_dot, CDotDay),
-            transform(nom_number, |s| match (*s).parse::<u32>() {
+            with_code(nom_dot, CDotDay),
+            map_res(nom_number, |s| match (*s).parse::<u32>() {
                 Ok(v) => Ok(v),
                 Err(_) => Err(nom::Err::Failure(CParserError::new(CDateMonth, s))),
             }),
-            error_code(nom_dot, CDotDay),
-            transform(nom_number, |s| match (*s).parse::<i32>() {
+            with_code(nom_dot, CDotDay),
+            map_res(nom_number, |s| match (*s).parse::<i32>() {
                 Ok(v) => Ok(v),
                 Err(_) => Err(nom::Err::Failure(CParserError::new(CDateYear, s))),
             }),

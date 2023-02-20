@@ -3,7 +3,7 @@
 //!
 
 use crate::tracker::Tracking;
-use crate::{Code, KParseErrorExt};
+use crate::{Code, KParseError, MapRes};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
 use std::fmt::Debug;
 
@@ -11,13 +11,13 @@ use std::fmt::Debug;
 ///
 /// ```rust
 /// use nom::bytes::complete::tag;
-/// use kparse::combinators::{err_into, with_code, track, transform};
+/// use kparse::combinators::{err_into, with_code, track, map_res};
 /// use kparse::examples::{ExParserResult, ExSpan, ExTagB, ExTokenizerResult};
-/// use kparse::KParseErrorExt;
+/// use kparse::KParseError;
 ///
 /// fn parse_b(input: ExSpan<'_>) -> ExParserResult<'_, AstB> {
 ///     err_into(track(ExTagB,
-///         transform(nom_parse_b, |span| Ok(AstB { span }))
+///         map_res(nom_parse_b, |span| Ok(AstB { span }))
 ///     ))(input)
 /// }
 ///
@@ -40,7 +40,7 @@ where
     C: Code,
     I: Copy + Debug + Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
-    nom::Err<E>: KParseErrorExt<C, I>,
+    nom::Err<E>: KParseError<C, I>,
 {
     move |input| -> Result<(I, O), nom::Err<E>> {
         input.track_enter(func);
@@ -98,7 +98,7 @@ pub fn with_code<PA, C, I, O, E>(
 ) -> impl FnMut(I) -> Result<(I, O), nom::Err<E>>
 where
     PA: Parser<I, O, E>,
-    E: KParseErrorExt<C, I>,
+    E: KParseError<C, I>,
     C: Code,
     I: AsBytes + Copy,
 {
@@ -120,12 +120,12 @@ where
 /// use nom::combinator::consumed;
 /// use nom::{AsChar, InputTakeAtPosition, Parser};
 /// use nom::sequence::terminated;
-/// use kparse::combinators::transform;
+/// use kparse::combinators::map_res;
 /// use kparse::examples::ExCode::ExNumber;
 /// use kparse::examples::{ExParserError, ExSpan, ExTokenizerError, ExTokenizerResult};
 ///
 /// fn nom_number(i: ExSpan<'_>) -> ExTokenizerResult<'_, (ExSpan<'_>, u32)> {
-///     consumed(transform(terminated(digit1, nom_ws), |v| {
+///     consumed(map_res(terminated(digit1, nom_ws), |v| {
 ///         match (*v).parse::<u32>() {
 ///             Ok(vv) => Ok(vv),
 ///             Err(_) => Err(ExTokenizerError::new(ExNumber, v).failure()),
@@ -141,20 +141,17 @@ where
 /// }
 /// ```
 #[inline(always)]
-pub fn transform<PA, TRFn, I, O1, O2, E>(
-    mut parser: PA,
-    transform: TRFn,
-) -> impl FnMut(I) -> Result<(I, O2), nom::Err<E>>
+pub fn map_res<PA, TR, I, O1, O2, E>(parser: PA, transform: TR) -> MapRes<PA, O1, TR, O2>
 where
     PA: Parser<I, O1, E>,
-    TRFn: Fn(O1) -> Result<O2, nom::Err<E>>,
+    TR: Fn(O1) -> Result<O2, nom::Err<E>>,
     O1: Copy,
     I: AsBytes + Copy,
 {
-    move |i| -> Result<(I, O2), nom::Err<E>> {
-        parser
-            .parse(i)
-            .and_then(|(rest, tok)| Ok((rest, transform(tok)?)))
+    MapRes {
+        parser,
+        map: transform,
+        _phantom: Default::default(),
     }
 }
 

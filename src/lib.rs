@@ -44,10 +44,13 @@
 #![warn(variant_size_differences)]
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::type_complexity)]
-use nom::{IResult, Parser};
+
+use nom::{InputIter, InputLength, Offset, Parser, Slice};
 use nom_locate::LocatedSpan;
+use std::borrow::Borrow;
 use std::fmt::{Debug, Display};
-use std::marker::PhantomData;
+use std::ops::RangeTo;
+use std::str::FromStr;
 
 pub mod combinators;
 pub mod error;
@@ -71,7 +74,7 @@ pub mod prelude {
     pub use crate::error::AppendParserError;
     pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
     pub use crate::tracker::{ResultTracking, Tracking};
-    pub use crate::{KParseErrorExt, KParserExt};
+    pub use crate::{KParseError, KParser};
 }
 
 /// Alias for LocatedSpan.
@@ -105,7 +108,10 @@ pub trait Code: Copy + Display + Debug + Eq {
 /// The first case is a special error path aside from parsing, and the second
 /// is not an error at all.
 ///
-pub trait KParseErrorExt<C, I> {
+pub trait KParseError<C, I> {
+    /// Create a matching error.
+    fn from(code: C, span: I) -> Self;
+
     /// Returns the error code if applicable.
     fn code(&self) -> Option<C>;
     /// Returns the error span if applicable.
@@ -128,22 +134,124 @@ pub trait KParseErrorExt<C, I> {
 }
 
 ///
-pub trait KParserExt<I, O, E>
+pub trait KParser<I, O, E>
 where
     Self: Sized,
 {
+    /// Converts the error to the target error.
     fn err_into<E2>(self) -> IntoErr<Self, O, E, E2>
     where
         E: Into<E2>;
 
-    fn with_code<C>(self, code: C) -> WithCode<Self, C>;
+    /// Changes the error code.
+    fn with_code<C>(self, code: C) -> WithCode<Self, C>
+    where
+        C: Code,
+        E: KParseError<C, I>;
 
-    fn transform<TR, O2>(self, transform: TR) -> Transform<Self, O, TR, O2>
+    /// Adds some context.
+    fn with_context<C, Y>(self, context: Y) -> WithContext<Self, C, E, Y>
+    where
+        C: Code,
+        I: Clone,
+        E: Into<ParserError<C, I>>,
+        Y: Clone + 'static;
+
+    /// Map the output.
+    fn map_res<TR, O2>(self, map: TR) -> MapRes<Self, O, TR, O2>
     where
         TR: Fn(O) -> Result<O2, nom::Err<E>>;
+
+    /// Convert the output with the FromStr trait.
+    fn parse_from_str<C, O2>(self, code: C) -> FromStrParser<Self, C, O, O2>
+    where
+        C: Code,
+        O: InputIter<Item = char>,
+        O2: FromStr,
+        E: KParseError<C, I>;
+
+    /// Replace the output with the value.
+    fn value<O2>(self, value: O2) -> Value<Self, O, O2>
+    where
+        O2: Clone;
+
+    /// Fails if not everything has been processed.
+    fn all_consuming<C>(self, code: C) -> AllConsuming<Self, C>
+    where
+        C: Code,
+        I: InputLength,
+        E: KParseError<C, I>;
+
+    /// Converts nom::Err::Incomplete to a error code.
+    fn complete<C>(self, code: C) -> Complete<Self, C>
+    where
+        C: Code,
+        I: Clone,
+        E: KParseError<C, I>;
+
+    /// Convert from nom::Err::Error to nom::Err::Failure
+    fn cut(self) -> Cut<Self>;
+
+    /// Optional parser.
+    fn opt(self) -> Optional<Self>;
+
+    /// Run the parser and return the parsed input.
+    fn recognize(self) -> Recognize<Self, O>
+    where
+        I: Copy + Slice<RangeTo<usize>> + Offset;
+
+    /// Run the parser and return the parser output and the parsed input.
+    fn consumed(self) -> Consumed<Self>
+    where
+        I: Copy + Slice<RangeTo<usize>> + Offset;
+
+    /// Runs the parser and the terminator and just returns the result of the parser.
+    fn terminated<PA, O2>(self, terminator: PA) -> Terminated<Self, PA, O2>
+    where
+        PA: Parser<I, O2, E>;
+
+    /// Runs the parser and the successor and only returns the result of the
+    /// successor.
+    fn precedes<PA, O2>(self, successor: PA) -> Precedes<Self, PA, O>
+    where
+        PA: Parser<I, O2, E>;
+
+    /// Runs the parser and the successor and returns the result of the successor.
+    /// The parser itself may fail too.
+    fn opt_precedes<PA, O2>(self, successor: PA) -> OptPrecedes<Self, PA, O>
+    where
+        PA: Parser<I, O2, E>,
+        I: Clone;
+
+    /// Runs the delimiter before and after the main parser, and returns just
+    /// the result of the main parser.
+    fn delimited_by<PA, O2>(self, delimiter: PA) -> DelimitedBy<Self, PA, O2>
+    where
+        PA: Parser<I, O2, E>;
+
+    /// Runs the parser but doesn't change the input.
+    fn peek(self) -> Peek<Self>
+    where
+        I: Clone;
+
+    /// Fails if the parser succeeds and vice versa.
+    fn not<C>(self, code: C) -> PNot<Self, C, O>
+    where
+        C: Code,
+        E: KParseError<C, I>,
+        I: Clone;
+
+    /// Runs a verify function on the parser result.
+    fn verify<V, C, O2>(self, verify: V, code: C) -> Verify<Self, V, C, O2>
+    where
+        C: Code,
+        V: Fn(&O2) -> bool,
+        O: Borrow<O2>,
+        O2: ?Sized,
+        E: KParseError<C, I>;
 }
 
-impl<T, I, O, E> KParserExt<I, O, E> for T
+impl<T, I, O, E> KParser<I, O, E> for T
 where
     T: Parser<I, O, E>,
 {
@@ -157,17 +265,179 @@ where
         }
     }
 
-    fn with_code<C>(self, code: C) -> WithCode<Self, C> {
+    fn with_code<C>(self, code: C) -> WithCode<Self, C>
+    where
+        C: Code,
+        E: KParseError<C, I>,
+    {
         WithCode { parser: self, code }
     }
 
-    fn transform<TR, O2>(self, transform: TR) -> Transform<Self, O, TR, O2>
+    fn with_context<C, Y>(self, context: Y) -> WithContext<Self, C, E, Y>
+    where
+        C: Code,
+        I: Clone,
+        E: Into<ParserError<C, I>>,
+        Y: Clone + 'static,
+    {
+        WithContext {
+            parser: self,
+            context,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn map_res<TR, O2>(self, map: TR) -> MapRes<Self, O, TR, O2>
     where
         TR: Fn(O) -> Result<O2, nom::Err<E>>,
     {
-        Transform {
+        MapRes {
             parser: self,
-            transform,
+            map,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn parse_from_str<C, O2>(self, code: C) -> FromStrParser<Self, C, O, O2>
+    where
+        C: Code,
+        O: InputIter<Item = char>,
+        O2: FromStr,
+        E: KParseError<C, I>,
+    {
+        FromStrParser {
+            parser: self,
+            code,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn value<O2>(self, value: O2) -> Value<Self, O, O2>
+    where
+        O2: Clone,
+    {
+        Value {
+            parser: self,
+            value,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn all_consuming<C>(self, code: C) -> AllConsuming<Self, C>
+    where
+        C: Code,
+        I: InputLength,
+        E: KParseError<C, I>,
+    {
+        AllConsuming { parser: self, code }
+    }
+
+    fn complete<C>(self, code: C) -> Complete<Self, C>
+    where
+        C: Code,
+        I: Clone,
+        E: KParseError<C, I>,
+    {
+        Complete { parser: self, code }
+    }
+
+    fn cut(self) -> Cut<Self> {
+        Cut { parser: self }
+    }
+
+    fn opt(self) -> Optional<Self> {
+        Optional { parser: self }
+    }
+
+    fn recognize(self) -> Recognize<Self, O>
+    where
+        I: Copy + Slice<RangeTo<usize>> + Offset,
+    {
+        Recognize {
+            parser: self,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn consumed(self) -> Consumed<Self>
+    where
+        I: Copy + Slice<RangeTo<usize>> + Offset,
+    {
+        Consumed { parser: self }
+    }
+
+    fn terminated<PA, O2>(self, terminator: PA) -> Terminated<Self, PA, O2>
+    where
+        PA: Parser<I, O2, E>,
+    {
+        Terminated {
+            parser: self,
+            terminator,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn precedes<PS, O2>(self, successor: PS) -> Precedes<Self, PS, O>
+    where
+        PS: Parser<I, O2, E>,
+    {
+        Precedes {
+            parser: self,
+            successor,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn opt_precedes<PS, O2>(self, successor: PS) -> OptPrecedes<Self, PS, O>
+    where
+        PS: Parser<I, O2, E>,
+        I: Clone,
+    {
+        OptPrecedes {
+            parser: self,
+            successor,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn delimited_by<PA, O2>(self, delimiter: PA) -> DelimitedBy<Self, PA, O2>
+    where
+        PA: Parser<I, O2, E>,
+    {
+        DelimitedBy {
+            parser: self,
+            delimiter,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn peek(self) -> Peek<Self>
+    where
+        I: Clone,
+    {
+        Peek { parser: self }
+    }
+
+    fn not<C>(self, code: C) -> PNot<Self, C, O> {
+        PNot {
+            parser: self,
+            code,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn verify<V, C, O2>(self, verify: V, code: C) -> Verify<Self, V, C, O2>
+    where
+        C: Code,
+        V: Fn(&O2) -> bool,
+        O: Borrow<O2>,
+        O2: ?Sized,
+        E: KParseError<C, I>,
+    {
+        Verify {
+            parser: self,
+            verify,
+            code,
             _phantom: Default::default(),
         }
     }

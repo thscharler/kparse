@@ -1425,11 +1425,12 @@ mod planung4 {
         use crate::planung4::APCode::*;
         use crate::planung4::{APParserError, APParserResult, APSpan};
         use chrono::NaiveDate;
-        use kparse::combinators::{error_code, transform};
+        use kparse::combinators::{map_res, with_code};
         use kparse::prelude::*;
         use kparse::{Code, ParserError};
         use nom::combinator::recognize;
         use nom::sequence::tuple;
+        use nom::Parser;
 
         pub fn token_name(rest: APSpan<'_>) -> APParserResult<'_, APName<'_>> {
             match nom_name(rest) {
@@ -1465,7 +1466,7 @@ mod planung4 {
         }
 
         pub fn token_nummer(rest: APSpan<'_>) -> APParserResult<'_, APNummer<'_>> {
-            let (rest, tok) = error_code(nom_number, APCNummer)(rest)?;
+            let (rest, tok) = with_code(nom_number, APCNummer)(rest)?;
 
             match tok.parse::<u32>() {
                 Ok(v) => Ok((
@@ -1480,7 +1481,7 @@ mod planung4 {
         }
 
         pub fn token_menge(rest: APSpan<'_>) -> APParserResult<'_, APMenge<'_>> {
-            let (rest, tok) = error_code(nom_number, APCNummer)(rest)?;
+            let (rest, tok) = with_code(nom_number, APCNummer)(rest)?;
 
             match tok.parse::<i32>() {
                 Ok(v) => Ok((
@@ -1496,7 +1497,7 @@ mod planung4 {
 
         #[allow(dead_code)]
         pub fn token_datum2(rest: APSpan) -> APParserResult<APDatum> {
-            let k = transform(
+            let k = map_res(
                 recognize(tuple((
                     nom_number, nom_dot, nom_number, nom_dot, nom_number,
                 ))),
@@ -1504,7 +1505,8 @@ mod planung4 {
                     Ok(vv) => Ok(APDatum { datum: vv, span: v }),
                     Err(_) => Err(nom::Err::Failure(APParserError::new(APCDatum, v))),
                 },
-            )(rest);
+            )
+            .parse(rest);
 
             k
         }

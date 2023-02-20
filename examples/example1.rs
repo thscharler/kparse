@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use kparse::combinators::{error_code, track, transform};
+use kparse::combinators::{map_res, track, with_code};
 use kparse::examples::{
     ExABNum, ExABstar, ExAoptB, ExAorB, ExAstarB, ExAthenB, ExNumber, ExParserError,
     ExParserResult, ExSpan, ExTagA, ExTagB, ExTokenizerError, ExTokenizerResult,
@@ -71,11 +71,11 @@ struct AstNumber<'s> {
 }
 
 fn nom_parse_a(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
-    error_code(tag("a"), ExTagA)(i)
+    with_code(tag("a"), ExTagA)(i)
 }
 
 fn nom_parse_b(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
-    error_code(tag("b"), ExTagB)(i)
+    with_code(tag("b"), ExTagB)(i)
 }
 
 fn nom_digits(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
@@ -90,11 +90,11 @@ fn nom_ws(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
 }
 
 fn nom_number(i: ExSpan<'_>) -> ExParserResult<'_, (ExSpan<'_>, u32)> {
-    Parser::into(consumed(transform(
+    Parser::into(consumed(map_res(
         terminated(digit1, nom_ws),
         |v| match (*v).parse::<u32>() {
             Ok(vv) => Ok(vv),
-            Err(_) => Err(ExTokenizerError::new(ExNumber, v).wrap_failure()),
+            Err(_) => Err(ExTokenizerError::new(ExNumber, v).failure()),
         },
     )))
     .parse(i)

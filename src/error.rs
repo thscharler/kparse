@@ -17,7 +17,7 @@
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
-use crate::{Code, KParseErrorExt};
+use crate::{Code, KParseError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::any::Any;
@@ -75,11 +75,15 @@ pub struct SpanAndCode<C, I> {
     pub span: I,
 }
 
-impl<C, I> KParseErrorExt<C, I> for ParserError<C, I>
+impl<C, I> KParseError<C, I> for ParserError<C, I>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
 {
+    fn from(code: C, span: I) -> Self {
+        ParserError::new(code, span)
+    }
+
     fn code(&self) -> Option<C> {
         Some(self.code)
     }
@@ -106,11 +110,15 @@ where
     }
 }
 
-impl<C, I> KParseErrorExt<C, I> for nom::Err<ParserError<C, I>>
+impl<C, I> KParseError<C, I> for nom::Err<ParserError<C, I>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
 {
+    fn from(code: C, span: I) -> Self {
+        nom::Err::Error(KParseError::from(code, span))
+    }
+
     fn code(&self) -> Option<C> {
         match self {
             nom::Err::Incomplete(_) => None,
@@ -157,11 +165,15 @@ where
     }
 }
 
-impl<C, I, O> KParseErrorExt<C, I> for Result<(I, O), nom::Err<ParserError<C, I>>>
+impl<C, I, O> KParseError<C, I> for Result<(I, O), nom::Err<ParserError<C, I>>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
 {
+    fn from(code: C, span: I) -> Self {
+        Err(nom::Err::Error(KParseError::from(code, span)))
+    }
+
     fn code(&self) -> Option<C> {
         match self {
             Ok(_) => None,
@@ -527,7 +539,7 @@ where
 impl<C, I> ParserError<C, I>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     /// New error.
     pub fn new(code: C, span: I) -> Self {
@@ -629,7 +641,7 @@ where
         if self.code != code && self.code != C::NOM_ERROR {
             self.hints.push(Hints::Expect(SpanAndCode {
                 code: self.code,
-                span: self.span,
+                span: self.span.clone(),
             }));
         }
         self.code = code;

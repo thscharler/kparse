@@ -6,7 +6,7 @@
 //!
 
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, KParseErrorExt, ParserError};
+use crate::{Code, KParseError, ParserError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::error::Error;
@@ -22,11 +22,15 @@ pub struct TokenizerError<C, I> {
     pub span: I,
 }
 
-impl<C, I> KParseErrorExt<C, I> for TokenizerError<C, I>
+impl<C, I> KParseError<C, I> for TokenizerError<C, I>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
 {
+    fn from(code: C, span: I) -> Self {
+        TokenizerError::new(code, span)
+    }
+
     fn code(&self) -> Option<C> {
         Some(self.code)
     }
@@ -63,11 +67,15 @@ where
     }
 }
 
-impl<C, I> KParseErrorExt<C, I> for nom::Err<TokenizerError<C, I>>
+impl<C, I> KParseError<C, I> for nom::Err<TokenizerError<C, I>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
 {
+    fn from(code: C, span: I) -> Self {
+        nom::Err::Error(KParseError::from(code, span))
+    }
+
     fn code(&self) -> Option<C> {
         match self {
             nom::Err::Incomplete(_) => None,
@@ -115,11 +123,15 @@ where
     }
 }
 
-impl<C, I, O> KParseErrorExt<C, I> for Result<(I, O), nom::Err<TokenizerError<C, I>>>
+impl<C, I, O> KParseError<C, I> for Result<(I, O), nom::Err<TokenizerError<C, I>>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
 {
+    fn from(code: C, span: I) -> Self {
+        Err(nom::Err::Error(KParseError::from(code, span)))
+    }
+
     fn code(&self) -> Option<C> {
         match self {
             Ok(_) => None,

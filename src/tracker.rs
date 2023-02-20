@@ -2,7 +2,7 @@
 //! Everything related to tracking in a parser.
 //!
 
-use crate::{Code, KParseErrorExt};
+use crate::{Code, KParseError};
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Formatter};
@@ -134,7 +134,7 @@ where
     I: Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
     E: Debug,
-    nom::Err<E>: KParseErrorExt<C, I>,
+    nom::Err<E>: KParseError<C, I>,
 {
     /// Keep a track if self is an error.
     #[inline(always)]
