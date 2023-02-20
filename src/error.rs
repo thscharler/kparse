@@ -17,7 +17,7 @@
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
-use crate::{Code, ParseErrorExt};
+use crate::{Code, KParseErrorExt};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::any::Any;
@@ -75,7 +75,7 @@ pub struct SpanAndCode<C, I> {
     pub span: I,
 }
 
-impl<C, I> ParseErrorExt<C, I> for ParserError<C, I>
+impl<C, I> KParseErrorExt<C, I> for ParserError<C, I>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
@@ -106,7 +106,7 @@ where
     }
 }
 
-impl<C, I> ParseErrorExt<C, I> for nom::Err<ParserError<C, I>>
+impl<C, I> KParseErrorExt<C, I> for nom::Err<ParserError<C, I>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
@@ -157,7 +157,7 @@ where
     }
 }
 
-impl<C, I, O> ParseErrorExt<C, I> for Result<(I, O), nom::Err<ParserError<C, I>>>
+impl<C, I, O> KParseErrorExt<C, I> for Result<(I, O), nom::Err<ParserError<C, I>>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
@@ -598,6 +598,16 @@ where
                 Hints::UserData(e) => e.downcast_ref::<Y>(),
                 _ => None,
             })
+    }
+
+    /// Convert to a nom::Err::Error.
+    pub fn error(self) -> nom::Err<Self> {
+        nom::Err::Error(self)
+    }
+
+    /// Convert to a nom::Err::Failure.
+    pub fn failure(self) -> nom::Err<Self> {
+        nom::Err::Failure(self)
     }
 
     /// Adds information from the other parser error to this on.

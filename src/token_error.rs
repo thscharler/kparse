@@ -6,7 +6,7 @@
 //!
 
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, ParseErrorExt, ParserError};
+use crate::{Code, KParseErrorExt, ParserError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::error::Error;
@@ -22,7 +22,7 @@ pub struct TokenizerError<C, I> {
     pub span: I,
 }
 
-impl<C, I> ParseErrorExt<C, I> for TokenizerError<C, I>
+impl<C, I> KParseErrorExt<C, I> for TokenizerError<C, I>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
@@ -63,7 +63,7 @@ where
     }
 }
 
-impl<C, I> ParseErrorExt<C, I> for nom::Err<TokenizerError<C, I>>
+impl<C, I> KParseErrorExt<C, I> for nom::Err<TokenizerError<C, I>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
@@ -115,7 +115,7 @@ where
     }
 }
 
-impl<C, I, O> ParseErrorExt<C, I> for Result<(I, O), nom::Err<TokenizerError<C, I>>>
+impl<C, I, O> KParseErrorExt<C, I> for Result<(I, O), nom::Err<TokenizerError<C, I>>>
 where
     C: Code,
     I: Copy + Debug + InputTake + InputLength + InputIter,
@@ -265,12 +265,12 @@ where
     }
 
     /// Convert to a nom::Err::Error.
-    pub fn wrap_error(self) -> nom::Err<Self> {
+    pub fn error(self) -> nom::Err<Self> {
         nom::Err::Error(self)
     }
 
     /// Convert to a nom::Err::Failure.
-    pub fn wrap_failure(self) -> nom::Err<Self> {
+    pub fn failure(self) -> nom::Err<Self> {
         nom::Err::Failure(self)
     }
 }

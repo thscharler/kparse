@@ -2,6 +2,8 @@
 //! example parser
 //!
 
+#![allow(missing_docs)]
+
 use crate::token_error::TokenizerError;
 use crate::tracker::TrackSpan;
 use crate::{Code, ParserError, ParserResult, TokenizerResult};

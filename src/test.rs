@@ -3,7 +3,7 @@
 //!
 //! ```rust
 //! use nom::bytes::complete::tag;
-//! use kparse::combinators::error_code;
+//! use kparse::combinators::with_code;
 //! use kparse::examples::{ExSpan, ExTagB, ExTokenizerResult};
 //! use kparse::test::{CheckDump, span_parse};
 //!
@@ -11,7 +11,7 @@
 //! span_parse(&mut None, "b", nom_parse_b).ok_any().q(CheckDump);
 //!
 //! fn nom_parse_b(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
-//!     error_code(tag("b"), ExTagB)(i)
+//!     with_code(tag("b"), ExTagB)(i)
 //! }
 //! ```
 //! Runs the parser and works like a builder to evaluate the results.
@@ -23,7 +23,7 @@ use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanFragment;
 use crate::tracker::{StdTracker, TrackSpan};
 use crate::{Code, ParserError};
-use nom::{AsBytes, InputIter, InputLength, InputTake};
+use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
 use nom_locate::LocatedSpan;
 pub use report::*;
 pub use span::*;
@@ -135,7 +135,7 @@ impl Code for NoCode {
 pub fn span_parse<'s, C, T, O, E>(
     buf: &'s mut Option<StdTracker<C, T>>,
     text: T,
-    fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
+    mut fn_test: impl Parser<TrackSpan<'s, C, T>, O, E>,
 ) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
     T: AsBytes + Copy + 's,
@@ -147,7 +147,7 @@ where
     let span = context.span(text);
 
     let now = Instant::now();
-    let result = fn_test(span);
+    let result = fn_test.parse(span);
     let duration = now.elapsed();
 
     Test {
@@ -171,7 +171,7 @@ where
 pub fn span_parse<'s, T, O, E>(
     _buf: &'s mut Option<StdTracker<NoCode, &'s str>>,
     text: T,
-    fn_test: impl Fn(LocatedSpan<T, ()>) -> Result<(LocatedSpan<T, ()>, O), nom::Err<E>>,
+    mut fn_test: impl Parser<LocatedSpan<T, ()>, O, E>,
 ) -> Test<'s, (), LocatedSpan<T, ()>, O, E>
 where
     T: AsBytes + Copy + 's,
@@ -179,7 +179,7 @@ where
     let span = LocatedSpan::new(text);
 
     let now = Instant::now();
-    let result = fn_test(span);
+    let result = fn_test.parse(span);
     let duration = now.elapsed();
 
     Test {

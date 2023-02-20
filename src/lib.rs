@@ -44,8 +44,10 @@
 #![warn(variant_size_differences)]
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::type_complexity)]
+use nom::{IResult, Parser};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Display};
+use std::marker::PhantomData;
 
 pub mod combinators;
 pub mod error;
@@ -57,17 +59,19 @@ pub mod tracker;
 
 mod context;
 mod debug;
+mod parser_ext;
 
 pub use crate::context::Context;
 pub use crate::error::ParserError;
 use crate::token_error::TokenizerError;
+pub use parser_ext::*;
 
 /// Prelude, import the traits.
 pub mod prelude {
     pub use crate::error::AppendParserError;
     pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
     pub use crate::tracker::{ResultTracking, Tracking};
-    pub use crate::ParseErrorExt;
+    pub use crate::{KParseErrorExt, KParserExt};
 }
 
 /// Alias for LocatedSpan.
@@ -101,7 +105,7 @@ pub trait Code: Copy + Display + Debug + Eq {
 /// The first case is a special error path aside from parsing, and the second
 /// is not an error at all.
 ///
-pub trait ParseErrorExt<C, I> {
+pub trait KParseErrorExt<C, I> {
     /// Returns the error code if applicable.
     fn code(&self) -> Option<C>;
     /// Returns the error span if applicable.
@@ -121,4 +125,50 @@ pub trait ParseErrorExt<C, I> {
     /// Converts self to a nom::Err wrapped error.
     /// This doesn't work if self is a Result, but otherwise it's fine.
     fn wrap(self) -> nom::Err<Self::WrappedError>;
+}
+
+///
+pub trait KParserExt<I, O, E>
+where
+    Self: Sized,
+{
+    fn err_into<E2>(self) -> IntoErr<Self, O, E, E2>
+    where
+        E: Into<E2>;
+
+    fn with_code<C>(self, code: C) -> WithCode<Self, C>;
+
+    fn transform<TR, O2>(self, transform: TR) -> Transform<Self, O, TR, O2>
+    where
+        TR: Fn(O) -> Result<O2, nom::Err<E>>;
+}
+
+impl<T, I, O, E> KParserExt<I, O, E> for T
+where
+    T: Parser<I, O, E>,
+{
+    fn err_into<E2>(self) -> IntoErr<Self, O, E, E2>
+    where
+        E: Into<E2>,
+    {
+        IntoErr {
+            parser: self,
+            _phantom: Default::default(),
+        }
+    }
+
+    fn with_code<C>(self, code: C) -> WithCode<Self, C> {
+        WithCode { parser: self, code }
+    }
+
+    fn transform<TR, O2>(self, transform: TR) -> Transform<Self, O, TR, O2>
+    where
+        TR: Fn(O) -> Result<O2, nom::Err<E>>,
+    {
+        Transform {
+            parser: self,
+            transform,
+            _phantom: Default::default(),
+        }
+    }
 }

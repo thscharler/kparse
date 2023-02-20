@@ -3,17 +3,17 @@
 //!
 
 use crate::tracker::Tracking;
-use crate::{Code, ParseErrorExt};
-use nom::{AsBytes, IResult, InputIter, InputLength, InputTake, Parser};
+use crate::{Code, KParseErrorExt};
+use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
 use std::fmt::Debug;
 
 /// Tracked execution of a parser.
 ///
 /// ```rust
 /// use nom::bytes::complete::tag;
-/// use kparse::combinators::{err_into, error_code, track, transform};
+/// use kparse::combinators::{err_into, with_code, track, transform};
 /// use kparse::examples::{ExParserResult, ExSpan, ExTagB, ExTokenizerResult};
-/// use kparse::ParseErrorExt;
+/// use kparse::KParseErrorExt;
 ///
 /// fn parse_b(input: ExSpan<'_>) -> ExParserResult<'_, AstB> {
 ///     err_into(track(ExTagB,
@@ -22,7 +22,7 @@ use std::fmt::Debug;
 /// }
 ///
 /// fn nom_parse_b(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
-///     error_code(tag("b"), ExTagB)(i)
+///     with_code(tag("b"), ExTagB)(i)
 /// }
 ///
 /// struct AstB<'s> {
@@ -40,7 +40,7 @@ where
     C: Code,
     I: Copy + Debug + Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
-    nom::Err<E>: ParseErrorExt<C, I>,
+    nom::Err<E>: KParseErrorExt<C, I>,
 {
     move |input| -> Result<(I, O), nom::Err<E>> {
         input.track_enter(func);
@@ -84,21 +84,21 @@ where
 ///
 /// ```rust
 /// use nom::bytes::complete::tag;
-/// use kparse::combinators::error_code;
+/// use kparse::combinators::with_code;
 /// use kparse::examples::{ExSpan, ExTagB, ExTokenizerResult};
 ///
 /// fn nom_parse_b(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
-///     error_code(tag("b"), ExTagB)(i)
+///     with_code(tag("b"), ExTagB)(i)
 /// }
 /// ```
 #[inline(always)]
-pub fn error_code<PA, C, I, O, E>(
+pub fn with_code<PA, C, I, O, E>(
     mut parser: PA,
     code: C,
 ) -> impl FnMut(I) -> Result<(I, O), nom::Err<E>>
 where
     PA: Parser<I, O, E>,
-    E: ParseErrorExt<C, I>,
+    E: KParseErrorExt<C, I>,
     C: Code,
     I: AsBytes + Copy,
 {
@@ -128,7 +128,7 @@ where
 ///     consumed(transform(terminated(digit1, nom_ws), |v| {
 ///         match (*v).parse::<u32>() {
 ///             Ok(vv) => Ok(vv),
-///             Err(_) => Err(ExTokenizerError::new(ExNumber, v).wrap_failure()),
+///             Err(_) => Err(ExTokenizerError::new(ExNumber, v).failure()),
 ///         }
 ///     }))(i)
 /// }
@@ -148,6 +148,7 @@ pub fn transform<PA, TRFn, I, O1, O2, E>(
 where
     PA: Parser<I, O1, E>,
     TRFn: Fn(O1) -> Result<O2, nom::Err<E>>,
+    O1: Copy,
     I: AsBytes + Copy,
 {
     move |i| -> Result<(I, O2), nom::Err<E>> {

@@ -3,7 +3,7 @@
 //!
 
 use crate::tracker::{DynTracker, TrackerData, Tracking};
-use crate::{Code, ParseErrorExt};
+use crate::{Code, KParseErrorExt};
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::Debug;
@@ -20,7 +20,7 @@ impl Context {
         I: Copy + Debug,
         I: Tracking<C>,
         I: InputTake + InputLength + InputIter,
-        E: ParseErrorExt<C, I> + Debug,
+        E: KParseErrorExt<C, I> + Debug,
     {
         rest.track_ok(input);
         rest.track_exit();
@@ -35,7 +35,7 @@ impl Context {
         I: Copy + Debug,
         I: Tracking<C>,
         I: InputTake + InputLength + InputIter,
-        E: ParseErrorExt<C, I> + Debug,
+        E: KParseErrorExt<C, I> + Debug,
     {
         match err.parts() {
             None => Err(err.wrap()),
@@ -69,7 +69,7 @@ impl Context {
         I: Copy + Debug,
         I: Tracking<C>,
         I: InputTake + InputLength + InputIter,
-        E: ParseErrorExt<C, I> + Debug,
+        E: KParseErrorExt<C, I> + Debug,
     {
         match err.parts() {
             None => {}
