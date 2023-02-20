@@ -189,10 +189,10 @@ where
     PA: Parser<I, O, E>,
     C: Code,
     E: KParseError<C, I>,
-    I: Copy,
+    I: Clone,
 {
     fn parse(&mut self, input: I) -> IResult<I, O, E> {
-        match self.parser.parse(input) {
+        match self.parser.parse(input.clone()) {
             Err(nom::Err::Incomplete(_)) => Err(nom::Err::Error(E::from(self.code, input))),
             Err(e) => Err(e),
             Ok((r, v)) => Ok((r, v)),
@@ -226,10 +226,10 @@ pub struct Optional<PA> {
 impl<PA, I, O, E> Parser<I, Option<O>, E> for Optional<PA>
 where
     PA: Parser<I, O, E>,
-    I: Copy,
+    I: Clone,
 {
     fn parse(&mut self, input: I) -> IResult<I, Option<O>, E> {
-        match self.parser.parse(input) {
+        match self.parser.parse(input.clone()) {
             Ok((r, v)) => Ok((r, Some(v))),
             Err(nom::Err::Error(_)) => Ok((input, None)),
             Err(e) => Err(e),
@@ -246,7 +246,7 @@ pub struct Recognize<PA, O> {
 impl<PA, I, O, E> Parser<I, I, E> for Recognize<PA, O>
 where
     PA: Parser<I, O, E>,
-    I: Copy + Slice<RangeTo<usize>> + Offset,
+    I: Clone + Slice<RangeTo<usize>> + Offset,
 {
     fn parse(&mut self, input: I) -> IResult<I, I, E> {
         let (tail, _) = self.parser.parse(input.clone())?;
@@ -263,7 +263,7 @@ pub struct Consumed<PA> {
 impl<PA, I, O, E> Parser<I, (I, O), E> for Consumed<PA>
 where
     PA: Parser<I, O, E>,
-    I: Copy + Slice<RangeTo<usize>> + Offset,
+    I: Clone + Slice<RangeTo<usize>> + Offset,
 {
     fn parse(&mut self, input: I) -> IResult<I, (I, O), E> {
         let (tail, output) = self.parser.parse(input.clone())?;

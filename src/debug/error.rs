@@ -11,7 +11,7 @@ pub(crate) fn debug_parse_error<C, I>(
 ) -> fmt::Result
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     match f.width() {
@@ -25,14 +25,14 @@ where
 fn debug_parse_error_short<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     write!(
         f,
         "parse error [{:?}] for {:?}",
         err.code,
-        restrict(DebugWidth::Short, err.span)
+        restrict(DebugWidth::Short, err.span.clone())
     )?;
 
     if let Some(nom) = err.nom() {
@@ -57,14 +57,14 @@ where
 fn debug_parse_error_medium<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     writeln!(
         f,
         "ParserError [{}] for {:?}",
         err.code,
-        restrict(DebugWidth::Medium, err.span)
+        restrict(DebugWidth::Medium, err.span.clone())
     )?;
 
     if let Some(nom) = err.nom() {
@@ -103,14 +103,14 @@ where
 fn debug_parse_error_long<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     writeln!(
         f,
         "ParserError [{}] for {:?}",
         err.code,
-        restrict(DebugWidth::Long, err.span)
+        restrict(DebugWidth::Long, err.span.clone())
     )?;
 
     if let Some(nom) = err.nom() {

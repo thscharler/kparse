@@ -3,7 +3,7 @@
 //!
 
 use crate::tracker::{DynTracker, TrackerData, Tracking};
-use crate::{Code, KParseError};
+use crate::{Code, ErrWrapped, KParseError};
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 use nom_locate::LocatedSpan;
 use std::fmt::Debug;
@@ -17,7 +17,7 @@ impl Context {
     pub fn ok<C, I, O, E>(&self, rest: I, input: I, value: O) -> Result<(I, O), nom::Err<E>>
     where
         C: Code,
-        I: Copy + Debug,
+        I: Clone + Debug,
         I: Tracking<C>,
         I: InputTake + InputLength + InputIter,
         E: KParseError<C, I> + Debug,
@@ -29,13 +29,16 @@ impl Context {
 
     /// Tracks the error and creates a Result.
     #[inline(always)]
-    pub fn err<C, I, O, E>(&self, err: E) -> Result<(I, O), nom::Err<E::WrappedError>>
+    pub fn err<C, I, O, E>(
+        &self,
+        err: E,
+    ) -> Result<(I, O), nom::Err<<E as ErrWrapped>::WrappedError>>
     where
         C: Code,
-        I: Copy + Debug,
+        I: Clone + Debug,
         I: Tracking<C>,
         I: InputTake + InputLength + InputIter,
-        E: KParseError<C, I> + Debug,
+        E: KParseError<C, I> + ErrWrapped + Debug,
     {
         match err.parts() {
             None => Err(err.wrap()),
@@ -66,7 +69,7 @@ impl Context {
     pub fn err_section<C, I, E>(&self, err: &E)
     where
         C: Code,
-        I: Copy + Debug,
+        I: Clone + Debug,
         I: Tracking<C>,
         I: InputTake + InputLength + InputIter,
         E: KParseError<C, I> + Debug,
@@ -125,7 +128,7 @@ type DynSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 impl<'s, C, T> Tracking<C> for DynSpan<'s, C, T>
 where
     C: Code,
-    T: Copy + Debug + AsBytes + InputTake + InputLength,
+    T: Clone + Debug + AsBytes + InputTake + InputLength,
 {
     #[inline(always)]
     fn track_enter(&self, func: C) {
@@ -180,13 +183,13 @@ where
 fn clear_span<C, T>(span: &DynSpan<'_, C, T>) -> LocatedSpan<T, ()>
 where
     C: Code,
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
 {
     unsafe {
         LocatedSpan::new_from_raw_offset(
             span.location_offset(),
             span.location_line(),
-            *span.fragment(),
+            span.fragment().clone(),
             (),
         )
     }
@@ -196,7 +199,7 @@ type PlainSpan<'s, T> = LocatedSpan<T, ()>;
 
 impl<'s, C, T> Tracking<C> for PlainSpan<'s, T>
 where
-    T: Copy + Debug,
+    T: Clone + Debug,
     T: InputTake + InputLength + AsBytes,
     C: Code,
 {

@@ -183,7 +183,7 @@ mod planung4 {
         /// Write some diagnostics.
         #[allow(clippy::collapsible_else_if)]
         #[allow(clippy::collapsible_if)]
-        pub fn dump_diagnostics<X: Copy>(
+        pub fn dump_diagnostics<X: Clone>(
             src: &Path,
             orig: LocatedSpan<&str, X>,
             err: &APParserError<'_>,
@@ -260,7 +260,7 @@ mod planung4 {
 
         /// Write some diagnostics.
         #[allow(dead_code)]
-        pub fn dump_diagnostics_info<X: Copy>(
+        pub fn dump_diagnostics_info<X: Clone>(
             src: &Path,
             orig: LocatedSpan<&str, X>,
             err: &APParserError<'_>,
@@ -1518,7 +1518,7 @@ mod planung4 {
         ) -> Result<O, nom::Err<ParserError<C, I>>>
         where
             C: Code,
-            I: Copy,
+            I: Clone,
         {
             match r {
                 Ok(v) => Ok(v),

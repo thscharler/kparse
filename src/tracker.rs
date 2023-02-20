@@ -113,7 +113,7 @@ where
 pub trait ResultTracking<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
 {
@@ -130,7 +130,7 @@ where
 impl<C, I, O, E> ResultTracking<C, I> for Result<(I, O), nom::Err<E>>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
     E: Debug,

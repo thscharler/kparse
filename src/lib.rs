@@ -109,6 +109,9 @@ pub trait Code: Copy + Display + Debug + Eq {
 /// is not an error at all.
 ///
 pub trait KParseError<C, I> {
+    /// The base error type.
+    type WrappedError: Debug;
+
     /// Create a matching error.
     fn from(code: C, span: I) -> Self;
 
@@ -124,7 +127,11 @@ pub trait KParseError<C, I> {
 
     /// Changes the error code.
     fn with_code(self, code: C) -> Self;
+}
 
+/// This trait is used in a few places where the function wants to accept both
+/// E and nom::Err<E>.
+pub trait ErrWrapped {
     /// The base error type.
     type WrappedError: Debug;
 
@@ -198,12 +205,12 @@ where
     /// Run the parser and return the parsed input.
     fn recognize(self) -> Recognize<Self, O>
     where
-        I: Copy + Slice<RangeTo<usize>> + Offset;
+        I: Clone + Slice<RangeTo<usize>> + Offset;
 
     /// Run the parser and return the parser output and the parsed input.
     fn consumed(self) -> Consumed<Self>
     where
-        I: Copy + Slice<RangeTo<usize>> + Offset;
+        I: Clone + Slice<RangeTo<usize>> + Offset;
 
     /// Runs the parser and the terminator and just returns the result of the parser.
     fn terminated<PA, O2>(self, terminator: PA) -> Terminated<Self, PA, O2>
@@ -351,7 +358,7 @@ where
 
     fn recognize(self) -> Recognize<Self, O>
     where
-        I: Copy + Slice<RangeTo<usize>> + Offset,
+        I: Clone + Slice<RangeTo<usize>> + Offset,
     {
         Recognize {
             parser: self,
@@ -361,7 +368,7 @@ where
 
     fn consumed(self) -> Consumed<Self>
     where
-        I: Copy + Slice<RangeTo<usize>> + Offset,
+        I: Clone + Slice<RangeTo<usize>> + Offset,
     {
         Consumed { parser: self }
     }

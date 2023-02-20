@@ -6,7 +6,7 @@
 //!
 
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, KParseError, ParserError};
+use crate::{Code, ErrWrapped, KParseError, ParserError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::error::Error;
@@ -22,11 +22,35 @@ pub struct TokenizerError<C, I> {
     pub span: I,
 }
 
+impl<C, I> ErrWrapped for TokenizerError<C, I>
+where
+    C: Code,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
+{
+    type WrappedError = TokenizerError<C, I>;
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
+        nom::Err::Error(self)
+    }
+}
+
+impl<C, I> ErrWrapped for nom::Err<TokenizerError<C, I>>
+where
+    C: Code,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
+{
+    type WrappedError = TokenizerError<C, I>;
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
+        self
+    }
+}
+
 impl<C, I> KParseError<C, I> for TokenizerError<C, I>
 where
     C: Code,
-    I: Copy + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
 {
+    type WrappedError = TokenizerError<C, I>;
+
     fn from(code: C, span: I) -> Self {
         TokenizerError::new(code, span)
     }
@@ -36,7 +60,7 @@ where
     }
 
     fn span(&self) -> Option<I> {
-        Some(self.span)
+        Some(self.span.clone())
     }
 
     fn err(&self) -> Option<&Self::WrappedError> {
@@ -44,23 +68,18 @@ where
     }
 
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
-        Some((self.code, self.span, self))
+        Some((self.code, self.span.clone(), self))
     }
 
     fn with_code(self, code: C) -> Self {
         TokenizerError::with_code(self, code)
-    }
-
-    type WrappedError = Self;
-    fn wrap(self) -> nom::Err<Self::WrappedError> {
-        nom::Err::Error(self)
     }
 }
 
 impl<C, I> From<TokenizerError<C, I>> for ParserError<C, I>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     fn from(value: TokenizerError<C, I>) -> Self {
         ParserError::new(value.code, value.span)
@@ -70,8 +89,10 @@ where
 impl<C, I> KParseError<C, I> for nom::Err<TokenizerError<C, I>>
 where
     C: Code,
-    I: Copy + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
 {
+    type WrappedError = TokenizerError<C, I>;
+
     fn from(code: C, span: I) -> Self {
         nom::Err::Error(KParseError::from(code, span))
     }
@@ -87,8 +108,8 @@ where
     fn span(&self) -> Option<I> {
         match self {
             nom::Err::Incomplete(_) => None,
-            nom::Err::Error(e) => Some(e.span),
-            nom::Err::Failure(e) => Some(e.span),
+            nom::Err::Error(e) => Some(e.span.clone()),
+            nom::Err::Failure(e) => Some(e.span.clone()),
         }
     }
 
@@ -103,8 +124,8 @@ where
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
         match self {
             nom::Err::Incomplete(_) => None,
-            nom::Err::Error(e) => Some((e.code, e.span, e)),
-            nom::Err::Failure(e) => Some((e.code, e.span, e)),
+            nom::Err::Error(e) => Some((e.code, e.span.clone(), e)),
+            nom::Err::Failure(e) => Some((e.code, e.span.clone(), e)),
         }
     }
 
@@ -115,19 +136,15 @@ where
             nom::Err::Failure(e) => nom::Err::Failure(e.with_code(code)),
         }
     }
-
-    type WrappedError = TokenizerError<C, I>;
-
-    fn wrap(self) -> nom::Err<Self::WrappedError> {
-        self
-    }
 }
 
 impl<C, I, O> KParseError<C, I> for Result<(I, O), nom::Err<TokenizerError<C, I>>>
 where
     C: Code,
-    I: Copy + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
 {
+    type WrappedError = TokenizerError<C, I>;
+
     fn from(code: C, span: I) -> Self {
         Err(nom::Err::Error(KParseError::from(code, span)))
     }
@@ -144,8 +161,8 @@ where
     fn span(&self) -> Option<I> {
         match self {
             Ok(_) => None,
-            Err(nom::Err::Error(e)) => Some(e.span),
-            Err(nom::Err::Failure(e)) => Some(e.span),
+            Err(nom::Err::Error(e)) => Some(e.span.clone()),
+            Err(nom::Err::Failure(e)) => Some(e.span.clone()),
             Err(nom::Err::Incomplete(_)) => None,
         }
     }
@@ -162,8 +179,8 @@ where
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
         match self {
             Ok(_) => None,
-            Err(nom::Err::Error(e)) => Some((e.code, e.span, e)),
-            Err(nom::Err::Failure(e)) => Some((e.code, e.span, e)),
+            Err(nom::Err::Error(e)) => Some((e.code, e.span.clone(), e)),
+            Err(nom::Err::Failure(e)) => Some((e.code, e.span.clone(), e)),
             Err(nom::Err::Incomplete(_)) => None,
         }
     }
@@ -176,18 +193,12 @@ where
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
         }
     }
-
-    type WrappedError = TokenizerError<C, I>;
-
-    fn wrap(self) -> nom::Err<Self::WrappedError> {
-        unimplemented!("into_wrapped cannot be used for Result<>");
-    }
 }
 
 impl<C, I> nom::error::ParseError<I> for TokenizerError<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     fn from_error_kind(input: I, _kind: ErrorKind) -> Self {
@@ -218,12 +229,16 @@ where
 impl<C, I> Display for TokenizerError<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.code)?;
-        write!(f, " for span {:?}", restrict(DebugWidth::Short, self.span))?;
+        write!(
+            f,
+            " for span {:?}",
+            restrict(DebugWidth::Short, self.span.clone())
+        )?;
         Ok(())
     }
 }
@@ -231,13 +246,13 @@ where
 impl<C, I> Debug for TokenizerError<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let dw: DebugWidth = f.width().into();
         write!(f, "{}", self.code)?;
-        write!(f, " for span {:?}", restrict(dw, self.span))?;
+        write!(f, " for span {:?}", restrict(dw, self.span.clone()))?;
         Ok(())
     }
 }
@@ -245,7 +260,7 @@ where
 impl<C, I> Error for TokenizerError<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
 }
@@ -253,7 +268,7 @@ where
 impl<C, I> TokenizerError<C, I>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     /// New error.
     pub fn new(code: C, span: I) -> Self {

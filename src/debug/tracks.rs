@@ -17,7 +17,7 @@ fn indent(f: &mut impl fmt::Write, ind: usize) -> fmt::Result {
     Ok(())
 }
 
-pub(crate) fn debug_tracks<T: AsBytes + Copy + Debug, C: Code>(
+pub(crate) fn debug_tracks<T: AsBytes + Clone + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     tracks: &Vec<Track<C, T>>,
@@ -55,7 +55,7 @@ where
     Ok(())
 }
 
-fn debug_track<T: AsBytes + Copy + Debug, C: Code>(
+fn debug_track<T: AsBytes + Clone + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     v: &Track<C, T>,
@@ -79,7 +79,7 @@ where
     }
 }
 
-fn debug_enter<T: AsBytes + Copy + Debug, C: Code>(
+fn debug_enter<T: AsBytes + Clone + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     v: &EnterTrack<C, T>,
@@ -113,7 +113,7 @@ where
     }
 }
 
-fn debug_info<T: AsBytes + Copy + Debug, C: Code>(
+fn debug_info<T: AsBytes + Clone + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     v: &InfoTrack<C, T>,
@@ -151,7 +151,7 @@ where
     }
 }
 
-fn debug_warn<T: AsBytes + Copy + Debug, C: Code>(
+fn debug_warn<T: AsBytes + Clone + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     v: &WarnTrack<C, T>,
@@ -189,7 +189,7 @@ where
     }
 }
 
-fn debug_debug<T: AsBytes + Copy + Debug, C: Code>(
+fn debug_debug<T: AsBytes + Clone + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     v: &DebugTrack<C, T>,
@@ -208,7 +208,7 @@ where
     }
 }
 
-fn debug_ok<T: AsBytes + Copy + Debug, C: Code>(
+fn debug_ok<T: AsBytes + Clone + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     v: &OkTrack<C, T>,
@@ -256,7 +256,7 @@ where
     Ok(())
 }
 
-fn debug_err<T: AsBytes + Copy + Debug, C: Code>(
+fn debug_err<T: AsBytes + Clone + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     v: &ErrTrack<C, T>,
@@ -275,7 +275,7 @@ where
     }
 }
 
-fn debug_exit<T: AsBytes + Copy + Debug, C: Code>(
+fn debug_exit<T: AsBytes + Clone + Debug, C: Code>(
     f: &mut impl fmt::Write,
     w: DebugWidth,
     v: &ExitTrack<C, T>,

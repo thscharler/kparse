@@ -68,7 +68,7 @@ pub fn track_parse<'s, C, T, O, E>(
     fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
 ) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     track_parse_ext(buf, true, text, fn_test)
@@ -86,7 +86,7 @@ pub fn track_parse_ext<'s, C, T, O, E>(
     fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
 ) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     buf.replace(StdTracker::new().tracking(track));
@@ -95,7 +95,7 @@ where
     let span = context.span(text);
 
     let now = Instant::now();
-    let result = fn_test(span);
+    let result = fn_test(span.clone());
     let duration = now.elapsed();
 
     Test {
@@ -138,7 +138,7 @@ pub fn span_parse<'s, C, T, O, E>(
     mut fn_test: impl Parser<TrackSpan<'s, C, T>, O, E>,
 ) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
-    T: AsBytes + Copy + 's,
+    T: AsBytes + Clone + 's,
     C: Code,
 {
     buf.replace(StdTracker::new());
@@ -147,7 +147,7 @@ where
     let span = context.span(text);
 
     let now = Instant::now();
-    let result = fn_test.parse(span);
+    let result = fn_test.parse(span.clone());
     let duration = now.elapsed();
 
     Test {
@@ -174,12 +174,12 @@ pub fn span_parse<'s, T, O, E>(
     mut fn_test: impl Parser<LocatedSpan<T, ()>, O, E>,
 ) -> Test<'s, (), LocatedSpan<T, ()>, O, E>
 where
-    T: AsBytes + Copy + 's,
+    T: AsBytes + Clone + 's,
 {
     let span = LocatedSpan::new(text);
 
     let now = Instant::now();
-    let result = fn_test.parse(span);
+    let result = fn_test.parse(span.clone());
     let duration = now.elapsed();
 
     Test {
@@ -203,12 +203,12 @@ pub fn span_parsex<'s, T, O, E>(
     fn_test: impl Fn(LocatedSpan<T, ()>) -> Result<(LocatedSpan<T, ()>, O), nom::Err<E>>,
 ) -> Test<'s, (), LocatedSpan<T, ()>, O, E>
 where
-    T: AsBytes + Copy + 's,
+    T: AsBytes + Clone + 's,
 {
     let span = LocatedSpan::new(text);
 
     let now = Instant::now();
-    let result = fn_test(span);
+    let result = fn_test(span.clone());
     let duration = now.elapsed();
 
     Test {
@@ -396,7 +396,7 @@ pub fn byte_parsex<'s, O, E>(
 
 impl<'s, P, I, O, E> Test<'s, P, I, O, E>
 where
-    I: AsBytes + Copy + Debug + 's,
+    I: AsBytes + Clone + Debug + 's,
     O: Debug,
     E: Debug,
 {
@@ -450,7 +450,7 @@ where
     ///
     /// Panics if any test failed.
     #[track_caller]
-    pub fn q<R: Report<Self> + Copy>(&self, r: R) {
+    pub fn q<R: Report<Self> + Clone>(&self, r: R) {
         r.report(self);
     }
 }
@@ -458,7 +458,7 @@ where
 // works for any fn that uses a Span as input and returns a (Span, X) pair.
 impl<'s, P, I, O, E> Test<'s, P, I, O, E>
 where
-    I: AsBytes + Copy + Debug + PartialEq + 's,
+    I: AsBytes + Clone + Debug + PartialEq + 's,
     I: InputTake + InputLength + InputIter,
     O: Debug,
     E: Debug,
@@ -472,12 +472,12 @@ where
     #[must_use]
     pub fn ok<V>(&'s self, eq: CompareFn<O, V>, test: V) -> &Self
     where
-        V: Debug + Copy,
+        V: Debug + Clone,
         O: Debug,
     {
         match &self.result {
             Ok((_, token)) => {
-                if !eq(token, test) {
+                if !eq(token, test.clone()) {
                     println!("FAIL: Value mismatch: {:?} <> {:?}", token, test);
                     self.flag_fail();
                 }
@@ -504,7 +504,7 @@ where
                 if rest.fragment() != &test {
                     println!(
                         "FAIL: Rest mismatch {:?} <> {:?}",
-                        restrict(DebugWidth::Medium, *rest),
+                        restrict(DebugWidth::Medium, rest.clone()),
                         test
                     );
                     self.flag_fail();
@@ -522,7 +522,7 @@ where
 // works for any NomFn.
 impl<'s, P, I, O> Test<'s, P, I, O, nom::error::Error<I>>
 where
-    I: AsBytes + Copy + Debug + 's,
+    I: AsBytes + Clone + Debug + 's,
     I: InputTake + InputLength + InputIter,
     O: Debug,
 {
@@ -551,7 +551,7 @@ where
 
 impl<'s, P, C, I, O> Test<'s, P, I, O, ParserError<C, I>>
 where
-    I: AsBytes + Copy + Debug + 's,
+    I: AsBytes + Clone + Debug + 's,
     I: InputTake + InputLength + InputIter,
     C: Code,
     O: Debug,
@@ -654,7 +654,7 @@ mod span {
     #[allow(clippy::needless_lifetimes)]
     pub fn span<'a, 's, T, C>(span: &'a TrackSpan<'s, C, T>, value: (usize, T)) -> bool
     where
-        T: AsBytes + Copy + PartialEq,
+        T: AsBytes + Clone + PartialEq,
         C: Code,
     {
         **span == value.1 && span.location_offset() == value.0
@@ -668,7 +668,7 @@ mod span {
         value: (usize, T),
     ) -> bool
     where
-        T: AsBytes + Copy + PartialEq,
+        T: AsBytes + Clone + PartialEq,
         C: Code,
     {
         if let Some(span) = &span.0 {
@@ -685,7 +685,7 @@ mod span {
         _value: (),
     ) -> bool
     where
-        T: AsBytes + Copy + PartialEq,
+        T: AsBytes + Clone + PartialEq,
         C: Code,
     {
         span.0.is_none()
@@ -699,7 +699,7 @@ mod span {
         value: (usize, T),
     ) -> bool
     where
-        T: AsBytes + Copy + PartialEq,
+        T: AsBytes + Clone + PartialEq,
         C: Code,
     {
         *span.1 == value.1 && span.1.location_offset() == value.0
@@ -730,7 +730,7 @@ mod report {
 
     impl<'s, P, I, O, E> Report<Test<'s, P, I, O, E>> for CheckDump
     where
-        I: AsBytes + Copy + Debug,
+        I: AsBytes + Clone + Debug,
         I: Offset
             + InputTake
             + InputIter
@@ -756,7 +756,7 @@ mod report {
 
     impl<'s, P, I, O, E> Report<Test<'s, P, I, O, E>> for Timing
     where
-        I: AsBytes + Copy + Debug,
+        I: AsBytes + Clone + Debug,
         I: InputTake + InputLength + InputIter,
         O: Debug,
         E: Debug,
@@ -764,7 +764,7 @@ mod report {
         fn report(&self, test: &Test<'s, P, I, O, E>) {
             println!(
                 "when parsing {:?} in {:?} =>",
-                restrict(DebugWidth::Medium, test.span),
+                restrict(DebugWidth::Medium, test.span.clone()),
                 test.duration / self.0
             );
             match &test.result {
@@ -784,7 +784,7 @@ mod report {
 
     impl<'s, P, I, O, E> Report<Test<'s, P, I, O, E>> for Dump
     where
-        I: AsBytes + Copy + Debug,
+        I: AsBytes + Clone + Debug,
         I: InputTake + InputLength + InputIter + Offset,
         O: Debug,
         E: Debug,
@@ -796,7 +796,7 @@ mod report {
 
     fn dump<P, I, O, E>(test: &Test<'_, P, I, O, E>)
     where
-        I: AsBytes + Copy + Debug,
+        I: AsBytes + Clone + Debug,
         I: InputTake + InputLength + InputIter + Offset,
         O: Debug,
         E: Debug,
@@ -804,7 +804,7 @@ mod report {
         println!();
         println!(
             "when parsing {:?} in {:?} =>",
-            restrict(DebugWidth::Medium, test.span),
+            restrict(DebugWidth::Medium, test.span.clone()),
             test.duration
         );
         match &test.result {
@@ -831,7 +831,7 @@ mod report {
 
     impl<'s, C, T, O, E> Report<Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>> for CheckTrace
     where
-        T: AsBytes + Copy + Debug,
+        T: AsBytes + Clone + Debug,
         T: Offset
             + InputTake
             + InputIter
@@ -854,7 +854,7 @@ mod report {
 
     impl<'s, C, T, O, E> Report<Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>> for Trace
     where
-        T: AsBytes + Copy + Debug,
+        T: AsBytes + Clone + Debug,
         T: Offset
             + InputTake
             + InputIter
@@ -873,7 +873,7 @@ mod report {
 
     fn trace<'s, C, T, O, E>(test: &Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>)
     where
-        T: AsBytes + Copy + Debug,
+        T: AsBytes + Clone + Debug,
         T: Offset
             + InputTake
             + InputIter
@@ -922,7 +922,7 @@ mod report {
 
     impl<'s, T, O, E> Report<Test<'s, (), LocatedSpan<T, ()>, O, E>> for CheckTrace
     where
-        T: AsBytes + Copy + Debug,
+        T: AsBytes + Clone + Debug,
         T: InputTake + InputLength + InputIter,
         O: Debug,
         E: Debug,
@@ -938,7 +938,7 @@ mod report {
 
     impl<'s, T, O, E> Report<Test<'s, (), LocatedSpan<T, ()>, O, E>> for Trace
     where
-        T: AsBytes + Copy + Debug,
+        T: AsBytes + Clone + Debug,
         T: InputTake + InputLength + InputIter,
         O: Debug,
         E: Debug,
@@ -950,7 +950,7 @@ mod report {
 
     fn trace_span<T, O, E>(test: &Test<'_, (), LocatedSpan<T, ()>, O, E>)
     where
-        T: AsBytes + Copy + Debug,
+        T: AsBytes + Clone + Debug,
         T: InputTake + InputLength + InputIter,
         O: Debug,
         E: Debug,

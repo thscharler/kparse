@@ -1081,12 +1081,12 @@ mod cmds_parser {
         }
     }
 
-    struct Parse2LayerCommand<O: Copy + Debug, const N: usize> {
+    struct Parse2LayerCommand<O: Clone + Debug, const N: usize> {
         map_cmd: fn(O) -> BCommand,
         layers: Parse2Layers<O, N>,
     }
 
-    impl<O: Copy + Debug, const N: usize> Parse2LayerCommand<O, N> {
+    impl<O: Clone + Debug, const N: usize> Parse2LayerCommand<O, N> {
         fn lah(&self, span: CSpan<'_>) -> bool {
             lah_command(self.layers.token, span)
         }
@@ -1106,19 +1106,19 @@ mod cmds_parser {
         }
     }
 
-    struct Parse2Layers<O: Copy, const N: usize> {
+    struct Parse2Layers<O: Clone, const N: usize> {
         pub token: &'static str,
         pub code: CCode,
         pub list: [SubCmd<O>; N],
     }
 
-    struct SubCmd<O: Copy> {
+    struct SubCmd<O: Clone> {
         pub token: &'static str,
         pub code: CCode,
         pub output: O,
     }
 
-    impl<O: Copy> From<(&'static str, CCode, O)> for SubCmd<O> {
+    impl<O: Clone> From<(&'static str, CCode, O)> for SubCmd<O> {
         fn from(t: (&'static str, CCode, O)) -> Self {
             SubCmd {
                 token: t.0,
@@ -1128,7 +1128,7 @@ mod cmds_parser {
         }
     }
 
-    impl<O: Copy, const N: usize> Parse2Layers<O, N> {
+    impl<O: Clone, const N: usize> Parse2Layers<O, N> {
         fn parse<'s>(&self, input: CSpan<'s>) -> CParserResult<'s, (CSpan<'s>, O)> {
             Context.enter(self.code, input);
 

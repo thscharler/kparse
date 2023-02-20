@@ -264,7 +264,7 @@ mod parser {
         mut parse_fn: PFn,
     ) -> impl FnMut(I) -> Result<(I, Option<O>), nom::Err<E>>
     where
-        I: Copy,
+        I: Clone,
         CFn: Fn(I) -> bool,
         PFn: Parser<I, O, E>,
     {
@@ -405,7 +405,7 @@ mod token {
     ) -> Result<O, nom::Err<ParserError<C, I>>>
     where
         C: Code,
-        I: Copy,
+        I: Clone,
     {
         match r {
             Ok(v) => Ok(v),

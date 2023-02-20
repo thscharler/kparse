@@ -96,7 +96,7 @@ pub trait SpanLocation {
 impl<T, X> SpanLocation for LocatedSpan<T, X>
 where
     T: AsBytes,
-    X: Copy,
+    X: Clone,
 {
     fn location_offset(&self) -> usize {
         LocatedSpan::location_offset(self)
@@ -118,7 +118,7 @@ pub trait SpanFragment {
 
 impl<T, X> SpanFragment for LocatedSpan<T, X>
 where
-    T: Copy + AsBytes,
+    T: Clone + AsBytes,
 {
     type Result = T;
 
@@ -146,7 +146,7 @@ impl<'s> SpanFragment for &'s [u8] {
 impl<T, X> SpanUnion for LocatedSpan<T, X>
 where
     T: AsBytes + InputLength + Slice<Range<usize>>,
-    X: Copy,
+    X: Clone,
 {
     fn span_union<'a>(
         &self,
@@ -163,14 +163,14 @@ where
                 offset_1,
                 first.location_line(),
                 offset_2 - offset_1 + second.input_len(),
-                first.extra,
+                first.extra.clone(),
             )
         } else {
             (
                 offset_2,
                 second.location_line(),
                 offset_1 - offset_2 + first.input_len(),
-                second.extra,
+                second.extra.clone(),
             )
         };
 
@@ -200,7 +200,7 @@ pub struct SpanLines<'s, X> {
     buf: LocatedSpan<&'s str, X>,
 }
 
-impl<'s, X: Copy + 's> SpanLines<'s, X> {
+impl<'s, X: Clone + 's> SpanLines<'s, X> {
     /// Create a new SpanLines buffer.
     pub fn new(buf: LocatedSpan<&'s str, X>) -> Self {
         Self { sep: b'\n', buf }
@@ -264,7 +264,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
 
         SpanIter {
             sep: self.sep,
-            buf: current,
+            buf: current.clone(),
             fragment: Self::empty_frame(&self.buf, &current),
         }
     }
@@ -273,7 +273,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
     pub fn iter(&self) -> SpanIter<'s, X> {
         SpanIter {
             sep: self.sep,
-            buf: self.buf,
+            buf: self.buf.clone(),
             fragment: Self::empty_frame(&self.buf, &self.buf),
         }
     }
@@ -283,7 +283,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         let current = Self::end_frame(&self.buf, fragment, self.sep);
         SpanIter {
             sep: self.sep,
-            buf: self.buf,
+            buf: self.buf.clone(),
             fragment: current,
         }
     }
@@ -294,7 +294,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
         let current = Self::start_frame(&self.buf, fragment, self.sep);
         RSpanIter {
             sep: self.sep,
-            buf: self.buf,
+            buf: self.buf.clone(),
             fragment: current,
         }
     }
@@ -332,7 +332,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
                 offset,
                 fragment.location_line(),
                 &complete[offset..offset],
-                complete.extra,
+                complete.extra.clone(),
             )
         }
     }
@@ -365,7 +365,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
                 start,
                 fragment.location_line(),
                 &complete[start..end],
-                complete.extra,
+                complete.extra.clone(),
             )
         }
     }
@@ -399,7 +399,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
                 start,
                 fragment.location_line() + skip_lines as u32,
                 &complete[start..end],
-                complete.extra,
+                complete.extra.clone(),
             )
         }
     }
@@ -435,7 +435,7 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
                 start,
                 fragment.location_line(),
                 &complete[start..end],
-                complete.extra,
+                complete.extra.clone(),
             )
         }
     }
@@ -476,11 +476,11 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
                 start,
                 fragment.location_line() + skip_lines as u32,
                 &complete[start..end],
-                complete.extra,
+                complete.extra.clone(),
             )
         };
 
-        (span, if is_terminal { None } else { Some(span) })
+        (span.clone(), if is_terminal { None } else { Some(span) })
     }
 
     /// Return the preceding frame.
@@ -523,11 +523,11 @@ impl<'s, X: Copy + 's> SpanLines<'s, X> {
                 start,
                 fragment.location_line() - skip_lines as u32,
                 &complete[start..end],
-                complete.extra,
+                complete.extra.clone(),
             )
         };
 
-        (span, if is_terminal { None } else { Some(span) })
+        (span.clone(), if is_terminal { None } else { Some(span) })
     }
 }
 
@@ -538,7 +538,7 @@ pub struct SpanIter<'s, X> {
     fragment: LocatedSpan<&'s str, X>,
 }
 
-impl<'s, X: Copy + 's> Iterator for SpanIter<'s, X> {
+impl<'s, X: Clone + 's> Iterator for SpanIter<'s, X> {
     type Item = LocatedSpan<&'s str, X>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -555,7 +555,7 @@ pub struct RSpanIter<'s, X> {
     fragment: LocatedSpan<&'s str, X>,
 }
 
-impl<'s, X: Copy + 's> Iterator for RSpanIter<'s, X> {
+impl<'s, X: Clone + 's> Iterator for RSpanIter<'s, X> {
     type Item = LocatedSpan<&'s str, X>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -878,7 +878,7 @@ mod tests_spanlines {
 
     const SEP: u8 = b'\n';
 
-    fn mk_fragment<'a, X: Copy>(
+    fn mk_fragment<'a, X: Clone>(
         span: &LocatedSpan<&'a str, X>,
         start: usize,
         end: usize,

@@ -36,7 +36,7 @@ use std::ops::{RangeFrom, RangeTo};
 /// ```
 pub struct StdTracker<C, T>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     track: bool,
@@ -45,7 +45,7 @@ where
 
 struct TrackingData<C, T>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     func: Vec<C>,
@@ -58,12 +58,12 @@ where
 /// Hint: You can use "{:0?}", "{:1?}" and "{:2?}" to cut back the parse text.
 pub struct Tracks<C, T>(pub Vec<Track<C, T>>)
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code;
 
 impl<C, T> Default for TrackingData<C, T>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     fn default() -> Self {
@@ -76,7 +76,7 @@ where
 
 impl<C, T> Default for StdTracker<C, T>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     fn default() -> Self {
@@ -86,7 +86,7 @@ where
 
 impl<C, T> StdTracker<C, T>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     /// Creates a context for a given span.
@@ -131,7 +131,7 @@ where
 
 impl<C, T> Debug for Tracks<C, T>
 where
-    T: AsBytes + Copy + Debug,
+    T: AsBytes + Clone + Debug,
     C: Code,
     T: Offset
         + InputTake
@@ -147,7 +147,7 @@ where
 
 impl<C, T> Tracker<C, T> for StdTracker<C, T>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     fn track(&self, data: TrackerData<C, T>) {
@@ -181,7 +181,7 @@ where
 
 impl<C, T> StdTracker<C, T>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     // enter function
@@ -211,7 +211,7 @@ where
 
 impl<C, T> StdTracker<C, T>
 where
-    T: AsBytes + Copy,
+    T: AsBytes + Clone,
     C: Code,
 {
     fn track_enter(&self, span: LocatedSpan<T, ()>) {
@@ -309,7 +309,7 @@ where
 #[allow(missing_docs)]
 pub enum Track<C, T>
 where
-    T: Copy,
+    T: Clone,
     C: Code,
 {
     Enter(EnterTrack<C, T>),
@@ -324,7 +324,7 @@ where
 /// Track for entering a parser function.
 pub struct EnterTrack<C, T>
 where
-    T: Copy,
+    T: Clone,
     C: Code,
 {
     /// Function
@@ -338,7 +338,7 @@ where
 /// Track for debug information.
 pub struct DebugTrack<C, T>
 where
-    T: Copy,
+    T: Clone,
     C: Code,
 {
     /// Function.
@@ -354,7 +354,7 @@ where
 /// Track for plain information.
 pub struct InfoTrack<C, T>
 where
-    T: Copy,
+    T: Clone,
     C: Code,
 {
     /// Function
@@ -370,7 +370,7 @@ where
 /// Track for plain information.
 pub struct WarnTrack<C, T>
 where
-    T: Copy,
+    T: Clone,
     C: Code,
 {
     /// Function
@@ -386,7 +386,7 @@ where
 /// Track for ok results.
 pub struct OkTrack<C, T>
 where
-    T: Copy,
+    T: Clone,
     C: Code,
 {
     /// Function.
@@ -402,7 +402,7 @@ where
 /// Track for err results.
 pub struct ErrTrack<C, T>
 where
-    T: Copy,
+    T: Clone,
     C: Code,
 {
     /// Function.
@@ -420,7 +420,7 @@ where
 /// Track for exiting a parser function.
 pub struct ExitTrack<C, T>
 where
-    T: Copy,
+    T: Clone,
     C: Code,
 {
     /// Function
@@ -433,7 +433,7 @@ where
 
 impl<C, T> Track<C, T>
 where
-    T: Copy,
+    T: Clone,
     C: Code,
 {
     /// Returns the func value for each branch.

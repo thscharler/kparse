@@ -255,12 +255,12 @@ mod parser {
         mut parse_fn: PFn,
     ) -> impl FnMut(I) -> Result<(I, Option<O>), nom::Err<E>>
     where
-        I: Copy,
+        I: Clone,
         CFn: Fn(I) -> bool,
         PFn: Parser<I, O, E>,
     {
         move |i| -> Result<(I, Option<O>), nom::Err<E>> {
-            if cond_fn(i) {
+            if cond_fn(i.clone()) {
                 match parse_fn.parse(i) {
                     Ok((r, v)) => Ok((r, Some(v))),
                     Err(e) => Err(e),

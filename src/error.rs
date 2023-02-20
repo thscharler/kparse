@@ -17,7 +17,7 @@
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanLocation;
-use crate::{Code, KParseError};
+use crate::{Code, ErrWrapped, KParseError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::any::Any;
@@ -75,11 +75,35 @@ pub struct SpanAndCode<C, I> {
     pub span: I,
 }
 
+impl<C, I> ErrWrapped for ParserError<C, I>
+where
+    C: Code,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
+{
+    type WrappedError = ParserError<C, I>;
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
+        nom::Err::Error(self)
+    }
+}
+
+impl<C, I> ErrWrapped for nom::Err<ParserError<C, I>>
+where
+    C: Code,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
+{
+    type WrappedError = ParserError<C, I>;
+    fn wrap(self) -> nom::Err<Self::WrappedError> {
+        self
+    }
+}
+
 impl<C, I> KParseError<C, I> for ParserError<C, I>
 where
     C: Code,
-    I: Copy + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
 {
+    type WrappedError = ParserError<C, I>;
+
     fn from(code: C, span: I) -> Self {
         ParserError::new(code, span)
     }
@@ -89,7 +113,7 @@ where
     }
 
     fn span(&self) -> Option<I> {
-        Some(self.span)
+        Some(self.span.clone())
     }
 
     fn err(&self) -> Option<&Self::WrappedError> {
@@ -97,24 +121,21 @@ where
     }
 
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
-        Some((self.code, self.span, self))
+        Some((self.code, self.span.clone(), self))
     }
 
     fn with_code(self, code: C) -> Self {
         ParserError::with_code(self, code)
-    }
-
-    type WrappedError = Self;
-    fn wrap(self) -> nom::Err<Self::WrappedError> {
-        nom::Err::Error(self)
     }
 }
 
 impl<C, I> KParseError<C, I> for nom::Err<ParserError<C, I>>
 where
     C: Code,
-    I: Copy + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
 {
+    type WrappedError = ParserError<C, I>;
+
     fn from(code: C, span: I) -> Self {
         nom::Err::Error(KParseError::from(code, span))
     }
@@ -130,8 +151,8 @@ where
     fn span(&self) -> Option<I> {
         match self {
             nom::Err::Incomplete(_) => None,
-            nom::Err::Error(e) => Some(e.span),
-            nom::Err::Failure(e) => Some(e.span),
+            nom::Err::Error(e) => Some(e.span.clone()),
+            nom::Err::Failure(e) => Some(e.span.clone()),
         }
     }
 
@@ -146,8 +167,8 @@ where
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
         match self {
             nom::Err::Incomplete(_) => None,
-            nom::Err::Error(e) => Some((e.code, e.span, e)),
-            nom::Err::Failure(e) => Some((e.code, e.span, e)),
+            nom::Err::Error(e) => Some((e.code, e.span.clone(), e)),
+            nom::Err::Failure(e) => Some((e.code, e.span.clone(), e)),
         }
     }
 
@@ -158,18 +179,15 @@ where
             nom::Err::Failure(e) => nom::Err::Failure(e.with_code(code)),
         }
     }
-
-    type WrappedError = ParserError<C, I>;
-    fn wrap(self) -> nom::Err<Self::WrappedError> {
-        self
-    }
 }
 
 impl<C, I, O> KParseError<C, I> for Result<(I, O), nom::Err<ParserError<C, I>>>
 where
     C: Code,
-    I: Copy + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + InputTake + InputLength + InputIter,
 {
+    type WrappedError = ParserError<C, I>;
+
     fn from(code: C, span: I) -> Self {
         Err(nom::Err::Error(KParseError::from(code, span)))
     }
@@ -186,8 +204,8 @@ where
     fn span(&self) -> Option<I> {
         match self {
             Ok(_) => None,
-            Err(nom::Err::Error(e)) => Some(e.span),
-            Err(nom::Err::Failure(e)) => Some(e.span),
+            Err(nom::Err::Error(e)) => Some(e.span.clone()),
+            Err(nom::Err::Failure(e)) => Some(e.span.clone()),
             Err(nom::Err::Incomplete(_)) => None,
         }
     }
@@ -204,8 +222,8 @@ where
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
         match self {
             Ok(_) => None,
-            Err(nom::Err::Error(e)) => Some((e.code, e.span, e)),
-            Err(nom::Err::Failure(e)) => Some((e.code, e.span, e)),
+            Err(nom::Err::Error(e)) => Some((e.code, e.span.clone(), e)),
+            Err(nom::Err::Failure(e)) => Some((e.code, e.span.clone(), e)),
             Err(nom::Err::Incomplete(_)) => None,
         }
     }
@@ -217,12 +235,6 @@ where
             Err(nom::Err::Failure(e)) => Err(nom::Err::Error(e.with_code(code))),
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
         }
-    }
-
-    type WrappedError = ParserError<C, I>;
-
-    fn wrap(self) -> nom::Err<Self::WrappedError> {
-        unimplemented!("into_wrapped cannot be used for Result<>");
     }
 }
 
@@ -238,7 +250,7 @@ pub trait AppendParserError<Rhs = Self> {
 impl<C, I> AppendParserError<ParserError<C, I>> for ParserError<C, I>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     type Output = ();
 
@@ -250,7 +262,7 @@ where
 impl<C, I> AppendParserError<ParserError<C, I>> for Option<ParserError<C, I>>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     type Output = ();
 
@@ -265,7 +277,7 @@ where
 impl<C, I> AppendParserError<nom::Err<ParserError<C, I>>> for Option<ParserError<C, I>>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     type Output = Result<(), nom::Err<ParserError<C, I>>>;
 
@@ -292,7 +304,7 @@ where
 impl<C, I> AppendParserError<ParserError<C, I>> for nom::Err<ParserError<C, I>>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     type Output = Result<(), nom::Err<ParserError<C, I>>>;
 
@@ -309,7 +321,7 @@ where
 impl<C, I> AppendParserError<nom::Err<ParserError<C, I>>> for ParserError<C, I>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     type Output = Result<(), nom::Err<ParserError<C, I>>>;
 
@@ -326,7 +338,7 @@ where
 impl<C, I> AppendParserError<nom::Err<ParserError<C, I>>> for nom::Err<ParserError<C, I>>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     type Output = Result<(), nom::Err<ParserError<C, I>>>;
 
@@ -345,13 +357,13 @@ where
 impl<C, I> nom::error::ParseError<I> for ParserError<C, I>
 where
     C: Code,
-    I: Copy,
+    I: Clone,
 {
     fn from_error_kind(input: I, _kind: ErrorKind) -> Self {
         #[cfg(feature = "track_nom")]
         let v = ParserError {
             code: C::NOM_ERROR,
-            span: input,
+            span: input.clone(),
             hints: vec![Hints::Nom(Nom {
                 kind: _kind,
                 span: input,
@@ -383,7 +395,7 @@ where
         #[cfg(feature = "track_nom")]
         let v = ParserError {
             code: C::NOM_ERROR,
-            span: input,
+            span: input.clone(),
             hints: vec![Hints::Nom(Nom {
                 kind: ErrorKind::Char,
                 span: input,
@@ -413,7 +425,7 @@ where
 impl<C, I> Display for ParserError<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -456,7 +468,11 @@ where
         // }
 
         // no suggest
-        write!(f, " for span {:?}", restrict(DebugWidth::Short, self.span))?;
+        write!(
+            f,
+            " for span {:?}",
+            restrict(DebugWidth::Short, self.span.clone())
+        )?;
         Ok(())
     }
 }
@@ -464,7 +480,7 @@ where
 impl<C, I> Debug for ParserError<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -475,7 +491,7 @@ where
 impl<C, I> Debug for Hints<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -493,12 +509,12 @@ where
 impl<C, I> Debug for Nom<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
-        write!(f, "{:?}:{:?}", self.kind, restrict(w, self.span))?;
+        write!(f, "{:?}:{:?}", self.kind, restrict(w, self.span.clone()))?;
         Ok(())
     }
 }
@@ -506,12 +522,12 @@ where
 impl<C, I> Debug for SpanAndCode<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
-        write!(f, "{:?}:{:?}", self.code, restrict(w, self.span))?;
+        write!(f, "{:?}:{:?}", self.code, restrict(w, self.span.clone()))?;
         Ok(())
     }
 }
@@ -519,7 +535,7 @@ where
 impl<C, I> Error for ParserError<C, I>
 where
     C: Code,
-    I: Copy + Debug,
+    I: Clone + Debug,
     I: InputTake + InputLength + InputIter,
 {
     fn source(&self) -> Option<&(dyn ::std::error::Error + 'static)> {

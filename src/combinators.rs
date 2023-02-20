@@ -38,13 +38,13 @@ pub fn track<PA, C, I, O, E>(
 where
     PA: Parser<I, O, E>,
     C: Code,
-    I: Copy + Debug + Tracking<C>,
+    I: Clone + Debug + Tracking<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
     nom::Err<E>: KParseError<C, I>,
 {
     move |input| -> Result<(I, O), nom::Err<E>> {
         input.track_enter(func);
-        match parser.parse(input) {
+        match parser.parse(input.clone()) {
             Ok((rest, token)) => {
                 rest.track_ok(input);
                 rest.track_exit();
@@ -100,7 +100,7 @@ where
     PA: Parser<I, O, E>,
     E: KParseError<C, I>,
     C: Code,
-    I: AsBytes + Copy,
+    I: AsBytes + Clone,
 {
     move |i| -> Result<(I, O), nom::Err<E>> {
         match parser.parse(i) {
@@ -145,8 +145,8 @@ pub fn map_res<PA, TR, I, O1, O2, E>(parser: PA, transform: TR) -> MapRes<PA, O1
 where
     PA: Parser<I, O1, E>,
     TR: Fn(O1) -> Result<O2, nom::Err<E>>,
-    O1: Copy,
-    I: AsBytes + Copy,
+    O1: Clone,
+    I: AsBytes + Clone,
 {
     MapRes {
         parser,
@@ -165,10 +165,10 @@ where
     CFn: Fn(I) -> bool,
     PFn: Parser<I, O, E>,
     C: Code,
-    I: AsBytes + Copy,
+    I: AsBytes + Clone,
 {
     move |i| -> Result<(I, Option<O>), nom::Err<E>> {
-        if cond_fn(i) {
+        if cond_fn(i.clone()) {
             parse_fn.parse(i).map(|(r, v)| (r, Some(v)))
         } else {
             Ok((i, None))
