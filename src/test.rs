@@ -22,7 +22,7 @@
 use crate::debug::{restrict, DebugWidth};
 use crate::spans::SpanFragment;
 use crate::tracker::{StdTracker, TrackSpan};
-use crate::{Code, ParserError};
+use crate::{Code, KParseError, ParserError};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
 use nom_locate::LocatedSpan;
 pub use report::*;
@@ -396,7 +396,8 @@ pub fn byte_parsex<'s, O, E>(
 
 impl<'s, P, I, O, E> Test<'s, P, I, O, E>
 where
-    I: AsBytes + Clone + Debug + 's,
+    I: AsBytes + Clone + Debug + PartialEq + 's,
+    I: InputTake + InputLength + InputIter,
     O: Debug,
     E: Debug,
 {
@@ -453,16 +454,7 @@ where
     pub fn q<R: Report<Self> + Clone>(&self, r: R) {
         r.report(self);
     }
-}
 
-// works for any fn that uses a Span as input and returns a (Span, X) pair.
-impl<'s, P, I, O, E> Test<'s, P, I, O, E>
-where
-    I: AsBytes + Clone + Debug + PartialEq + 's,
-    I: InputTake + InputLength + InputIter,
-    O: Debug,
-    E: Debug,
-{
     /// Checks for ok results.
     ///
     /// This takes a CompareFn to convert the parser result to a type which can be compared
@@ -517,12 +509,46 @@ where
         }
         self
     }
+
+    /// Checks for an error.
+    ///
+    /// Finish the test with q()
+    #[must_use]
+    pub fn err<C>(&self, code: C) -> &Self
+    where
+        C: Code,
+        E: KParseError<C, I>,
+    {
+        match &self.result {
+            Ok(_) => {
+                println!("FAIL: Expected error, but was ok!");
+                self.flag_fail();
+            }
+            Err(nom::Err::Error(e)) => {
+                if e.code() != Some(code) {
+                    println!("ERROR: {:?} <> {:?}", e.code(), code);
+                    self.flag_fail();
+                }
+            }
+            Err(nom::Err::Failure(e)) => {
+                if e.code() != Some(code) {
+                    println!("FAILURE: {:?} <> {:?}", e.code(), code);
+                    self.flag_fail();
+                }
+            }
+            Err(nom::Err::Incomplete(e)) => {
+                println!("INCOMPLETE: {:?}", e);
+                self.flag_fail();
+            }
+        }
+        self
+    }
 }
 
 // works for any NomFn.
 impl<'s, P, I, O> Test<'s, P, I, O, nom::error::Error<I>>
 where
-    I: AsBytes + Clone + Debug + 's,
+    I: AsBytes + Clone + Debug + PartialEq + 's,
     I: InputTake + InputLength + InputIter,
     O: Debug,
 {
@@ -551,41 +577,11 @@ where
 
 impl<'s, P, C, I, O> Test<'s, P, I, O, ParserError<C, I>>
 where
-    I: AsBytes + Clone + Debug + 's,
+    I: AsBytes + Clone + Debug + PartialEq + 's,
     I: InputTake + InputLength + InputIter,
     C: Code,
     O: Debug,
 {
-    /// Checks for an error.
-    ///
-    /// Finish the test with q()
-    #[must_use]
-    pub fn err(&self, code: C) -> &Self {
-        match &self.result {
-            Ok(_) => {
-                println!("FAIL: Expected error, but was ok!");
-                self.flag_fail();
-            }
-            Err(nom::Err::Error(e)) => {
-                if e.code != code {
-                    println!("ERROR: {:?} <> {:?}", e.code, code);
-                    self.flag_fail();
-                }
-            }
-            Err(nom::Err::Failure(e)) => {
-                if e.code != code {
-                    println!("FAILURE: {:?} <> {:?}", e.code, code);
-                    self.flag_fail();
-                }
-            }
-            Err(nom::Err::Incomplete(e)) => {
-                println!("INCOMPLETE: {:?}", e);
-                self.flag_fail();
-            }
-        }
-        self
-    }
-
     /// Test for a nom error that occurred.
     #[must_use]
     pub fn nom_err(&self, kind: nom::error::ErrorKind) -> &Self {
