@@ -1,0 +1,172 @@
+WHITESPACE = _{ " " | "\t"}
+
+AnbauPlan = {
+    SOI
+    ~ (MetaData ~ NEWLINE)*
+    ~ NEWLINE*
+    ~ Plan
+    ~ NEWLINE*
+    ~ KdNr?
+    ~ NEWLINE*
+    ~ (
+        (
+            Stichtag
+            | BsNr
+            | Monat
+            | Woche
+            | Tag
+
+            | Pflanzort
+
+            | Kunde
+            | Lieferant
+            | Aktion
+
+            | Kultur
+            | Kommentar
+            | Notiz
+        )
+        ~ NEWLINE*
+    )*
+    ~ EOI
+}
+
+MetaData = @{
+    ( LETTER | NUMBER | "-")*
+    ~ ":"
+    ~ ( !NEWLINE ~ ANY )*
+}
+
+Plan = {
+    Header? ~ "Plan" ~ Name ~ Header?
+}
+
+KdNr = {
+    "//"? ~ "KdNr" ~ Nummer ~ "**"? |
+    "**"? ~  "KdNr" ~ Nummer ~ "**"?
+}
+
+Stichtag = {
+    Header? ~ "Stichtag" ~ Datum ~ Header?
+}
+
+BsNr = {
+    "//"? ~ "BsNr" ~ Nummer ~ "//"? |
+    "**"? ~ "BsNr" ~ Nummer ~ "**"?
+}
+
+Monat = {
+    Header? ~ "Monat" ~ Name ~ Header?
+}
+
+Woche = {
+    Header? ~ "Woche"
+    ~ Datum
+    ~ ( "(" ~ KalenderWoche ~ ")" )?
+    ~ Header?
+}
+
+Tag = {
+    Header? ~ "Tag" ~ Tage ~ Header?
+}
+
+Pflanzort = {
+    "@" ~ NameKurz ~ (NameKurz)? ~ ( "("? ~ WochenStart? ~ WochenEnde?~ ")"? )?
+}
+
+WochenStart = {
+    Wochen ~ WocheToken
+}
+
+WochenEnde = {
+    "+" ~ Wochen ~ WocheToken
+}
+
+WocheToken = {
+    "w" | "W"
+}
+
+Aktion = {
+    "=>" ~ (
+        "Überwintern"
+        | "Direktsaat"
+        | "Pflanzen"
+    )
+}
+
+Lieferant = {
+    "**"? ~ "Lieferant" ~ Name ~ "**"?
+}
+
+Kunde = {
+    "**"? ~ "Kunde" ~ Name ~ "**"?
+}
+
+Kultur = {
+    Name ~ Einheit? ~ ( ":" ~ Sorten )?
+}
+
+Einheit = {
+    "(" ~ Name ~ ")"
+}
+
+Sorten = {
+    ( Sorte ~ "," ~ NEWLINE?)*
+    ~ ( Sorte ~ NEWLINE | Sorte ~ Kommentar | Sorte ~ Notiz )?
+}
+
+Sorte = {
+    Menge ~ Name
+}
+
+Kommentar = {
+    "#" ~ KommentarText
+}
+
+Notiz = {
+    "##" ~ KommentarText
+}
+
+KommentarText = @{
+    ( !NEWLINE ~ ANY ) *
+}
+
+Name = @{
+    ( LETTER | NUMBER | "'" | "+" | "-" | "²" | "/" | "_" | "." | " " )+
+}
+
+NameKurz = @{
+    ( LETTER | NUMBER | "'" | "+" | "-" | "²" | "/" | "_" | "." )+
+}
+
+Tage = @{
+    NUMBER+
+}
+
+Wochen = @{
+    NUMBER+
+}
+
+Nummer = @{
+    NUMBER+
+}
+
+Menge = @{
+    NUMBER ~ NUMBER ~ NUMBER ~ NUMBER ~ NUMBER
+    | NUMBER ~ NUMBER ~ NUMBER ~ NUMBER
+    | NUMBER ~ NUMBER ~ NUMBER
+    | NUMBER ~ NUMBER
+    | NUMBER
+}
+
+Datum = @{
+    NUMBER{1,2} ~ "." ~ NUMBER{1,2} ~ "." ~ NUMBER{4}
+}
+
+KalenderWoche = @{
+    "KW" ~ NUMBER{1,2}
+}
+
+Header = _{
+    "="{2,6}
+}

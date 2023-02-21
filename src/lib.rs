@@ -136,11 +136,10 @@ pub trait ErrWrapped {
     type WrappedError: Debug;
 
     /// Converts self to a nom::Err wrapped error.
-    /// This doesn't work if self is a Result, but otherwise it's fine.
     fn wrap(self) -> nom::Err<Self::WrappedError>;
 }
 
-///
+/// Adds some common parser combinators as postfix operators to parser.
 pub trait KParser<I, O, E>
 where
     Self: Sized,
