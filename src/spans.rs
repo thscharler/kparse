@@ -3,9 +3,10 @@
 //!
 
 use bytecount::{count, naive_num_chars, num_chars};
-use memchr::{memchr, memrchr};
+use memchr::{memchr, memchr_iter, memrchr};
 use nom::{AsBytes, InputLength, Slice};
 use nom_locate::LocatedSpan;
+use std::collections::BinaryHeap;
 use std::ops::Range;
 
 /// Extension trait for Spans.
@@ -215,21 +216,26 @@ impl<'s, X: Clone + 's> SpanLines<'s, X> {
         Self { sep, buf }
     }
 
+    /// Returns the line number.
+    pub fn line<Y>(&self, fragment: &LocatedSpan<&str, Y>) -> usize {
+        fragment.location_line() as usize
+    }
+
     /// Assumes ASCII text and gives a column.
-    pub fn ascii_column<Y>(&self, fragment: &LocatedSpan<&str, Y>, sep: u8) -> usize {
-        let prefix = Self::frame_prefix(&self.buf, fragment, sep);
+    pub fn ascii_column<Y>(&self, fragment: &LocatedSpan<&str, Y>) -> usize {
+        let prefix = Self::frame_prefix(&self.buf, fragment, self.sep);
         prefix.len()
     }
 
     /// Gives a column for UTF8 text.
-    pub fn utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>, sep: u8) -> usize {
-        let prefix = Self::frame_prefix(&self.buf, fragment, sep);
+    pub fn utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>) -> usize {
+        let prefix = Self::frame_prefix(&self.buf, fragment, self.sep);
         num_chars(prefix.as_bytes())
     }
 
     /// Gives a column for UTF8 text.
-    pub fn naive_utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>, sep: u8) -> usize {
-        let prefix = Self::frame_prefix(&self.buf, fragment, sep);
+    pub fn naive_utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>) -> usize {
+        let prefix = Self::frame_prefix(&self.buf, fragment, self.sep);
         naive_num_chars(prefix.as_bytes())
     }
 
@@ -597,20 +603,20 @@ impl<'s> SpanBytes<'s> {
     }
 
     /// Assumes ASCII text and gives a column.
-    pub fn ascii_column<Y>(&self, fragment: &[u8], sep: u8) -> usize {
-        let prefix = Self::frame_prefix(self.buf, fragment, sep);
+    pub fn ascii_column(&self, fragment: &[u8]) -> usize {
+        let prefix = Self::frame_prefix(self.buf, fragment, self.sep);
         prefix.len()
     }
 
     /// Gives a column for UTF8 text.
-    pub fn utf8_column<Y>(&self, fragment: &[u8], sep: u8) -> usize {
-        let prefix = Self::frame_prefix(self.buf, fragment, sep);
+    pub fn utf8_column(&self, fragment: &[u8]) -> usize {
+        let prefix = Self::frame_prefix(self.buf, fragment, self.sep);
         num_chars(prefix.as_bytes())
     }
 
     /// Gives a column for UTF8 text.
-    pub fn naive_utf8_column<Y>(&self, fragment: &[u8], sep: u8) -> usize {
-        let prefix = Self::frame_prefix(self.buf, fragment, sep);
+    pub fn naive_utf8_column(&self, fragment: &[u8]) -> usize {
+        let prefix = Self::frame_prefix(self.buf, fragment, self.sep);
         naive_num_chars(prefix.as_bytes())
     }
 
@@ -876,6 +882,335 @@ impl<'s> Iterator for RBytesIter<'s> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let (next, result) = SpanBytes::prev_fragment(self.buf, self.fragment, self.sep);
+        self.fragment = next;
+        result
+    }
+}
+
+/// Operations on 'lines' of text.
+///
+/// Can use any other ASCII value besides \n.
+#[derive(Debug)]
+pub struct SpanStr<'s> {
+    sep: u8,
+    buf: &'s str,
+    nl: Vec<usize>,
+}
+
+impl<'s> SpanStr<'s> {
+    /// Create a new SpanStr buffer.
+    pub fn new(buf: &'s str) -> Self {
+        Self {
+            sep: b'\n',
+            buf,
+            nl: Self::scan(buf, b'\n'),
+        }
+    }
+
+    /// Create a new SpanStr buffer.
+    pub fn with_separator(buf: &'s str, sep: u8) -> Self {
+        Self {
+            sep,
+            buf,
+            nl: Self::scan(buf, sep),
+        }
+    }
+
+    fn scan(buf: &'s str, sep: u8) -> Vec<usize> {
+        let mut s = Vec::new();
+        s.extend(memchr_iter(sep, buf.as_bytes()));
+        s
+    }
+
+    /// Returns the line number.
+    pub fn line(&self, fragment: &str) -> usize {
+        let offset = Self::offset_from(self.buf, fragment);
+        match self.nl.binary_search(&offset) {
+            Ok(r) => r + 1,
+            Err(r) => r + 1,
+        }
+    }
+
+    /// Assumes ASCII text and gives a column.
+    pub fn ascii_column(&self, fragment: &str) -> usize {
+        let prefix = Self::frame_prefix(self.buf, fragment, self.sep);
+        prefix.len()
+    }
+
+    /// Gives a column for UTF8 text.
+    pub fn utf8_column(&self, fragment: &str) -> usize {
+        let prefix = Self::frame_prefix(self.buf, fragment, self.sep);
+        num_chars(prefix.as_bytes())
+    }
+
+    /// Gives a column for UTF8 text.
+    pub fn naive_utf8_column(&self, fragment: &str) -> usize {
+        let prefix = Self::frame_prefix(self.buf, fragment, self.sep);
+        naive_num_chars(prefix.as_bytes())
+    }
+
+    /// Return n lines before and after the fragment, and place the lines of the fragment
+    /// between them.
+    pub fn get_lines_around<'a>(&self, fragment: &'a str, n: usize) -> Vec<&'s str> {
+        let mut buf: Vec<_> = self.backward_from(fragment).take(n).collect();
+        buf.reverse();
+        buf.extend(self.current(fragment));
+        buf.extend(self.forward_from(fragment).take(n));
+
+        buf
+    }
+
+    /// First full line for the fragment.
+    pub fn start<'a>(&self, fragment: &'a str) -> &'s str {
+        Self::start_frame(self.buf, fragment, self.sep)
+    }
+
+    /// Last full line for the fragment.
+    pub fn end<'a>(&self, fragment: &'a str) -> &'s str {
+        Self::end_frame(self.buf, fragment, self.sep)
+    }
+
+    /// Expand the fragment to cover full lines and return an Iterator for the lines.
+    pub fn current<'a>(&self, fragment: &'a str) -> StrIter<'s> {
+        let current = Self::complete_fragment(self.buf, fragment, self.sep);
+
+        StrIter {
+            sep: self.sep,
+            buf: current,
+            fragment: Self::empty_frame(self.buf, current),
+        }
+    }
+
+    /// Iterator for all lines of the buffer.
+    pub fn iter(&self) -> StrIter<'s> {
+        StrIter {
+            sep: self.sep,
+            buf: self.buf,
+            fragment: Self::empty_frame(self.buf, self.buf),
+        }
+    }
+
+    /// Iterator over the lines following the last line of the fragment.
+    pub fn forward_from<'a>(&self, fragment: &'a str) -> StrIter<'s> {
+        let current = Self::end_frame(self.buf, fragment, self.sep);
+        StrIter {
+            sep: self.sep,
+            buf: self.buf,
+            fragment: current,
+        }
+    }
+
+    /// Iterator over the lines preceeding the first line of the fragment.
+    /// In descending order.
+    pub fn backward_from<'a>(&self, fragment: &'a str) -> RStrIter<'s> {
+        let current = Self::start_frame(self.buf, fragment, self.sep);
+        RStrIter {
+            sep: self.sep,
+            buf: self.buf,
+            fragment: current,
+        }
+    }
+
+    /// Returns the part of the frame from the last separator up to the start of the
+    /// fragment.
+    fn frame_prefix<'a>(complete: &'s str, fragment: &'a str, sep: u8) -> &'s str {
+        let offset = Self::offset_from(complete, fragment);
+        assert!(offset <= complete.len());
+
+        let self_bytes = complete.as_bytes();
+
+        let start = match memrchr(sep, &self_bytes[..offset]) {
+            None => 0,
+            Some(o) => o + 1,
+        };
+
+        &complete[start..offset]
+    }
+
+    /// Empty span at the beginning of the fragment.
+    fn empty_frame<'a>(complete: &'s str, fragment: &'a str) -> &'s str {
+        let offset = Self::offset_from(complete, fragment);
+        assert!(offset <= complete.len());
+
+        &complete[offset..offset]
+    }
+
+    /// Return the first full line for the fragment.
+    fn start_frame<'a>(complete: &'s str, fragment: &'a str, sep: u8) -> &'s str {
+        let offset = Self::offset_from(complete, fragment);
+
+        // trim the offset to our bounds.
+        assert!(offset <= complete.len());
+
+        // no skip_lines, already correct.
+
+        let self_bytes = complete.as_bytes();
+        let start = match memrchr(sep, &self_bytes[..offset]) {
+            None => 0,
+            Some(v) => v + 1,
+        };
+        let end = match memchr(sep, &self_bytes[offset..]) {
+            None => complete.len(),
+            Some(v) => offset + v + 1,
+        };
+
+        &complete[start..end]
+    }
+
+    /// Returns the last full frame of the fragment.
+    fn end_frame<'a>(complete: &'s str, fragment: &'a str, sep: u8) -> &'s str {
+        let offset = Self::offset_from(complete, fragment) + fragment.len();
+
+        // trim the offset to our bounds.
+        assert!(offset <= complete.len());
+
+        let self_bytes = complete.as_bytes();
+        let start = match memrchr(sep, &self_bytes[..offset]) {
+            None => 0,
+            Some(v) => v + 1,
+        };
+        let end = match memchr(sep, &self_bytes[offset..]) {
+            None => complete.len(),
+            Some(v) => offset + v + 1,
+        };
+
+        &complete[start..end]
+    }
+
+    /// Completes the fragment to a full frame.
+    fn complete_fragment<'a>(complete: &'s str, fragment: &'a str, sep: u8) -> &'s str {
+        let offset = Self::offset_from(complete, fragment);
+        let len = fragment.len();
+
+        // trim start and end to our bounds.
+        assert!(offset <= complete.len());
+        assert!(offset + len <= complete.len());
+        let (start, end) = (offset, offset + len);
+
+        // fill up front and back
+        let self_bytes = complete.as_bytes();
+        // println!("{:?}  {:?}", &self_bytes[..start], &self_bytes[end..]);
+        let start = match memrchr(sep, &self_bytes[..start]) {
+            None => 0,
+            Some(o) => o + 1,
+        };
+        let end = match memchr(sep, &self_bytes[end..]) {
+            None => complete.len(),
+            Some(o) => end + o + 1,
+        };
+
+        &complete[start..end]
+    }
+
+    /// Return the following frame..
+    ///
+    /// If the fragment doesn't end with a separator, the result is the rest up to the
+    /// following separator.
+    ///
+    /// The separator is included at the end of the frame.
+    ///
+    /// The line-count is corrected.
+    fn next_fragment<'a>(
+        complete: &'s str,
+        fragment: &'a str,
+        sep: u8,
+    ) -> (&'s str, Option<&'s str>) {
+        let offset = Self::offset_from(complete, fragment);
+        let len = fragment.len();
+
+        // trim start to our bounds.
+        assert!(offset + len <= complete.len());
+        let start = offset + len;
+
+        let is_terminal = start == complete.len();
+
+        let self_bytes = complete.as_bytes();
+        let end = match memchr(sep, &self_bytes[start..]) {
+            None => complete.len(),
+            Some(o) => start + o + 1,
+        };
+
+        let span = &complete[start..end];
+
+        (span, if is_terminal { None } else { Some(span) })
+    }
+
+    /// Return the preceding frame.
+    ///
+    /// If the byte immediately preceding the start of the fragment is not the separator,
+    /// just a truncated fragment is returned.
+    ///
+    /// The separator is included at the end of a frame.
+    fn prev_fragment<'a>(
+        complete: &'s str,
+        fragment: &'a str,
+        sep: u8,
+    ) -> (&'s str, Option<&'s str>) {
+        let offset = Self::offset_from(complete, fragment);
+
+        // assert our bounds.
+        assert!(offset <= complete.len());
+        let end = offset;
+
+        // At the beginning?
+        let is_terminal = end == 0;
+
+        // immediately preceeding separator.
+        let self_bytes = complete.as_bytes();
+        #[allow(clippy::bool_to_int_with_if)]
+        let skip_lines = if !is_terminal && self_bytes[end - 1] == sep {
+            1
+        } else {
+            0
+        };
+
+        // find separator
+        let start = match memrchr(sep, &self_bytes[..end - skip_lines]) {
+            None => 0,
+            Some(n) => n + 1,
+        };
+
+        let span = &complete[start..end];
+
+        (span, if is_terminal { None } else { Some(span) })
+    }
+
+    fn offset_from<'a>(complete: &'s str, fragment: &'a str) -> usize {
+        let offset = unsafe { fragment.as_ptr().offset_from(complete.as_ptr()) };
+        assert!(offset >= 0);
+        offset as usize
+    }
+}
+
+/// Iterates all lines.
+pub struct StrIter<'s> {
+    sep: u8,
+    buf: &'s str,
+    fragment: &'s str,
+}
+
+impl<'s> Iterator for StrIter<'s> {
+    type Item = &'s str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (next, result) = SpanStr::next_fragment(self.buf, self.fragment, self.sep);
+        self.fragment = next;
+        result
+    }
+}
+
+/// Backward iterator.
+pub struct RStrIter<'s> {
+    sep: u8,
+    buf: &'s str,
+    fragment: &'s str,
+}
+
+impl<'s> Iterator for RStrIter<'s> {
+    type Item = &'s str;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (next, result) = SpanStr::prev_fragment(self.buf, self.fragment, self.sep);
         self.fragment = next;
         result
     }

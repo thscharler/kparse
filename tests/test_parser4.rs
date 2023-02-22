@@ -4,7 +4,8 @@ use crate::parser4::nom_tokens::nom_metadata;
 use crate::parser4::parser::*;
 use crate::parser4::tokens::{token_datum, token_menge, token_name, token_name_kurz, token_nummer};
 use crate::parser4::APCode::*;
-use kparse::test::{span_parse, CheckDump, CheckTrace};
+use kparse::prelude::*;
+use kparse::test::{str_parse, CheckDump, CheckTrace};
 use kparse::tracker::StdTracker;
 use nom_locate::LocatedSpan;
 use std::fs::read_to_string;
@@ -28,22 +29,12 @@ pub fn timing() {
         #[cfg(debug_assertions)]
         let span = context.span(s);
         #[cfg(not(debug_assertions))]
-        let span = LocatedSpan::new(s);
+        let span = s;
 
         let _r = black_box(parse_anbauplan(span));
     }
     let duration = now.elapsed();
     println!("{:?}", duration / cnt);
-
-    // #[cfg(debug_assertions)]
-    // let context = StdTracker::new();
-    // #[cfg(debug_assertions)]
-    // let span = context.span(s);
-    // #[cfg(not(debug_assertions))]
-    // let span = LocatedSpan::new(s);
-    //
-    // let ap = parse_anbauplan(span).unwrap();
-    // dbg!(ap);
 }
 
 #[test]
@@ -55,7 +46,7 @@ pub fn full_plan() {
     #[cfg(debug_assertions)]
     let span = context.span(s);
     #[cfg(not(debug_assertions))]
-    let span = LocatedSpan::new(s);
+    let span = s;
 
     match parse_anbauplan(span) {
         Ok((_r, v)) => {
@@ -77,74 +68,31 @@ pub fn full_plan() {
 }
 
 #[test]
-pub fn som_plan() {
-    for _ in 0..100 {
-        for f in [
-            "tests/data/2023_Anbauplan.txt",
-            "tests/data/2023_Externe.txt",
-            "tests/data/2023_Gesamt.txt",
-            "tests/data/2023_Gleisdorf.txt",
-            "tests/data/2023_Kräuter.txt",
-            "tests/data/2023_Kunden.txt",
-            "tests/data/2023_Lebenshilfe.txt",
-            "tests/data/2023_Pflanzenmarkt_1.txt",
-            "tests/data/2023_Pflanzenmarkt_2.txt",
-        ] {
-            println!("parse {}", f);
-            let s = read_to_string(f).unwrap();
-
-            #[cfg(debug_assertions)]
-            let context = StdTracker::new();
-            #[cfg(debug_assertions)]
-            let span = context.span(s.as_str());
-            #[cfg(not(debug_assertions))]
-            let span = LocatedSpan::new(s.as_str());
-
-            match parse_anbauplan(span) {
-                Ok((_r, v)) => {
-                    // #[cfg(debug_assertions)]
-                    // dump_trace(&context.results());
-                }
-                Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                    #[cfg(debug_assertions)]
-                    dump_trace(&context.results());
-                    dump_diagnostics(&PathBuf::from("2022_Anbauplan.txt"), span, &e, "", true);
-                    panic!();
-                }
-                Err(e) => {
-                    panic!();
-                }
-            };
-        }
-    }
-}
-
-#[test]
 pub fn test_metadata() {
-    span_parse(&mut None, "Content-Type: text/x-zim-wiki\n", nom_metadata)
+    str_parse(&mut None, "Content-Type: text/x-zim-wiki\n", nom_metadata)
         .ok_any()
         .q(RT);
 }
 
 #[test]
 pub fn test_pflanzort() {
-    span_parse(&mut None, "@ N1/1  Salate 1W + 6W", parse_pflanzort)
+    str_parse(&mut None, "@ N1/1  Salate 1W + 6W", parse_pflanzort)
         .ok_any()
         .q(R);
-    span_parse(&mut None, "@ N1/1  1W + 6W", parse_pflanzort)
+    str_parse(&mut None, "@ N1/1  1W + 6W", parse_pflanzort)
         .ok_any()
         .q(R);
 }
 
 #[test]
 pub fn test_kunde() {
-    span_parse(&mut None, "** Kunde Test Kunde **", parse_kunde)
+    str_parse(&mut None, "** Kunde Test Kunde **", parse_kunde)
         .ok_any()
         .q(R);
-    span_parse(&mut None, " ** Kunde Test Kunde ** ", parse_kunde)
+    str_parse(&mut None, " ** Kunde Test Kunde ** ", parse_kunde)
         .err_any()
         .q(R);
-    span_parse(&mut None, "Kunde Test Kunde ", parse_kunde)
+    str_parse(&mut None, "Kunde Test Kunde ", parse_kunde)
         .ok_any()
         .rest("")
         .q(R);
@@ -152,13 +100,13 @@ pub fn test_kunde() {
 
 #[test]
 pub fn test_markt() {
-    span_parse(&mut None, "** Markt Graz **", parse_markt)
+    str_parse(&mut None, "** Markt Graz **", parse_markt)
         .ok_any()
         .q(R);
-    span_parse(&mut None, " ** Markt Graz ** ", parse_markt)
+    str_parse(&mut None, " ** Markt Graz ** ", parse_markt)
         .err_any()
         .q(R);
-    span_parse(&mut None, "Markt Graz ", parse_markt)
+    str_parse(&mut None, "Markt Graz ", parse_markt)
         .ok_any()
         .rest("")
         .q(R);
@@ -166,46 +114,46 @@ pub fn test_markt() {
 
 #[test]
 pub fn test_kultur() {
-    span_parse(&mut None, "Salat: 1 GKH\n", parse_kultur)
+    str_parse(&mut None, "Salat: 1 GKH\n", parse_kultur)
         .ok_any()
         .q(R);
-    span_parse(&mut None, " Salat : 1 GKH \n", parse_kultur)
+    str_parse(&mut None, " Salat : 1 GKH \n", parse_kultur)
         .ok_any()
         .q(R);
-    span_parse(&mut None, "Salat : \n", parse_kultur)
+    str_parse(&mut None, "Salat : \n", parse_kultur)
         .ok_any()
         .q(R);
-    span_parse(&mut None, "Salat  \n", parse_kultur)
+    str_parse(&mut None, "Salat  \n", parse_kultur)
         .ok_any()
         .q(R);
 
-    span_parse(&mut None, ": 1 GKH\n", parse_kultur)
+    str_parse(&mut None, ": 1 GKH\n", parse_kultur)
         .err(APCName)
         .q(R);
 
-    span_parse(&mut None, " : 1 GKH\n", parse_kultur)
+    str_parse(&mut None, " : 1 GKH\n", parse_kultur)
         .ok_any()
         .q(R);
 }
 
 #[test]
 pub fn test_einheit() {
-    span_parse(&mut None, "(K)", parse_einheit).ok_any().q(R);
-    span_parse(&mut None, " (K)", parse_einheit)
+    str_parse(&mut None, "(K)", parse_einheit).ok_any().q(R);
+    str_parse(&mut None, " (K)", parse_einheit)
         .err(APCParenthesesOpen)
         .q(R);
-    span_parse(&mut None, "( K ) ", parse_einheit)
+    str_parse(&mut None, "( K ) ", parse_einheit)
         .ok_any()
         .rest("")
         .q(R);
-    span_parse(&mut None, "K ) ", parse_einheit)
+    str_parse(&mut None, "K ) ", parse_einheit)
         .err_any()
         .err(APCParenthesesOpen)
         .q(R);
-    span_parse(&mut None, "( ) ", parse_einheit)
+    str_parse(&mut None, "( ) ", parse_einheit)
         .err(APCName)
         .q(R);
-    span_parse(&mut None, "( K ", parse_einheit)
+    str_parse(&mut None, "( K ", parse_einheit)
         .err_any()
         .err(APCParenthesesClose)
         .q(R);
@@ -213,7 +161,7 @@ pub fn test_einheit() {
 
 #[test]
 pub fn test_sorten() {
-    span_parse(
+    str_parse(
         &mut None,
         "25 Treviso, 15 Castel Franco, 10 Di Luisa\n",
         parse_sorten,
@@ -221,7 +169,7 @@ pub fn test_sorten() {
     .ok_any()
     .q(R);
 
-    span_parse(
+    str_parse(
         &mut None,
         "25 Treviso, 15 Castel Franco, \n    10 Di Luisa",
         parse_sorten,
@@ -229,7 +177,7 @@ pub fn test_sorten() {
     .ok_any()
     .q(R);
 
-    span_parse(
+    str_parse(
         &mut None,
         "25 Treviso, 15 Castel Franco, \n    10 Di Luisa\n",
         parse_sorten,
@@ -237,7 +185,7 @@ pub fn test_sorten() {
     .ok_any()
     .q(R);
 
-    span_parse(
+    str_parse(
         &mut None,
         "25 Treviso, 15 Castel Franco, # Kommentar \n 10 Di Luisa",
         parse_sorten,
@@ -246,7 +194,7 @@ pub fn test_sorten() {
     .err(APCMenge)
     .q(R);
 
-    span_parse(
+    str_parse(
         &mut None,
         "25 Treviso, 15 Castel Franco, \n 10 Di Luisa # Kommentar \n",
         parse_sorten,
@@ -255,28 +203,28 @@ pub fn test_sorten() {
     .q(R);
 
     // at eof it's ok
-    span_parse(&mut None, "25 Treviso, 15 Castel Franco, ", parse_sorten)
+    str_parse(&mut None, "25 Treviso, 15 Castel Franco, ", parse_sorten)
         .ok_any()
         .q(R);
 }
 
 #[test]
 pub fn test_sorte() {
-    span_parse(&mut None, "25 Treviso", parse_sorte)
+    str_parse(&mut None, "25 Treviso", parse_sorte)
         .ok_any()
         .q(R);
-    span_parse(&mut None, "25 Treviso ", parse_sorte)
+    str_parse(&mut None, "25 Treviso ", parse_sorte)
         .ok_any()
         .rest("")
         .q(R);
-    span_parse(&mut None, " 25 Treviso, ", parse_sorte)
+    str_parse(&mut None, " 25 Treviso, ", parse_sorte)
         .err(APCMenge)
         .q(R);
-    span_parse(&mut None, "25 ", parse_sorte).err(APCName).q(R);
-    span_parse(&mut None, "25 Rouge huif d'Etampes", parse_sorte)
+    str_parse(&mut None, "25 ", parse_sorte).err(APCName).q(R);
+    str_parse(&mut None, "25 Rouge huif d'Etampes", parse_sorte)
         .ok_any()
         .q(R);
-    span_parse(&mut None, "25 Rouge huif d'Etampes   ", parse_sorte)
+    str_parse(&mut None, "25 Rouge huif d'Etampes   ", parse_sorte)
         .ok_any()
         .q(R);
 }
@@ -287,12 +235,12 @@ pub fn test_name() {
         *name.span.fragment() == val
     }
 
-    span_parse(&mut None, "ab cd  ", token_name).ok_any().q(RT);
-    span_parse(&mut None, " ab cd  ", token_name)
+    str_parse(&mut None, "ab cd  ", token_name).ok_any().q(RT);
+    str_parse(&mut None, " ab cd  ", token_name)
         .ok_any()
         .ok(tok, " ab cd")
         .q(RT);
-    span_parse(&mut None, "ab cd  ", token_name)
+    str_parse(&mut None, "ab cd  ", token_name)
         .ok_any()
         .rest("")
         .q(RT);
@@ -300,14 +248,14 @@ pub fn test_name() {
 
 #[test]
 pub fn test_name_kurz() {
-    span_parse(&mut None, "abc", token_name_kurz).ok_any().q(RT);
-    span_parse(&mut None, " abc ", token_name_kurz)
+    str_parse(&mut None, "abc", token_name_kurz).ok_any().q(RT);
+    str_parse(&mut None, " abc ", token_name_kurz)
         .err(APCNameKurz)
         .q(RT);
-    span_parse(&mut None, "abc\'+-²/_.", token_name_kurz)
+    str_parse(&mut None, "abc\'+-²/_.", token_name_kurz)
         .ok_any()
         .q(RT);
-    span_parse(&mut None, "abc ", token_name_kurz)
+    str_parse(&mut None, "abc ", token_name_kurz)
         .ok_any()
         .rest("")
         .q(RT);
@@ -315,63 +263,59 @@ pub fn test_name_kurz() {
 
 #[test]
 pub fn test_nummer() {
-    span_parse(&mut None, "1234", token_nummer).ok_any().q(RT);
-    span_parse(&mut None, " 1234 ", token_nummer) //todo: should work without err_into()
+    str_parse(&mut None, "1234", token_nummer).ok_any().q(RT);
+    str_parse(&mut None, " 1234 ", token_nummer) //todo: should work without err_into()
         .err(APCNummer)
         .q(RT);
-    span_parse(&mut None, "1234 ", token_nummer)
+    str_parse(&mut None, "1234 ", token_nummer)
         .ok_any()
         .rest("")
         .q(RT);
-    span_parse(&mut None, "X", token_nummer)
-        .err(APCNummer)
-        .q(RT);
+    str_parse(&mut None, "X", token_nummer).err(APCNummer).q(RT);
 }
 
 #[test]
 pub fn test_menge() {
-    span_parse(&mut None, "1234", token_menge).ok_any().q(RT);
-    span_parse(&mut None, "1234", token_menge)
+    str_parse(&mut None, "1234", token_menge).ok_any().q(RT);
+    str_parse(&mut None, "1234", token_menge)
         .ok(|v: &APMenge<'_>, w: i32| v.menge == w, 1234i32)
         .q(RT);
-    span_parse(&mut None, " 1234 ", token_menge)
+    str_parse(&mut None, " 1234 ", token_menge)
         .err(APCMenge)
         .q(RT);
-    span_parse(&mut None, "1234 ", token_menge)
+    str_parse(&mut None, "1234 ", token_menge)
         .ok_any()
         .rest("")
         .q(RT);
-    span_parse(&mut None, "X", token_menge).err(APCMenge).q(RT);
+    str_parse(&mut None, "X", token_menge).err(APCMenge).q(RT);
 }
 
 #[test]
 pub fn test_date() {
-    span_parse(&mut None, "28.2.2023", token_datum)
+    str_parse(&mut None, "28.2.2023", token_datum)
         .ok_any()
         .q(RT);
-    span_parse(&mut None, " 28.2.2023 ", token_datum)
+    str_parse(&mut None, " 28.2.2023 ", token_datum)
         .err(APCDay)
         .q(RT);
-    span_parse(&mut None, "28.2.2023 ", token_datum)
+    str_parse(&mut None, "28.2.2023 ", token_datum)
         .ok_any()
         .rest("")
         .q(RT);
-    span_parse(&mut None, " 28. 2. 2023 ", token_datum)
+    str_parse(&mut None, " 28. 2. 2023 ", token_datum)
         .err(APCDay)
         .q(RT);
-    span_parse(&mut None, "X", token_datum).err(APCDay).q(RT);
-    span_parse(&mut None, "2.2023", token_datum)
+    str_parse(&mut None, "X", token_datum).err(APCDay).q(RT);
+    str_parse(&mut None, "2.2023", token_datum)
         .err(APCDot)
         .q(RT);
-    span_parse(&mut None, "2023", token_datum).err(APCDot).q(RT);
-    span_parse(&mut None, "28.2.", token_datum)
+    str_parse(&mut None, "2023", token_datum).err(APCDot).q(RT);
+    str_parse(&mut None, "28.2.", token_datum)
         .err(APCYear)
         .q(RT);
-    span_parse(&mut None, "28.2", token_datum).err(APCDot).q(RT);
-    span_parse(&mut None, "28.", token_datum)
-        .err(APCMonth)
-        .q(RT);
-    span_parse(&mut None, "28", token_datum).err(APCDot).q(RT);
+    str_parse(&mut None, "28.2", token_datum).err(APCDot).q(RT);
+    str_parse(&mut None, "28.", token_datum).err(APCMonth).q(RT);
+    str_parse(&mut None, "28", token_datum).err(APCDot).q(RT);
 }
 
 pub mod parser4 {
@@ -504,7 +448,7 @@ pub mod parser4 {
     }
 
     #[cfg(not(debug_assertions))]
-    pub type APSpan<'s> = LocatedSpan<&'s str>;
+    pub type APSpan<'s> = &'s str;
     #[cfg(debug_assertions)]
     pub type APSpan<'s> = TrackSpan<'s, APCode, &'s str>;
     pub type APParserError<'s> = ParserError<APCode, APSpan<'s>>;
@@ -515,7 +459,7 @@ pub mod parser4 {
 
     pub mod diagnostics {
         use crate::parser4::{APCode, APParserError, APSpan, APTokenizerError};
-        use kparse::spans::SpanLines;
+        use kparse::spans::{SpanLines, SpanStr};
         use kparse::test::{Report, Test};
         use kparse::tracker::Tracks;
         use nom_locate::LocatedSpan;
@@ -613,7 +557,10 @@ pub mod parser4 {
             msg: &str,
             is_err: bool,
         ) {
+            #[cfg(debug_assertions)]
             let txt = SpanLines::new(orig);
+            #[cfg(not(debug_assertions))]
+            let txt = SpanStr::new(orig);
 
             let text1 = txt.get_lines_around(&err.span, 3);
 
@@ -634,18 +581,22 @@ pub mod parser4 {
                 );
             }
 
-            let expect = err.expected_grouped_by_line();
+            let expect = err.iter_expected().collect::<Vec<_>>();
 
             for t in &text1 {
-                if t.location_line() == err.span.location_line() {
-                    println!("*{:04} {}", t.location_line(), t);
+                let t_line = txt.line(t);
+                let s_line = txt.line(err.span);
+                let s_column = txt.utf8_column(err.span);
+
+                if t_line == s_line {
+                    println!("*{:04} {}", t_line, t);
                 } else {
-                    println!(" {:04}  {}", t.location_line(), t);
+                    println!(" {:04}  {}", t_line, t);
                 }
 
                 if expect.is_empty() {
-                    if t.location_line() == err.span.location_line() {
-                        println!("      {}^", " ".repeat(err.span.get_utf8_column() - 1));
+                    if t_line == s_line {
+                        println!("      {}^", " ".repeat(s_column - 1));
                         if !msg.is_empty() {
                             println!("Erwarted war: {}", msg);
                         } else {
@@ -654,28 +605,30 @@ pub mod parser4 {
                     }
                 }
 
-                for (line, exp) in &expect {
-                    if t.location_line() == *line {
-                        for exp in exp {
-                            println!("      {}^", " ".repeat(exp.span.get_utf8_column() - 1));
-                            println!("Erwarted war: {}", exp.code);
-                        }
+                for exp in &expect {
+                    let e_line = txt.line(exp.span);
+                    let e_column = txt.utf8_column(exp.span);
+
+                    if t_line == e_line {
+                        println!("      {}^", " ".repeat(e_column - 1));
+                        println!("Erwarted war: {}", exp.code);
                     }
                 }
             }
 
-            for (_line, sugg) in err.suggested_grouped_by_line() {
-                for sug in sugg {
-                    println!("Hinweis: {}", sug.code);
-                }
+            for sug in err.iter_suggested() {
+                println!("Hinweis: {}", sug.code);
             }
 
             if let Some(n) = err.nom() {
+                let n_line = txt.line(n.span);
+                let n_column = txt.utf8_column(n.span);
+
                 println!(
                     "Parser-Details: {:?} {}:{}:{:?}",
                     n.kind,
-                    n.span.location_line(),
-                    n.span.get_utf8_column(),
+                    n_line,
+                    n_column,
                     n.span.escape_debug().take(40).collect::<String>()
                 );
             }
@@ -685,11 +638,14 @@ pub mod parser4 {
         #[allow(dead_code)]
         pub fn dump_diagnostics_info<X: Copy>(
             src: &Path,
-            orig: LocatedSpan<&str, X>,
+            orig: APSpan<'_>,
             err: &APParserError<'_>,
             msg: &str,
         ) {
+            #[cfg(debug_assertions)]
             let txt = SpanLines::new(orig);
+            #[cfg(not(debug_assertions))]
+            let txt = SpanStr::new(orig);
 
             let text1 = txt.get_lines_around(&err.span, 0);
 
@@ -709,14 +665,18 @@ pub mod parser4 {
             }
 
             for t in &text1 {
-                if t.location_line() == err.span.location_line() {
-                    println!("*{:04} {}", t.location_line(), t);
+                let t_line = txt.line(t);
+                let s_line = txt.line(err.span);
+                let s_column = txt.utf8_column(err.span);
+
+                if t_line == s_line {
+                    println!("*{:04} {}", t_line, t);
                 } else {
-                    println!(" {:04}  {}", t.location_line(), t);
+                    println!(" {:04}  {}", t_line, t);
                 }
 
-                if t.location_line() == err.span.location_line() {
-                    println!("      {}^", " ".repeat(err.span.get_utf8_column() - 1));
+                if t_line == s_line {
+                    println!("      {}^", " ".repeat(s_column - 1));
                 }
             }
         }
@@ -726,6 +686,7 @@ pub mod parser4 {
         use crate::parser4::APCode::*;
         use crate::parser4::APSpan;
         use chrono::NaiveDate;
+        use kparse::prelude::*;
         use std::fmt::{Debug, Formatter};
 
         #[derive(Clone)]
@@ -799,11 +760,10 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCPlan,
                     self.name.span,
-                    self.span.location_offset(),
-                    (*self.span).escape_default()
+                    self.span.fragment()
                 )
             }
         }
@@ -818,11 +778,10 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCKdNr,
                     self.kdnr.nummer,
-                    self.span.location_offset(),
-                    (*self.span).escape_default()
+                    self.span.fragment()
                 )
             }
         }
@@ -837,11 +796,10 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCStichtag,
                     self.stichtag.datum,
-                    self.span.location_offset(),
-                    (*self.span).escape_default()
+                    self.span.fragment(),
                 )
             }
         }
@@ -856,10 +814,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCBsNr,
                     self.bsnr.nummer,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -875,10 +832,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCMonat,
                     self.monat.span,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -894,10 +850,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCWoche,
                     self.datum.datum,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -913,10 +868,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCTag,
                     self.tage.nummer,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -932,10 +886,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCAktion,
                     self.aktion,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -962,12 +915,7 @@ pub mod parser4 {
                 if let Some(dauer) = &self.dauer {
                     write!(f, " +{}", dauer.wochen.nummer)?;
                 }
-                write!(
-                    f,
-                    " {}:\"{}\"",
-                    self.span.location_offset(),
-                    (*self.span).escape_default()
-                )
+                write!(f, " {:?}", (*self.span).escape_default())
             }
         }
 
@@ -981,10 +929,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCWochen,
                     self.wochen.nummer,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -1000,10 +947,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCKunde,
                     self.name.span,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -1019,10 +965,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCLieferant,
                     self.name.span,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -1038,10 +983,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCMarkt,
                     self.name.span,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -1061,12 +1005,7 @@ pub mod parser4 {
                 if let Some(einheit) = &self.einheit {
                     write!(f, " ({})", einheit.span)?;
                 }
-                write!(
-                    f,
-                    " {}:\"{}\"",
-                    self.span.location_offset(),
-                    (*self.span).escape_default()
-                )?;
+                write!(f, " {:?}", (*self.span).escape_default())?;
                 write!(f, "[")?;
                 for (i, s) in self.sorten.sorten.iter().enumerate() {
                     if i > 0 {
@@ -1089,10 +1028,9 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCEinheit,
                     self.einheit.span,
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -1138,11 +1076,10 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {} {}:\"{}\"",
+                    "{} {} {} {:?}",
                     APCSorte,
                     self.menge.menge,
                     self.name.span.escape_default(),
-                    self.span.location_offset(),
                     (*self.span).escape_default()
                 )
             }
@@ -1155,13 +1092,7 @@ pub mod parser4 {
 
         impl<'s> Debug for APName<'s> {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                write!(
-                    f,
-                    "{} {}:\"{}\"",
-                    APCName,
-                    self.span.location_offset(),
-                    self.span.escape_default()
-                )
+                write!(f, "{} {:?}", APCName, self.span.fragment())
             }
         }
 
@@ -1175,11 +1106,10 @@ pub mod parser4 {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
                 write!(
                     f,
-                    "{} {} {}:\"{}\"",
+                    "{} {} {:?}",
                     APCNummer,
                     self.nummer,
-                    self.span.location_offset(),
-                    self.span.escape_default()
+                    self.span.fragment()
                 )
             }
         }
@@ -1192,14 +1122,7 @@ pub mod parser4 {
 
         impl<'s> Debug for APMenge<'s> {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                write!(
-                    f,
-                    "{} {} {}:\"{}\"",
-                    APCMenge,
-                    self.menge,
-                    self.span.location_offset(),
-                    self.span.escape_default()
-                )
+                write!(f, "{} {} {:?}", APCMenge, self.menge, self.span.fragment())
             }
         }
 
@@ -1211,14 +1134,7 @@ pub mod parser4 {
 
         impl<'s> Debug for APDatum<'s> {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                write!(
-                    f,
-                    "{} {} {}:\"{}\"",
-                    APCDatum,
-                    self.datum,
-                    self.span.location_offset(),
-                    self.span.escape_default()
-                )
+                write!(f, "{} {} {:?}", APCDatum, self.datum, self.span.fragment())
             }
         }
 
@@ -1230,13 +1146,7 @@ pub mod parser4 {
 
         impl<'s> Debug for APKommentar<'s> {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                write!(
-                    f,
-                    "{} {}:\"{}\"",
-                    APCKommentar,
-                    self.span.location_offset(),
-                    self.span
-                )
+                write!(f, "{} {:?}", APCKommentar, self.span)
             }
         }
 
@@ -1248,13 +1158,7 @@ pub mod parser4 {
 
         impl<'s> Debug for APNotiz<'s> {
             fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-                write!(
-                    f,
-                    "{} {}:\"{}\"",
-                    APCNotiz,
-                    self.span.location_offset(),
-                    self.span
-                )
+                write!(f, "{} {:?}", APCNotiz, self.span)
             }
         }
     }
@@ -1719,12 +1623,14 @@ pub mod parser4 {
                     // the trimmed span is part of original.
                     // so reusing the rest ought to be fine.
                     let tok = unsafe {
-                        APSpan::new_from_raw_offset(
+                        #[cfg(debug_assertions)]
+                        let trim = APSpan::new_from_raw_offset(
                             tok.location_offset(),
                             tok.location_line(),
                             trim,
                             tok.extra,
-                        )
+                        );
+                        trim
                     };
 
                     // could rewind the rest too, but since it'_ whitespace
