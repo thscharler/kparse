@@ -1,11 +1,50 @@
-# 1.2
+# 2.0
+
+## New
+
+* Add SpanStr for error analysis. This allows calculating the row/column
+from a plain &str. This finally got my test parser on par with a PEST parser
+for the same grammar.
+
+* Got some inspiration from nom_supreme and added the KParser trait 
+to enable postfix transformation of parsers. This works nicely with err_into(),
+with_code() etc. Couldn't make sense of all their choices so a few were left 
+away.
+
+* Add pchar() parser as a replacement for nom::char(). Easier to use name
+and returns the input type instead of char.
+* Add separated_list_trailing0() and separated_list_trailing1() similar
+to separated_list0() and separated_list1(), but they allow a trailing 
+separator.
 
 ## Breaking
 
-* FindTracker::err() removed the Into<> conversion for the error type.
-  This already happens in context.
-* FindTracker::exit_err() takes a &ParserError instead of a string.
+* Add a second, leaner error type TokenizerError. 
+
+* FindTracker renamed to Tracking and TrackError to ResultTracking.
+* FindTracker accepts any error type with a Debug.
+* FindTracker::err() and ok() are gone. This is now done in Context.
+  This reduces the trait to empty functions for the no tracking case.
+* FindTracker::exit_err() takes a &E instead of a string.
   This removes a .to_string() if no tracking is active.
+* TrackError stops converting error types.
+* Trait Tracker reduced to a single function. 
+
+* Trait KParseError for acceptable error types. This replaces the
+  requirement for ParserError in most places.
+* Merged WithCode into KParseError.
+
+* Remove Y type parameter from ParserError and replaced the functionality
+  with a Box<dyn Any>. 
+
+* Trait ErrWrapped allows accepting a nom::Err<E> and a plan E for Context.
+
+* Remove traits WithSpan and ResultWithSpan.
+
+* Rename error_code() to with_code().
+* Rename transform() to map_res().
+
+* Change the Copy requirement to Clone.
 
 ## Features
 

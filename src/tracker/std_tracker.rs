@@ -39,7 +39,6 @@ where
     T: AsBytes + Clone,
     C: Code,
 {
-    track: bool,
     data: RefCell<TrackingData<C, T>>,
 }
 
@@ -92,25 +91,8 @@ where
     /// Creates a context for a given span.
     pub fn new() -> Self {
         Self {
-            track: true,
             data: Default::default(),
         }
-    }
-
-    /// Allows to switch off tracking.
-    pub fn tracking(mut self, track: bool) -> Self {
-        self.track = track;
-        self
-    }
-
-    /// Allows to switch off tracking.
-    pub fn set_tracking(&mut self, track: bool) {
-        self.track = track;
-    }
-
-    /// Is tracking enabled.
-    pub fn is_tracking(&self) -> bool {
-        self.track
     }
 
     /// Create a new Span from this context using the original str.
@@ -215,93 +197,79 @@ where
     C: Code,
 {
     fn track_enter(&self, span: LocatedSpan<T, ()>) {
-        if self.track {
-            let parent = self.parent_vec();
-            let func = self.func();
-            self.data.borrow_mut().track.push(Track::Enter(EnterTrack {
-                func,
-                span,
-                parents: parent,
-            }));
-        }
+        let parent = self.parent_vec();
+        let func = self.func();
+        self.data.borrow_mut().track.push(Track::Enter(EnterTrack {
+            func,
+            span,
+            parents: parent,
+        }));
     }
 
     fn track_debug(&self, span: LocatedSpan<T, ()>, debug: String) {
-        if self.track {
-            let parent = self.parent_vec();
-            let func = self.func();
-            self.data.borrow_mut().track.push(Track::Debug(DebugTrack {
-                func,
-                span,
-                debug,
-                parents: parent,
-            }));
-        }
+        let parent = self.parent_vec();
+        let func = self.func();
+        self.data.borrow_mut().track.push(Track::Debug(DebugTrack {
+            func,
+            span,
+            debug,
+            parents: parent,
+        }));
     }
 
     fn track_info(&self, span: LocatedSpan<T, ()>, info: &'static str) {
-        if self.track {
-            let parent = self.parent_vec();
-            let func = self.func();
-            self.data.borrow_mut().track.push(Track::Info(InfoTrack {
-                func,
-                info,
-                span,
-                parents: parent,
-            }));
-        }
+        let parent = self.parent_vec();
+        let func = self.func();
+        self.data.borrow_mut().track.push(Track::Info(InfoTrack {
+            func,
+            info,
+            span,
+            parents: parent,
+        }));
     }
 
     fn track_warn(&self, span: LocatedSpan<T, ()>, warn: &'static str) {
-        if self.track {
-            let parent = self.parent_vec();
-            let func = self.func();
-            self.data.borrow_mut().track.push(Track::Warn(WarnTrack {
-                func,
-                warn,
-                span,
-                parents: parent,
-            }));
-        }
+        let parent = self.parent_vec();
+        let func = self.func();
+        self.data.borrow_mut().track.push(Track::Warn(WarnTrack {
+            func,
+            warn,
+            span,
+            parents: parent,
+        }));
     }
 
     fn track_ok(&self, span: LocatedSpan<T, ()>, parsed: LocatedSpan<T, ()>) {
-        if self.track {
-            let parent = self.parent_vec();
-            let func = self.func();
-            self.data.borrow_mut().track.push(Track::Ok(OkTrack {
-                func,
-                span,
-                parsed,
-                parents: parent.clone(),
-            }));
-        }
+        let parent = self.parent_vec();
+        let func = self.func();
+        self.data.borrow_mut().track.push(Track::Ok(OkTrack {
+            func,
+            span,
+            parsed,
+            parents: parent.clone(),
+        }));
     }
 
     fn track_err(&self, span: LocatedSpan<T, ()>, code: C, err_str: String) {
-        if self.track {
-            let parent = self.parent_vec();
-            let func = self.func();
-            self.data.borrow_mut().track.push(Track::Err(ErrTrack {
-                func,
-                code,
-                span,
-                err: err_str,
-                parents: parent.clone(),
-            }));
-        }
+        let parent = self.parent_vec();
+        let func = self.func();
+        self.data.borrow_mut().track.push(Track::Err(ErrTrack {
+            func,
+            code,
+            span,
+            err: err_str,
+            parents: parent.clone(),
+        }));
     }
 
     fn track_exit(&self) {
-        if self.track {
-            let parent = self.parent_vec();
-            let func = self.func();
-            self.data.borrow_mut().track.push(Track::Exit(ExitTrack {
-                func,
-                parents: parent,
-                _phantom: Default::default(),
-            }));
-        }
+        let parent = self.parent_vec();
+        let func = self.func();
+        self.data.borrow_mut().track.push(Track::Exit(ExitTrack {
+            func,
+            parents: parent,
+            _phantom: Default::default(),
+        }));
     }
 }
 

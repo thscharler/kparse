@@ -5,6 +5,7 @@
 #![allow(missing_docs)]
 
 use crate::token_error::TokenizerError;
+#[cfg(debug_assertions)]
 use crate::tracker::TrackSpan;
 use crate::{Code, ParserError, ParserResult, TokenizerResult};
 use std::fmt::{Display, Formatter};

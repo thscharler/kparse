@@ -202,6 +202,7 @@ where
     }
 }
 
+/// Similiar to [nom::multi::separated_list0], but allows a trailing separator.
 pub fn separated_list_trailing0<PASep, PA, I, O1, O2, E>(
     mut sep: PASep,
     mut f: PA,
@@ -252,6 +253,7 @@ where
     }
 }
 
+/// Similiar to [nom::multi::separated_list1], but allows a trailing separator.
 pub fn separated_list_trailing1<PASep, PA, I, O1, O2, E>(
     mut sep: PASep,
     mut f: PA,

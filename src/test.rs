@@ -71,25 +71,7 @@ where
     T: AsBytes + Clone + Debug,
     C: Code,
 {
-    track_parse_ext(buf, true, text, fn_test)
-}
-
-/// Runs the parser and records the results.
-/// Use ok(), err(), ... to check specifics.
-///
-/// Finish the test with q().
-#[must_use]
-pub fn track_parse_ext<'s, C, T, O, E>(
-    buf: &'s mut Option<StdTracker<C, T>>,
-    track: bool,
-    text: T,
-    fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
-) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
-where
-    T: AsBytes + Clone + Debug,
-    C: Code,
-{
-    buf.replace(StdTracker::new().tracking(track));
+    buf.replace(StdTracker::new());
     let context = buf.as_ref().expect("yes");
 
     let span = context.span(text);
