@@ -1,31 +1,122 @@
 use crate::parser4::ast::{APMenge, APName};
-use crate::parser4::diagnostics::ReportDiagnostics;
+use crate::parser4::diagnostics::{dump_diagnostics, dump_trace};
 use crate::parser4::nom_tokens::nom_metadata;
 use crate::parser4::parser::*;
 use crate::parser4::tokens::{token_datum, token_menge, token_name, token_name_kurz, token_nummer};
 use crate::parser4::APCode::*;
-use kparse::prelude::*;
-use kparse::test::{span_parse, str_parse, CheckDump};
+use kparse::test::{span_parse, CheckDump, CheckTrace};
+use kparse::tracker::StdTracker;
+use nom_locate::LocatedSpan;
 use std::fs::read_to_string;
+use std::hint::black_box;
+use std::path::PathBuf;
 use std::time::Instant;
 
-const R: ReportDiagnostics = ReportDiagnostics;
-// const R: CheckDump = CheckDump;
+// const R: ReportDiagnostics = ReportDiagnostics;
+const R: CheckTrace = CheckTrace;
 const RT: CheckDump = CheckDump;
 
 #[test]
 pub fn timing() {
-    let s = read_to_string("tests/2022_Anbauplan.txt").unwrap();
+    let s = include_str!("2022_Anbauplan.txt");
+
     let now = Instant::now();
     let cnt = 100;
     for _i in 0..cnt {
-        span_parse(&mut None, s.as_str(), parse_anbauplan)
-            .ok_any()
-            .rest("")
-            .q(CheckDump);
+        #[cfg(debug_assertions)]
+        let context = StdTracker::new();
+        #[cfg(debug_assertions)]
+        let span = context.span(s);
+        #[cfg(not(debug_assertions))]
+        let span = LocatedSpan::new(s);
+
+        let _r = black_box(parse_anbauplan(span));
     }
     let duration = now.elapsed();
     println!("{:?}", duration / cnt);
+
+    // #[cfg(debug_assertions)]
+    // let context = StdTracker::new();
+    // #[cfg(debug_assertions)]
+    // let span = context.span(s);
+    // #[cfg(not(debug_assertions))]
+    // let span = LocatedSpan::new(s);
+    //
+    // let ap = parse_anbauplan(span).unwrap();
+    // dbg!(ap);
+}
+
+#[test]
+pub fn full_plan() {
+    let s = include_str!("2022_Anbauplan.txt");
+
+    #[cfg(debug_assertions)]
+    let context = StdTracker::new();
+    #[cfg(debug_assertions)]
+    let span = context.span(s);
+    #[cfg(not(debug_assertions))]
+    let span = LocatedSpan::new(s);
+
+    match parse_anbauplan(span) {
+        Ok((_r, v)) => {
+            #[cfg(debug_assertions)]
+            dump_trace(&context.results());
+            dbg!(v);
+        }
+        Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+            #[cfg(debug_assertions)]
+            dump_trace(&context.results());
+            dump_diagnostics(&PathBuf::from("2022_Anbauplan.txt"), span, &e, "", true);
+            panic!();
+        }
+        Err(e) => {
+            dbg!(e);
+            panic!();
+        }
+    };
+}
+
+#[test]
+pub fn som_plan() {
+    for _ in 0..100 {
+        for f in [
+            "tests/data/2023_Anbauplan.txt",
+            "tests/data/2023_Externe.txt",
+            "tests/data/2023_Gesamt.txt",
+            "tests/data/2023_Gleisdorf.txt",
+            "tests/data/2023_Kräuter.txt",
+            "tests/data/2023_Kunden.txt",
+            "tests/data/2023_Lebenshilfe.txt",
+            "tests/data/2023_Pflanzenmarkt_1.txt",
+            "tests/data/2023_Pflanzenmarkt_2.txt",
+        ] {
+            println!("parse {}", f);
+            let s = read_to_string(f).unwrap();
+
+            #[cfg(debug_assertions)]
+            let context = StdTracker::new();
+            #[cfg(debug_assertions)]
+            let span = context.span(s.as_str());
+            #[cfg(not(debug_assertions))]
+            let span = LocatedSpan::new(s.as_str());
+
+            match parse_anbauplan(span) {
+                Ok((_r, v)) => {
+                    // #[cfg(debug_assertions)]
+                    // dump_trace(&context.results());
+                }
+                Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                    #[cfg(debug_assertions)]
+                    dump_trace(&context.results());
+                    dump_diagnostics(&PathBuf::from("2022_Anbauplan.txt"), span, &e, "", true);
+                    panic!();
+                }
+                Err(e) => {
+                    panic!();
+                }
+            };
+        }
+    }
 }
 
 #[test]
@@ -82,7 +173,7 @@ pub fn test_kultur() {
         .ok_any()
         .q(R);
     span_parse(&mut None, "Salat : \n", parse_kultur)
-        .err_any()
+        .ok_any()
         .q(R);
     span_parse(&mut None, "Salat  \n", parse_kultur)
         .ok_any()
@@ -101,7 +192,7 @@ pub fn test_kultur() {
 pub fn test_einheit() {
     span_parse(&mut None, "(K)", parse_einheit).ok_any().q(R);
     span_parse(&mut None, " (K)", parse_einheit)
-        .err(APCBracketOpen)
+        .err(APCParenthesesOpen)
         .q(R);
     span_parse(&mut None, "( K ) ", parse_einheit)
         .ok_any()
@@ -109,14 +200,14 @@ pub fn test_einheit() {
         .q(R);
     span_parse(&mut None, "K ) ", parse_einheit)
         .err_any()
-        .err(APCBracketOpen)
+        .err(APCParenthesesOpen)
         .q(R);
     span_parse(&mut None, "( ) ", parse_einheit)
         .err(APCName)
         .q(R);
     span_parse(&mut None, "( K ", parse_einheit)
         .err_any()
-        .err(APCBracketClose)
+        .err(APCParenthesesClose)
         .q(R);
 }
 
@@ -135,7 +226,7 @@ pub fn test_sorten() {
         "25 Treviso, 15 Castel Franco, \n    10 Di Luisa",
         parse_sorten,
     )
-    .err_any()
+    .ok_any()
     .q(R);
 
     span_parse(
@@ -163,9 +254,9 @@ pub fn test_sorten() {
     .ok_any()
     .q(R);
 
+    // at eof it's ok
     span_parse(&mut None, "25 Treviso, 15 Castel Franco, ", parse_sorten)
-        .err_any()
-        .err(APCMenge)
+        .ok_any()
         .q(R);
 }
 
@@ -423,8 +514,8 @@ pub mod parser4 {
     pub type APNomResult<'s> = ParserResult<APCode, APSpan<'s>, APSpan<'s>>;
 
     pub mod diagnostics {
-        use crate::parser4::{APCode, APParserError, APSpan};
-        use kparse::spans::{SpanLines, SpanStr};
+        use crate::parser4::{APCode, APParserError, APSpan, APTokenizerError};
+        use kparse::spans::SpanLines;
         use kparse::test::{Report, Test};
         use kparse::tracker::Tracks;
         use nom_locate::LocatedSpan;
@@ -441,6 +532,57 @@ pub mod parser4 {
         /// Dumps the full parser trace if any test failed.
         #[derive(Clone, Copy)]
         pub struct ReportDiagnostics;
+
+        impl<'s, P, O> Report<Test<'s, P, APSpan<'s>, O, APTokenizerError<'s>>> for ReportDiagnostics
+        where
+            O: Debug,
+        {
+            #[track_caller]
+            fn report(&self, test: &Test<'s, P, APSpan<'s>, O, APTokenizerError<'s>>) {
+                if test.failed.get() {
+                    match &test.result {
+                        Ok(_v) => {}
+                        Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                            dump_diagnostics_tok(&PathBuf::from(""), test.span, e, "", true);
+                        }
+                        Err(nom::Err::Incomplete(_e)) => {}
+                    }
+                    panic!("test failed");
+                }
+            }
+        }
+
+        /// Write some diagnostics.
+        #[allow(clippy::collapsible_else_if)]
+        #[allow(clippy::collapsible_if)]
+        pub fn dump_diagnostics_tok(
+            src: &Path,
+            orig: APSpan<'_>,
+            err: &APTokenizerError<'_>,
+            msg: &str,
+            is_err: bool,
+        ) {
+            // let txt = SpanLines::new(orig);
+            //
+            // let text1 = txt.get_lines_around(&err.span, 3);
+
+            println!();
+            if !msg.is_empty() {
+                println!(
+                    "{}: {:?}: {}",
+                    if is_err { "FEHLER" } else { "Achtung" },
+                    src.file_name().unwrap_or_else(|| OsStr::new("")),
+                    msg
+                );
+            } else {
+                println!(
+                    "{}: {:?}: {}",
+                    if is_err { "FEHLER" } else { "Achtung" },
+                    src.file_name().unwrap_or_else(|| OsStr::new("")),
+                    err.code
+                );
+            }
+        }
 
         impl<'s, P, O> Report<Test<'s, P, APSpan<'s>, O, APParserError<'s>>> for ReportDiagnostics
         where
@@ -1122,34 +1264,27 @@ pub mod parser4 {
     pub mod parser {
         use crate::parser4::ast::*;
         use crate::parser4::nom_tokens::{
-            lah_brop, lah_number, lah_plus, nom_aktion_aktion, nom_colon, nom_comma, nom_empty,
-            nom_header, nom_is_comment_or_notiz, nom_is_nl, nom_kommentar, nom_kommentar_tag,
-            nom_kw, nom_metadata, nom_notiz, nom_notiz_tag, nom_number, nom_par_close,
-            nom_par_open, nom_plus, nom_slash_slash, nom_star_star, nom_tag_aktion, nom_tag_bsnr,
-            nom_tag_kdnr, nom_tag_kunde, nom_tag_lieferant, nom_tag_markt, nom_tag_monat,
-            nom_tag_pflanzort, nom_tag_plan, nom_tag_stichtag, nom_tag_tag, nom_tag_w,
-            nom_tag_woche, nom_ws2, nom_ws_nl,
+            nom_aktion_aktion, nom_colon, nom_comma, nom_empty, nom_header, nom_is_nl,
+            nom_kommentar, nom_kommentar_tag, nom_kw, nom_metadata, nom_nl, nom_notiz,
+            nom_notiz_tag, nom_number, nom_par_close, nom_par_open, nom_plus, nom_tag_aktion,
+            nom_tag_bsnr, nom_tag_kdnr, nom_tag_kunde, nom_tag_lieferant, nom_tag_markt,
+            nom_tag_monat, nom_tag_pflanzort, nom_tag_plan, nom_tag_stichtag, nom_tag_tag,
+            nom_tag_w, nom_tag_woche, nom_ws, span_ws_nl,
         };
         use crate::parser4::tokens::{
             token_datum, token_menge, token_name, token_name_kurz, token_nummer,
         };
         use crate::parser4::APCode::*;
-        use crate::parser4::APParserResult;
-        use crate::parser4::{nom_tokens, APSpan};
+        use crate::parser4::{nom_tokens, APParserError, APSpan};
+        use crate::parser4::{APParserResult, APTokenizerResult};
+        use kparse::combinators::{err_into, separated_list_trailing1, track};
         use kparse::prelude::*;
         use kparse::{Context, ParserError};
-        use nom::combinator::opt;
+        use nom::branch::alt;
+        use nom::combinator::{consumed, not, opt};
+        use nom::multi::separated_list0;
         use nom::sequence::tuple;
         use nom::Parser;
-
-        // impl<'s, T> IntoParserResultAddSpan<'s, APCode, T> for Result<T, ParseIntError> {
-        //     fn into_with_span(self, span: Span<'s>) -> ParserResult<'s, APCode, T> {
-        //         match self {
-        //             Ok(v) => Ok(v),
-        //             Err(_) => Err(ParserError::new(APCInteger, span)),
-        //         }
-        //     }
-        // }
 
         pub fn parse_anbauplan(rest: APSpan<'_>) -> APParserResult<'_, APAnbauPlan<'_>> {
             Context.enter(APCAnbauplan, rest);
@@ -1163,565 +1298,404 @@ pub mod parser4 {
                     Err(_) => break,
                 };
 
-                loop_rest = nom_ws_nl(rest2);
+                loop_rest = span_ws_nl(rest2);
             }
-            let rest = nom_ws_nl(loop_rest);
+            let rest = span_ws_nl(loop_rest);
 
             let (rest, plan) = parse_plan(rest).track()?;
-            let rest = nom_ws_nl(rest);
+            let rest = span_ws_nl(rest);
 
             let (rest, kdnr) = opt(parse_kdnr)(rest).track()?;
-            let rest = nom_ws_nl(rest);
+            let rest = span_ws_nl(rest);
 
             let mut data = Vec::new();
             let mut loop_rest = rest;
             loop {
-                let rest2 = loop_rest;
+                // skip empty lines and whitespace
+                loop_rest = span_ws_nl(loop_rest);
 
-                // todo: continue after error ...
-
-                let rest2 = if lah_stichtag(rest2) {
-                    let (rest3, val) = parse_stichtag(rest2).track()?;
-                    data.push(PlanValues::Stichtag(val));
-                    rest3
-                } else if lah_bsnr(rest2) {
-                    let (rest3, val) = parse_bsnr(rest2).track()?;
-                    data.push(PlanValues::BsNr(val));
-                    rest3
-                } else if lah_monat(rest2) {
-                    let (rest3, val) = parse_monat(rest2).track()?;
-                    data.push(PlanValues::Monat(val));
-                    rest3
-                } else if lah_woche(rest2) {
-                    let (rest3, val) = parse_woche(rest2).track()?;
-                    data.push(PlanValues::Woche(val));
-                    rest3
-                } else if lah_tag(rest2) {
-                    let (rest3, val) = parse_tag(rest2).track()?;
-                    data.push(PlanValues::Tag(val));
-                    rest3
-                } else if lah_notiz(rest2) {
-                    let (rest3, val) = parse_notiz(rest2).track()?;
-                    data.push(PlanValues::Notiz(val));
-                    rest3
-                } else if lah_kommentar(rest2) {
-                    let (rest3, val) = parse_kommentar(rest2).track()?;
-                    data.push(PlanValues::Kommentar(val));
-                    rest3
-                } else if lah_kunde(rest2) {
-                    let (rest3, val) = parse_kunde(rest2).track()?;
-                    data.push(PlanValues::Kunde(val));
-                    rest3
-                } else if lah_lieferant(rest2) {
-                    let (rest3, val) = parse_lieferant(rest2).track()?;
-                    data.push(PlanValues::Lieferant(val));
-                    rest3
-                } else if lah_markt(rest2) {
-                    let (rest3, val) = parse_markt(rest2).track()?;
-                    data.push(PlanValues::Markt(val));
-                    rest3
-                } else if lah_aktion(rest2) {
-                    let (rest3, val) = parse_aktion(rest2).track()?;
-                    data.push(PlanValues::Aktion(val));
-                    rest3
-                } else if lah_pflanzort(rest2) {
-                    let (rest3, val) = parse_pflanzort(rest2).track()?;
-                    data.push(PlanValues::Pflanzort(val));
-                    rest3
-                } else if rest2.len() == 0 {
-                    // eof shouldn't try to parse as kultur
-                    rest2
-                } else {
-                    let (rest3, val) = parse_kultur(rest2).track()?;
-                    data.push(PlanValues::Kultur(val));
-                    rest3
-                };
-
-                if loop_rest == rest2 {
-                    break;
+                match parse_stichtag(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Stichtag(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCStichtag => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_bsnr(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::BsNr(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCBsNr => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_monat(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Monat(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCMonat => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_woche(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Woche(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCWoche => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_tag(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Tag(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCTag => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_notiz.err_into::<APParserError<'_>>().parse(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Notiz(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCNotiz => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_kommentar
+                    .err_into::<APParserError<'_>>()
+                    .parse(loop_rest)
+                {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Kommentar(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCKommentar => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_kunde(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Kunde(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCKunde => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_lieferant(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Lieferant(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCLieferant => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_markt(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Markt(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCMarkt => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_aktion(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Aktion(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCAktion => {}
+                    Err(e) => return Context.err(e),
+                }
+                match parse_pflanzort(loop_rest) {
+                    Ok((rest, val)) => {
+                        loop_rest = rest;
+                        data.push(PlanValues::Pflanzort(val));
+                        continue;
+                    }
+                    Err(nom::Err::Error(e)) if e.code == APCPflanzort => {}
+                    Err(e) => return Context.err(e),
                 }
 
-                // skip empty lines and whitespace
-                loop_rest = nom_ws_nl(rest2);
+                if loop_rest.len() > 0 {
+                    match parse_kultur(loop_rest) {
+                        Ok((rest, val)) => {
+                            loop_rest = rest;
+                            data.push(PlanValues::Kultur(val));
+                            continue;
+                        }
+                        Err(e) => return Context.err(e),
+                    }
+                };
+
+                break;
             }
             let rest = loop_rest;
 
             Context.ok(rest, rest, APAnbauPlan { plan, kdnr, data })
         }
 
-        fn lah_plan(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_plan(span)
-        }
-
         pub fn parse_plan(input: APSpan<'_>) -> APParserResult<'_, APPlan<'_>> {
-            Context.enter(APCPlan, input);
-
-            let (rest, h0) = nom_header.err_into().parse(input).track_as(APCHeader)?;
-            let (rest, _) = nom_tag_plan.err_into().parse(rest).track_as(APCPlan)?;
-            let (rest, plan) = token_name.err_into().parse(rest).track()?;
-            let (rest, h1) = nom_header.err_into().parse(rest).track_as(APCHeader)?;
-
-            let span = input.span_union(&h0, &h1);
-            Context.ok(rest, span, APPlan { name: plan, span })
-        }
-
-        fn lah_kdnr(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_kdnr(span)
+            track(
+                APCPlan,
+                consumed(tuple((nom_header, nom_tag_plan, token_name, nom_header))),
+            )
+            .map(|(span, (_, _, name, _))| APPlan { name, span })
+            .err_into()
+            .parse(input)
         }
 
         pub fn parse_kdnr(input: APSpan<'_>) -> APParserResult<'_, APKdNr<'_>> {
-            Context.enter(APCKdNr, input);
-
-            let (rest, _) = opt(nom_star_star).err_into().parse(input).track()?;
-            let (rest, _) = opt(nom_slash_slash).err_into().parse(rest).track()?;
-
-            let (rest, tag) = nom_tag_kdnr.err_into().parse(rest).track()?;
-            let (rest, kdnr) = token_nummer.err_into().parse(rest).track()?;
-
-            let (rest, _) = opt(nom_star_star).err_into().parse(rest).track()?;
-            let (rest, _) = opt(nom_slash_slash).err_into().parse(rest).track()?;
-
-            let span = input.span_union(&tag, &kdnr.span);
-            Context.ok(rest, span, APKdNr { kdnr, span })
-        }
-
-        fn lah_stichtag(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_stichtag(span)
+            track(APCKdNr, consumed(tuple((nom_tag_kdnr, token_nummer))))
+                .map(|(span, (_, kdnr))| APKdNr { kdnr, span })
+                .err_into()
+                .parse(input)
         }
 
         pub fn parse_stichtag(input: APSpan<'_>) -> APParserResult<'_, APStichtag<'_>> {
-            Context.enter(APCStichtag, input);
-
-            let (rest, h0) = nom_header.err_into().parse(input).track()?;
-            let (rest, _) = nom_tag_stichtag.err_into().parse(rest).track()?;
-            let (rest, stichtag) = token_datum.err_into().parse(rest).track()?;
-
-            let (rest, _brop) = opt(nom_par_open).err_into().parse(rest).track()?;
-            let (rest, _kw) = opt(nom_kw).err_into().parse(rest).track()?;
-            let (rest, _brcl) = opt(nom_par_close).err_into().parse(rest).track()?;
-
-            let (rest, h1) = nom_header.err_into().parse(rest).track()?;
-
-            let span = input.span_union(&h0, &h1);
-            Context.ok(rest, span, APStichtag { stichtag, span })
-        }
-
-        fn lah_bsnr(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_bsnr(span)
+            track(
+                APCStichtag,
+                consumed(tuple((
+                    nom_header,
+                    nom_tag_stichtag,
+                    token_datum,
+                    opt(tuple((nom_par_open, nom_kw, nom_par_close))),
+                    nom_header,
+                ))),
+            )
+            .map(|(span, (_, _, stichtag, _, _))| APStichtag { stichtag, span })
+            .err_into()
+            .parse(input)
         }
 
         pub fn parse_bsnr(input: APSpan<'_>) -> APParserResult<'_, APBsNr<'_>> {
-            Context.enter(APCBsNr, input);
-
-            let (rest, _) = opt(nom_slash_slash).err_into().parse(input).track()?;
-            let (rest, _) = opt(nom_star_star).err_into().parse(rest).track()?;
-
-            let (rest, tag) = nom_tag_bsnr.err_into().parse(rest).track()?;
-            let (rest, bsnr) = token_nummer.err_into().parse(rest).track()?;
-
-            let (rest, _) = opt(nom_star_star).err_into().parse(rest).track()?;
-            let (rest, _) = opt(nom_slash_slash).err_into().parse(rest).track()?;
-
-            let span = input.span_union(&tag, &bsnr.span);
-            Context.ok(rest, span, APBsNr { bsnr, span })
-        }
-
-        fn lah_monat(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_monat(span)
+            track(APCBsNr, consumed(tuple((nom_tag_bsnr, token_nummer))))
+                .map(|(span, (_, bsnr))| APBsNr { bsnr, span })
+                .err_into()
+                .parse(input)
         }
 
         pub fn parse_monat(input: APSpan<'_>) -> APParserResult<'_, APMonat<'_>> {
-            Context.enter(APCMonat, input);
-
-            let (rest, h0) = nom_header.err_into().parse(input).track()?;
-            let (rest, _) = nom_tag_monat.err_into().parse(rest).track()?;
-            let (rest, monat) = token_name.err_into().parse(rest).track()?;
-            let (rest, h1) = nom_header.err_into().parse(rest).track()?;
-
-            let span = input.span_union(&h0, &h1);
-            Context.ok(rest, span, APMonat { monat, span })
-        }
-
-        fn lah_woche(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_woche(span)
+            track(
+                APCMonat,
+                consumed(tuple((nom_header, nom_tag_monat, token_name, nom_header))),
+            )
+            .map(|(span, (_, _, monat, _))| APMonat { monat, span })
+            .err_into()
+            .parse(input)
         }
 
         pub fn parse_woche(input: APSpan<'_>) -> APParserResult<'_, APWoche<'_>> {
-            Context.enter(APCWoche, input);
-
-            let (rest, h0) = nom_header.err_into().parse(input).track()?;
-
-            let (rest, _) = nom_tag_woche.err_into().parse(rest).track()?;
-            let (rest, datum) = token_datum.err_into().parse(rest).track()?;
-
-            let (rest, _brop) = opt(nom_par_open).err_into().parse(rest).track()?;
-            let (rest, _kw) = opt(nom_kw).err_into().parse(rest).track()?;
-            let (rest, _brcl) = opt(nom_par_close).err_into().parse(rest).track()?;
-
-            let (rest, h1) = nom_header.err_into().parse(rest).track()?;
-
-            let span = input.span_union(&h0, &h1);
-            Context.ok(rest, span, APWoche { datum, span })
-        }
-
-        fn lah_tag(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_tag(span)
+            track(
+                APCWoche,
+                consumed(tuple((
+                    nom_header,
+                    nom_tag_woche,
+                    token_datum,
+                    opt(nom_par_open),
+                    opt(nom_kw),
+                    opt(nom_par_close),
+                    nom_header,
+                ))),
+            )
+            .map(|(span, (_, _, datum, _, _, _, _))| APWoche { datum, span })
+            .err_into()
+            .parse(input)
         }
 
         pub fn parse_tag(input: APSpan<'_>) -> APParserResult<'_, APTag<'_>> {
-            Context.enter(APCTag, input);
-
-            let (rest, h0) = nom_header.err_into().parse(input).track()?;
-            let (rest, _) = nom_tag_tag.err_into().parse(rest).track()?;
-            let (rest, tage) = token_nummer.err_into().parse(rest).track()?;
-            let (rest, h1) = nom_header.err_into().parse(rest).track()?;
-
-            let span = input.span_union(&h0, &h1);
-            Context.ok(rest, span, APTag { tage, span })
-        }
-
-        fn lah_aktion(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_aktion(span)
+            track(
+                APCTag,
+                consumed(tuple((nom_header, nom_tag_tag, token_nummer, nom_header))),
+            )
+            .map(|(span, (_, _, tage, _))| APTag { tage, span })
+            .err_into()
+            .parse(input)
         }
 
         pub fn parse_aktion(input: APSpan<'_>) -> APParserResult<'_, APAktion<'_>> {
-            Context.enter(APCAktion, input);
-
-            let (rest, tag) = nom_tag_aktion.err_into().parse(input).track()?;
-            let (rest, aktion) = nom_aktion_aktion
-                .err_into()
-                .parse(rest)
-                .track_as(APCAktionTyp)?;
-
-            let span = input.span_union(&tag, &aktion);
-            Context.ok(rest, span, APAktion { aktion, span })
-        }
-
-        fn lah_pflanzort(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_pflanzort(span)
+            track(
+                APCAktion,
+                consumed(tuple((nom_tag_aktion, nom_aktion_aktion))),
+            )
+            .map(|(span, (_, aktion))| APAktion { aktion, span })
+            .err_into()
+            .parse(input)
         }
 
         pub fn parse_pflanzort(input: APSpan<'_>) -> APParserResult<'_, APPflanzort<'_>> {
-            Context.enter(APCPflanzort, input);
-
-            let (rest, tag) = nom_tag_pflanzort.err_into().parse(input).track()?;
-
-            let (rest, ort) = token_name_kurz.err_into().parse(rest).track()?;
-
-            let (rest, kultur) = if !lah_brop(rest) && !lah_pluswochen(rest) && !lah_wochen(rest) {
-                opt(token_name_kurz).err_into().parse(rest).track()?
-            } else {
-                (rest, None)
-            };
-
-            let (rest, brop) = opt(nom_par_open).err_into().parse(rest).track()?;
-            let (rest, start) = opt(parse_wochen).err_into().parse(rest).track()?;
-            let (rest, dauer) = opt(parse_pluswochen).err_into().parse(rest).track()?;
-            let (rest, brcl) = opt(nom_par_close).err_into().parse(rest).track()?;
-
-            let span = if let Some(brcl) = brcl {
-                input.span_union(&tag, &brcl)
-            } else if let Some(dauer) = &dauer {
-                input.span_union(&tag, &dauer.span)
-            } else if let Some(start) = &start {
-                input.span_union(&tag, &start.span)
-            } else if let Some(brop) = brop {
-                input.span_union(&tag, &brop)
-            } else if let Some(kultur) = &kultur {
-                input.span_union(&tag, &kultur.span)
-            } else {
-                input.span_union(&tag, &ort.span)
-            };
-
-            Context.ok(
-                rest,
-                span,
-                APPflanzort {
-                    ort,
-                    kultur,
-                    start,
-                    dauer,
-                    span,
-                },
+            track(
+                APCPflanzort,
+                consumed(tuple((
+                    nom_tag_pflanzort,
+                    token_name_kurz,
+                    opt(token_name_kurz),
+                    opt(nom_par_open),
+                    opt(parse_wochen),
+                    opt(parse_pluswochen),
+                    opt(nom_par_close),
+                ))),
             )
+            .map(|(span, (_, ort, kultur, _, start, dauer, _))| APPflanzort {
+                ort,
+                kultur,
+                start,
+                dauer,
+                span,
+            })
+            .err_into()
+            .parse(input)
         }
 
-        fn lah_wochen(i: APSpan<'_>) -> bool {
-            tuple((nom_number, nom_tag_w))(i).is_ok()
+        pub fn parse_wochen(input: APSpan<'_>) -> APTokenizerResult<'_, APWochen<'_>> {
+            track(
+                APCWochen, //
+                consumed(tuple((token_nummer, nom_tag_w))),
+            )
+            .map(|(span, (wochen, _))| APWochen { wochen, span })
+            .err_into()
+            .parse(input)
         }
 
-        pub fn parse_wochen(input: APSpan<'_>) -> APParserResult<'_, APWochen<'_>> {
-            Context.enter(APCWochen, input);
-
-            let (rest, wochen) = token_nummer.err_into().parse(input).track()?;
-            let (rest, w) = nom_tag_w.err_into().parse(rest).track()?;
-
-            let span = input.span_union(&wochen.span, &w);
-            Context.ok(rest, span, APWochen { wochen, span })
-        }
-
-        fn lah_pluswochen(rest: APSpan<'_>) -> bool {
-            lah_plus(rest)
-        }
-
-        pub fn parse_pluswochen(input: APSpan<'_>) -> APParserResult<'_, APWochen<'_>> {
-            Context.enter(APCPlusWochen, input);
-
-            let (rest, _) = nom_plus.err_into().parse(input).track()?;
-            let (rest, wochen) = token_nummer.err_into().parse(rest).track()?;
-            let (rest, w) = nom_tag_w.err_into().parse(rest).track()?;
-
-            let span = input.span_union(&wochen.span, &w);
-            Context.ok(rest, span, APWochen { wochen, span })
-        }
-
-        fn lah_kunde(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_kunde(span)
+        pub fn parse_pluswochen(input: APSpan<'_>) -> APTokenizerResult<'_, APWochen<'_>> {
+            track(
+                APCPlusWochen,
+                consumed(tuple((nom_plus, token_nummer, nom_tag_w))),
+            )
+            .map(|(span, (_, wochen, _))| APWochen { wochen, span })
+            .parse(input)
         }
 
         pub fn parse_kunde(input: APSpan<'_>) -> APParserResult<'_, APKunde<'_>> {
-            Context.enter(APCKunde, input);
-
-            let (rest, _) = opt(nom_star_star).err_into().parse(input).track()?;
-            let (rest, tag) = nom_tag_kunde.err_into().parse(rest).track()?;
-            let (rest, name) = token_name.err_into().parse(rest).track()?;
-            let (rest, _) = opt(nom_star_star).err_into().parse(rest).track()?;
-
-            let span = input.span_union(&tag, &name.span);
-
-            Context.ok(rest, span, APKunde { name, span })
-        }
-
-        fn lah_lieferant(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_lieferant(span)
+            track(APCKunde, consumed(tuple((nom_tag_kunde, token_name))))
+                .map(|(span, (_, name))| APKunde { name, span })
+                .err_into()
+                .parse(input)
         }
 
         pub fn parse_lieferant(input: APSpan<'_>) -> APParserResult<'_, APLieferant<'_>> {
-            Context.enter(APCLieferant, input);
-
-            let (rest, _) = opt(nom_star_star).err_into().parse(input).track()?;
-            let (rest, tag) = nom_tag_lieferant.err_into().parse(rest).track()?;
-            let (rest, name) = token_name.err_into().parse(rest).track()?;
-            let (rest, _) = opt(nom_star_star).err_into().parse(rest).track()?;
-
-            let span = input.span_union(&tag, &name.span);
-
-            Context.ok(rest, span, APLieferant { name, span })
-        }
-
-        fn lah_markt(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_markt(span)
+            track(
+                APCLieferant,
+                consumed(tuple((nom_tag_lieferant, token_name))),
+            )
+            .map(|(span, (_, name))| APLieferant { name, span })
+            .err_into()
+            .parse(input)
         }
 
         pub fn parse_markt(input: APSpan<'_>) -> APParserResult<'_, APMarkt<'_>> {
-            Context.enter(APCMarkt, input);
-
-            let (rest, _) = opt(nom_star_star).err_into().parse(input).track()?;
-            let (rest, tag) = nom_tag_markt.err_into().parse(rest).track()?;
-            let (rest, name) = token_name.err_into().parse(rest).track()?;
-            let (rest, _) = opt(nom_star_star).err_into().parse(rest).track()?;
-
-            let span = input.span_union(&tag, &name.span);
-
-            Context.ok(rest, span, APMarkt { name, span })
+            track(APCMarkt, consumed(tuple((nom_tag_markt, token_name))))
+                .map(|(span, (_, name))| APMarkt { name, span })
+                .err_into()
+                .parse(input)
         }
 
         pub fn parse_kultur(input: APSpan<'_>) -> APParserResult<'_, APKultur<'_>> {
             Context.enter(APCKultur, input);
 
-            let (rest, kultur) = token_name.err_into().parse(input).track()?;
-
-            let (rest, einheit) = opt(parse_einheit).err_into().parse(rest).track()?;
-
-            let (rest, sorten) = match opt(nom_colon).err_into::<ParserError<_, _>>().parse(rest) {
-                Ok((rest, Some(_colon))) => {
-                    //
-                    parse_sorten(rest).track()?
-                }
-                Ok((rest, None)) => {
-                    // if we don't have a colon, we're done here.
-                    (
-                        rest,
+            let (rest, kultur) = consumed(tuple((
+                token_name.err_into(),
+                opt(parse_einheit),
+                consumed(opt(err_into(nom_colon).and(parse_sorten))),
+            )))
+            .map(|(span, (kultur, einheit, (sorten_span, sorten)))| {
+                //
+                APKultur {
+                    kultur,
+                    einheit,
+                    sorten: if let Some((_, sorten)) = sorten {
+                        sorten
+                    } else {
                         APSorten {
                             sorten: Vec::new(),
                             kommentar: None,
                             notiz: None,
-                            span: nom_empty(rest),
-                        },
-                    )
+                            span: sorten_span,
+                        }
+                    },
+                    span,
                 }
-                Err(e) => return Context.err(e),
-            };
+            })
+            .parse(input)?;
 
             // must be at line end now, and can eat some whitespace
             let rest = if !nom_is_nl(rest) {
                 return Context.err(ParserError::new(APCSorten, rest));
             } else {
-                nom_ws_nl(rest)
+                span_ws_nl(rest)
             };
 
-            let span = input.span_union(&kultur.span, &sorten.span);
-
-            Context.ok(
-                rest,
-                span,
-                APKultur {
-                    kultur,
-                    einheit,
-                    sorten,
-                    span,
-                },
-            )
+            Context.ok(rest, input, kultur)
         }
 
         pub fn parse_einheit(input: APSpan<'_>) -> APParserResult<'_, APEinheit<'_>> {
-            Context.enter(APCEinheit, input);
-
-            let (rest, brop) = nom_par_open
-                .err_into()
-                .parse(input)
-                .track_as(APCBracketOpen)?;
-            let (rest, name) = token_name.err_into().parse(rest)?;
-            let (rest, brcl) = nom_par_close
-                .err_into()
-                .parse(rest)
-                .track_as(APCBracketClose)?;
-
-            let span = input.span_union(&brop, &brcl);
-
-            Context.ok(
-                rest,
-                span,
-                APEinheit {
-                    einheit: name,
-                    span,
-                },
+            track(
+                APCEinheit,
+                consumed(tuple((nom_par_open, token_name, nom_par_close))),
             )
+            .map(|(span, (_, einheit, _))| APEinheit { einheit, span })
+            .err_into()
+            .parse(input)
         }
 
         pub fn parse_sorten(input: APSpan<'_>) -> APParserResult<'_, APSorten<'_>> {
-            Context.enter(APCSorten, input);
-
-            let mut sorten = Vec::new();
-
-            let mut rest_loop = input;
-            loop {
-                let rest1 = rest_loop;
-
-                let (rest1, sorte) = parse_sorte(rest1).track()?;
-                sorten.push(sorte);
-
-                let rest1 = match nom_comma(rest1) {
-                    Ok((rest2, _comma)) => {
-                        // at the line end?
-                        if !nom_is_nl(rest2) {
-                            rest2
-                        } else {
-                            // is at newline. consume and check next...
-                            let rest2 = nom_ws_nl(rest2);
-
-                            // next must be a number, otherwise the continue fails.
-                            if lah_number(rest2) {
-                                rest2
-                            } else {
-                                return Context.err(ParserError::new(APCSortenContinue, rest1));
-                            }
-                        }
-                    }
-                    Err(_e) => {
-                        // no comma, maybe at the line end?
-                        if nom_is_nl(rest1) || nom_is_comment_or_notiz(rest1) {
-                            // don't eat the new line. that'_ the job of the caller.
-                            rest_loop = rest1;
-                            break;
-                        } else {
-                            // continue and fail later
-                            rest1
-                        }
-                    }
-                };
-
-                rest_loop = nom_ws2(rest1);
-            }
-            let rest = rest_loop;
-
-            let (rest, notiz) = opt(parse_notiz)(rest).track()?;
-            let (rest, kommentar) = opt(parse_kommentar)(rest).track()?;
-
-            let first = sorten.first();
-            let last = sorten.last();
-
-            let span = if let Some(first) = first {
-                if let Some(last) = last {
-                    input.span_union(&first.span, &last.span)
-                } else {
-                    unreachable!()
-                }
-            } else {
-                nom_empty(rest)
-            };
-
-            Context.ok(
-                rest,
-                span,
-                APSorten {
-                    sorten,
-                    kommentar,
-                    notiz,
-                    span,
-                },
+            track(
+                APCSorten,
+                tuple((
+                    consumed(
+                        separated_list0(
+                            tuple((nom_nl, nom_ws)),
+                            separated_list_trailing1(nom_comma, parse_sorte),
+                        )
+                        .map(|v| v.into_iter().flatten().collect()),
+                    ),
+                    opt(parse_notiz.err_into()),
+                    opt(parse_kommentar.err_into()),
+                    not(tuple((nom_nl, nom_ws, nom_number))).with_code(APCMenge),
+                )),
             )
-        }
-
-        pub fn parse_sorte(input: APSpan<'_>) -> APParserResult<'_, APSorte<'_>> {
-            Context.enter(APCSorte, input);
-
-            let (rest, menge) = token_menge.err_into().parse(input).track()?;
-            let (rest, name) = token_name.err_into().parse(rest).track()?;
-
-            let span = input.span_union(&menge.span, &name.span);
-
-            Context.ok(rest, span, APSorte { menge, name, span })
-        }
-
-        fn lah_kommentar(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_kommentar(span)
-        }
-
-        pub fn parse_kommentar(rest: APSpan<'_>) -> APParserResult<'_, APKommentar<'_>> {
-            Context.enter(APCKommentar, rest);
-
-            let (rest, kommentar_tag) = nom_kommentar_tag.err_into().parse(rest).track()?;
-            let (rest, kommentar) = nom_kommentar.err_into().parse(rest).track()?;
-
-            Context.ok(
-                rest,
+            .map(|((span, sorten), notiz, kommentar, _)| APSorten {
+                sorten,
                 kommentar,
-                APKommentar {
-                    tag: kommentar_tag,
-                    span: kommentar,
-                },
-            )
-        }
-
-        fn lah_notiz(span: APSpan<'_>) -> bool {
-            nom_tokens::lah_notiz(span)
-        }
-
-        pub fn parse_notiz(rest: APSpan<'_>) -> APParserResult<'_, APNotiz<'_>> {
-            Context.enter(APCNotiz, rest);
-
-            let (rest, notiz_tag) = nom_notiz_tag.err_into().parse(rest).track()?;
-            let (rest, notiz) = nom_notiz.err_into().parse(rest).track()?;
-
-            Context.ok(
-                rest,
                 notiz,
-                APNotiz {
-                    tag: notiz_tag,
-                    span: notiz,
-                },
+                span,
+            })
+            .err_into()
+            .parse(input)
+        }
+
+        pub fn parse_sorte(input: APSpan<'_>) -> APTokenizerResult<'_, APSorte<'_>> {
+            track(APCSorte, consumed(tuple((token_menge, token_name))))
+                .map(|(span, (menge, name))| APSorte { menge, name, span })
+                .err_into()
+                .parse(input)
+        }
+
+        pub fn parse_kommentar(rest: APSpan<'_>) -> APTokenizerResult<'_, APKommentar<'_>> {
+            track(
+                APCKommentar,
+                consumed(tuple((nom_kommentar_tag, nom_kommentar))),
             )
+            .map(|(span, (_, tag))| APKommentar { tag, span })
+            .parse(rest)
+        }
+
+        pub fn parse_notiz(rest: APSpan<'_>) -> APTokenizerResult<'_, APNotiz<'_>> {
+            track(
+                APCNotiz, //
+                consumed(tuple((nom_notiz_tag, nom_notiz))),
+            )
+            .map(|(span, (_, tag))| APNotiz { tag, span })
+            .parse(rest)
         }
     }
 
@@ -1779,25 +1753,20 @@ pub mod parser4 {
 
         pub fn token_menge(rest: APSpan<'_>) -> APTokenizerResult<'_, APMenge<'_>> {
             nom_number
+                .with_code(APCMenge)
                 .parse_from_str(APCMenge)
                 .consumed()
                 .map(|(span, menge)| APMenge { menge, span })
                 .parse(rest)
         }
 
-        // impl<'s> WithSpan<APCode, APSpan<'s>, APParserError<'s>> for chrono::ParseError {
-        //     fn with_span(self, code: APCode, span: APSpan<'s>) -> nom::Err<APParserError<'s>> {
-        //         nom::Err::Failure(ParserError::new(code, span))
-        //     }
-        // }
-
         pub fn token_datum(input: APSpan<'_>) -> APTokenizerResult<'_, APDatum<'_>> {
             let (rest, (span, (iday, _, imonth, _, iyear))) = tuple((
-                nom_number.parse_from_str(APCDay),
+                nom_number.with_code(APCDay).parse_from_str(APCDay),
                 nom_dot,
-                nom_number.parse_from_str(APCMonth),
+                nom_number.with_code(APCMonth).parse_from_str(APCMonth),
                 nom_dot,
-                nom_number.parse_from_str(APCYear),
+                nom_number.with_code(APCYear).parse_from_str(APCYear),
             ))
             .consumed()
             .parse(input)?;
@@ -1815,20 +1784,18 @@ pub mod parser4 {
     pub mod nom_tokens {
         use crate::parser4::APCode::*;
         use crate::parser4::{APSpan, APTokenizerResult};
+        use kparse::combinators::pchar;
         use kparse::prelude::*;
         use nom::branch::alt;
-        use nom::bytes::complete::{tag, tag_no_case, take_till, take_till1, take_while1};
-        use nom::character::complete::{char as nchar, one_of};
+        use nom::bytes::complete::{
+            tag, tag_no_case, take_till, take_till1, take_while, take_while1,
+        };
+        use nom::character::complete::one_of;
         use nom::character::complete::{digit1, not_line_ending};
         use nom::combinator::{opt, recognize};
-        use nom::multi::many0_count;
         use nom::sequence::{preceded, terminated, tuple};
         use nom::Parser;
         use nom::{AsChar, InputTake, InputTakeAtPosition};
-
-        pub fn lah_plan(i: APSpan<'_>) -> bool {
-            tuple((nom_header, tag_no_case("plan")))(i).is_ok()
-        }
 
         pub fn nom_tag_plan(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(tag_no_case("plan"), nom_ws)
@@ -1846,18 +1813,10 @@ pub mod parser4 {
             .parse(i)
         }
 
-        pub fn lah_kdnr(i: APSpan<'_>) -> bool {
-            tuple((opt(nom_slash_slash), tag_no_case("kdnr")))(i).is_ok()
-        }
-
         pub fn nom_tag_kdnr(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(tag_no_case("kdnr"), nom_ws)
                 .with_code(APCKdNr)
                 .parse(i)
-        }
-
-        pub fn lah_stichtag(i: APSpan<'_>) -> bool {
-            tuple((nom_header, tag_no_case("stichtag")))(i).is_ok()
         }
 
         pub fn nom_tag_stichtag(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
@@ -1866,18 +1825,10 @@ pub mod parser4 {
                 .parse(i)
         }
 
-        pub fn lah_bsnr(i: APSpan<'_>) -> bool {
-            tuple((opt(nom_slash_slash), tag_no_case("bsnr")))(i).is_ok()
-        }
-
         pub fn nom_tag_bsnr(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(tag_no_case("bsnr"), nom_ws)
                 .with_code(APCBsNr)
                 .parse(i)
-        }
-
-        pub fn lah_monat(i: APSpan<'_>) -> bool {
-            tuple((nom_header, tag_no_case("monat")))(i).is_ok()
         }
 
         pub fn nom_tag_monat(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
@@ -1886,28 +1837,16 @@ pub mod parser4 {
                 .parse(i)
         }
 
-        pub fn lah_woche(i: APSpan<'_>) -> bool {
-            tuple((nom_header, tag_no_case("woche")))(i).is_ok()
-        }
-
         pub fn nom_tag_woche(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(tag_no_case("woche"), nom_ws)
                 .with_code(APCWoche)
                 .parse(i)
         }
 
-        pub fn lah_tag(i: APSpan<'_>) -> bool {
-            tuple((nom_header, tag_no_case("tag")))(i).is_ok()
-        }
-
         pub fn nom_tag_tag(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(tag_no_case("tag"), nom_ws)
                 .with_code(APCTag)
                 .parse(i)
-        }
-
-        pub fn lah_aktion(i: APSpan<'_>) -> bool {
-            tag::<_, _, nom::error::Error<APSpan<'_>>>("=>")(i).is_ok()
         }
 
         pub fn nom_tag_aktion(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
@@ -1923,35 +1862,16 @@ pub mod parser4 {
             .parse(i)
         }
 
-        pub fn lah_pflanzort(i: APSpan<'_>) -> bool {
-            alt((
-                recognize(nchar::<_, nom::error::Error<APSpan<'_>>>('@')),
-                tag_no_case("parzelle"),
-            ))(i)
-            .is_ok()
-        }
-
         pub fn nom_tag_pflanzort(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(
-                alt((recognize(nchar('@')), tag_no_case("parzelle"))),
-                nom_ws,
-            )
-            .with_code(APCPflanzort)
-            .parse(i)
+            terminated(alt((pchar('@'), tag_no_case("parzelle"))), nom_ws)
+                .with_code(APCPflanzort)
+                .parse(i)
         }
 
         pub fn nom_tag_w(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(recognize(one_of("wW")), nom_ws)
                 .with_code(APCWoche)
                 .parse(i)
-        }
-
-        pub fn lah_kunde(i: APSpan<'_>) -> bool {
-            tuple((opt(nom_star_star), tag_no_case("kunde")))(i).is_ok()
-        }
-
-        pub fn lah_lieferant(i: APSpan<'_>) -> bool {
-            tuple((opt(nom_star_star), tag_no_case("lieferant")))(i).is_ok()
         }
 
         pub fn nom_tag_kunde(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
@@ -1966,18 +1886,10 @@ pub mod parser4 {
                 .parse(i)
         }
 
-        pub fn lah_markt(i: APSpan<'_>) -> bool {
-            tuple((opt(nom_star_star), tag_no_case("markt")))(i).is_ok()
-        }
-
         pub fn nom_tag_markt(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(tag_no_case("markt"), nom_ws)
                 .with_code(APCMarkt)
                 .parse(i)
-        }
-
-        pub fn lah_kommentar(i: APSpan<'_>) -> bool {
-            nchar::<_, nom::error::Error<APSpan<'_>>>('#')(i).is_ok()
         }
 
         pub fn nom_kommentar_tag(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
@@ -1990,10 +1902,6 @@ pub mod parser4 {
             terminated(take_till(|c: char| c == '\n'), nom_ws)
                 .with_code(APCKommentar)
                 .parse(i)
-        }
-
-        pub fn lah_notiz(i: APSpan<'_>) -> bool {
-            tag_no_case::<_, _, nom::error::Error<APSpan<'_>>>("##")(i).is_ok()
         }
 
         pub fn nom_notiz_tag(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
@@ -2030,72 +1938,52 @@ pub mod parser4 {
                 .parse(i)
         }
 
-        pub fn lah_number(i: APSpan<'_>) -> bool {
-            digit1::<_, nom::error::Error<APSpan<'_>>>(i).is_ok()
-        }
-
         pub fn nom_number(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(digit1, nom_ws).with_code(APCNummer).parse(i)
         }
 
         pub fn nom_dot(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(recognize(nchar('.')), nom_ws)
-                .with_code(APCDot)
-                .parse(i)
+            terminated(pchar('.'), nom_ws).with_code(APCDot).parse(i)
         }
 
         pub fn nom_comma(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(recognize(nchar(',')), nom_ws)
-                .with_code(APCComma)
-                .parse(i)
-        }
-
-        pub fn lah_plus(i: APSpan<'_>) -> bool {
-            nchar::<_, nom::error::Error<APSpan<'_>>>('+')(i).is_ok()
+            terminated(pchar(','), nom_ws).with_code(APCComma).parse(i)
         }
 
         pub fn nom_plus(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(recognize(nchar('+')), nom_ws)
-                .with_code(APCPlus)
-                .parse(i)
+            terminated(pchar('+'), nom_ws).with_code(APCPlus).parse(i)
         }
 
         pub fn nom_colon(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(recognize(nchar(':')), nom_ws)
-                .with_code(APCColon)
-                .parse(i)
+            terminated(pchar(':'), nom_ws).with_code(APCColon).parse(i)
         }
 
-        pub fn nom_star_star(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(recognize(tuple((nchar('*'), nchar('*')))), nom_ws)
-                .with_code(APCStarStar)
-                .parse(i)
-        }
-
-        pub fn nom_slash_slash(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(recognize(tuple((nchar('/'), nchar('/')))), nom_ws)
-                .with_code(APCSlashSlash)
-                .parse(i)
-        }
+        // pub fn nom_star_star(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
+        //     terminated(tag("**"), nom_ws)
+        //         .with_code(APCStarStar)
+        //         .parse(i)
+        // }
+        //
+        // pub fn nom_slash_slash(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
+        //     terminated(tag("//"), nom_ws)
+        //         .with_code(APCSlashSlash)
+        //         .parse(i)
+        // }
 
         pub fn nom_header(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(recognize(many0_count(nchar('='))), nom_ws)
+            terminated(take_while(|c| c == '='), nom_ws)
                 .with_code(APCHeader)
                 .parse(i)
         }
 
-        pub fn lah_brop(i: APSpan<'_>) -> bool {
-            nchar::<_, nom::error::Error<APSpan<'_>>>('(')(i).is_ok()
-        }
-
         pub fn nom_par_open(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(recognize(nchar('(')), nom_ws)
+            terminated(pchar('('), nom_ws)
                 .with_code(APCParenthesesOpen)
                 .parse(i)
         }
 
         pub fn nom_par_close(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-            terminated(recognize(nchar(')')), nom_ws)
+            terminated(pchar(')'), nom_ws)
                 .with_code(APCParenthesesClose)
                 .parse(i)
         }
@@ -2117,7 +2005,7 @@ pub mod parser4 {
             }
         }
 
-        pub fn nom_ws_nl(i: APSpan<'_>) -> APSpan<'_> {
+        pub fn span_ws_nl(i: APSpan<'_>) -> APSpan<'_> {
             match i.split_at_position_complete::<_, nom::error::Error<APSpan<'_>>>(|item| {
                 let c = item.as_char();
                 !(c == ' ' || c == '\t' || c == '\n' || c == '\r')
@@ -2128,19 +2016,33 @@ pub mod parser4 {
         }
 
         pub fn nom_is_nl(i: APSpan<'_>) -> bool {
-            terminated(
-                recognize(take_while1(|c: char| c == '\n' || c == '\r')),
-                nom_ws,
-            )(i)
-            .is_ok()
+            terminated(take_while1(|c: char| c == '\n' || c == '\r'), nom_ws)(i).is_ok()
         }
 
         pub fn nom_is_comment_or_notiz(i: APSpan<'_>) -> bool {
-            terminated(recognize(take_while1(|c: char| c == '#')), nom_ws)(i).is_ok()
+            terminated(take_while1(|c: char| c == '#'), nom_ws)(i).is_ok()
         }
 
-        pub fn nom_empty(i: APSpan<'_>) -> APSpan<'_> {
+        pub fn span_empty(i: APSpan<'_>) -> APSpan<'_> {
             i.take(0)
+        }
+
+        pub fn nom_empty(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
+            Ok((i, i.take(0)))
+        }
+
+        pub fn nom_ws_nl(i: APSpan<'_>) -> APTokenizerResult<'_, ()> {
+            match i.split_at_position_complete(|item| {
+                let c = item.as_char();
+                !(c == ' ' || c == '\t' || c == '\n' || c == '\r')
+            }) {
+                Ok((rest, _)) => Ok((rest, ())),
+                Err(e) => Err(e),
+            }
+        }
+
+        pub fn nom_nl(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
+            take_while1(|c: char| c == '\n' || c == '\r')(i)
         }
     }
 }

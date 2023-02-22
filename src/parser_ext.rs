@@ -17,6 +17,7 @@ where
     PA: Parser<I, O, E1>,
     E1: Into<E2>,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O, E2> {
         match self.parser.parse(input) {
             Ok((r, o)) => Ok((r, o)),
@@ -39,6 +40,7 @@ where
     C: Code,
     E: KParseError<C, I>,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O, E> {
         match self.parser.parse(input) {
             Ok((r, v)) => Ok((r, v)),
@@ -61,6 +63,7 @@ where
     PA: Parser<I, O1, E>,
     TR: Fn(O1) -> Result<O2, nom::Err<E>>,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O2, E> {
         self.parser
             .parse(input)
@@ -83,6 +86,7 @@ where
     E: Into<ParserError<C, I>>,
     Y: Clone + 'static,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O, ParserError<C, I>> {
         match self.parser.parse(input) {
             Err(nom::Err::Error(e)) => {
@@ -117,6 +121,7 @@ where
     C: Code,
     E: KParseError<C, O1> + Error,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O2, E> {
         match self.parser.parse(input) {
             Ok((rest, token)) => {
@@ -143,6 +148,7 @@ where
     PA: Parser<I, O1, E>,
     O2: Clone,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O2, E> {
         match self.parser.parse(input) {
             Ok((r, _)) => Ok((r, self.value.clone())),
@@ -164,6 +170,7 @@ where
     I: InputLength,
     E: KParseError<C, I>,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O, E> {
         match self.parser.parse(input) {
             Ok((rest, value)) => {
@@ -191,6 +198,7 @@ where
     E: KParseError<C, I>,
     I: Clone,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O, E> {
         match self.parser.parse(input.clone()) {
             Err(nom::Err::Incomplete(_)) => Err(nom::Err::Error(E::from(self.code, input))),
@@ -209,6 +217,7 @@ impl<PA, I, O, E> Parser<I, O, E> for Cut<PA>
 where
     PA: Parser<I, O, E>,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O, E> {
         match self.parser.parse(input) {
             Err(nom::Err::Error(e)) => Err(nom::Err::Failure(e)),
@@ -228,6 +237,7 @@ where
     PA: Parser<I, O, E>,
     I: Clone,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, Option<O>, E> {
         match self.parser.parse(input.clone()) {
             Ok((r, v)) => Ok((r, Some(v))),
@@ -248,6 +258,7 @@ where
     PA: Parser<I, O, E>,
     I: Clone + Slice<RangeTo<usize>> + Offset,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, I, E> {
         let (tail, _) = self.parser.parse(input.clone())?;
         let index = input.offset(&tail);
@@ -265,6 +276,7 @@ where
     PA: Parser<I, O, E>,
     I: Clone + Slice<RangeTo<usize>> + Offset,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, (I, O), E> {
         let (tail, output) = self.parser.parse(input.clone())?;
         let index = input.offset(&tail);
@@ -284,6 +296,7 @@ where
     PA: Parser<I, O1, E>,
     PT: Parser<I, O2, E>,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O1, E> {
         match self.parser.parse(input) {
             Ok((rest, val)) => match self.terminator.parse(rest) {
@@ -308,6 +321,7 @@ where
     PA: Parser<I, O1, E>,
     PS: Parser<I, O2, E>,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O2, E> {
         match self.parser.parse(input) {
             Ok((rest, _)) => match self.successor.parse(rest) {
@@ -333,6 +347,7 @@ where
     PS: Parser<I, O2, E>,
     I: Clone,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O2, E> {
         match self.parser.parse(input.clone()) {
             Ok((rest, _)) => match self.successor.parse(rest) {
@@ -361,6 +376,7 @@ where
     PA: Parser<I, O1, E>,
     PD: Parser<I, O2, E>,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O1, E> {
         let (rest, _) = self.delimiter.parse(input)?;
         let (rest, val) = self.parser.parse(rest)?;
@@ -380,6 +396,7 @@ where
     PA: Parser<I, O, E>,
     I: Clone,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O, E> {
         match self.parser.parse(input.clone()) {
             Ok((_, val)) => Ok((input, val)),
@@ -402,6 +419,7 @@ where
     E: KParseError<C, I>,
     I: Clone,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, (), E> {
         match self.parser.parse(input.clone()) {
             Ok(_) => Err(nom::Err::Error(E::from(self.code, input))),
@@ -428,6 +446,7 @@ where
     O2: ?Sized,
     E: KParseError<C, I>,
 {
+    #[inline]
     fn parse(&mut self, input: I) -> IResult<I, O1, E> {
         match self.parser.parse(input) {
             Ok((rest, val)) => {

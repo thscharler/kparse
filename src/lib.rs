@@ -261,6 +261,7 @@ impl<T, I, O, E> KParser<I, O, E> for T
 where
     T: Parser<I, O, E>,
 {
+    #[inline]
     fn err_into<E2>(self) -> IntoErr<Self, O, E, E2>
     where
         E: Into<E2>,
@@ -271,6 +272,7 @@ where
         }
     }
 
+    #[inline]
     fn with_code<C>(self, code: C) -> WithCode<Self, C>
     where
         C: Code,
@@ -279,6 +281,7 @@ where
         WithCode { parser: self, code }
     }
 
+    #[inline]
     fn with_context<C, Y>(self, context: Y) -> WithContext<Self, C, E, Y>
     where
         C: Code,
@@ -293,6 +296,7 @@ where
         }
     }
 
+    #[inline]
     fn map_res<TR, O2>(self, map: TR) -> MapRes<Self, O, TR, O2>
     where
         TR: Fn(O) -> Result<O2, nom::Err<E>>,
@@ -304,6 +308,7 @@ where
         }
     }
 
+    #[inline]
     fn parse_from_str<C, O2>(self, code: C) -> FromStrParser<Self, C, O, O2>
     where
         C: Code,
@@ -318,6 +323,7 @@ where
         }
     }
 
+    #[inline]
     fn value<O2>(self, value: O2) -> Value<Self, O, O2>
     where
         O2: Clone,
@@ -329,6 +335,7 @@ where
         }
     }
 
+    #[inline]
     fn all_consuming<C>(self, code: C) -> AllConsuming<Self, C>
     where
         C: Code,
@@ -338,6 +345,7 @@ where
         AllConsuming { parser: self, code }
     }
 
+    #[inline]
     fn complete<C>(self, code: C) -> Complete<Self, C>
     where
         C: Code,
@@ -347,14 +355,17 @@ where
         Complete { parser: self, code }
     }
 
+    #[inline]
     fn cut(self) -> Cut<Self> {
         Cut { parser: self }
     }
 
+    #[inline]
     fn opt(self) -> Optional<Self> {
         Optional { parser: self }
     }
 
+    #[inline]
     fn recognize(self) -> Recognize<Self, O>
     where
         I: Clone + Slice<RangeTo<usize>> + Offset,
@@ -365,6 +376,7 @@ where
         }
     }
 
+    #[inline]
     fn consumed(self) -> Consumed<Self>
     where
         I: Clone + Slice<RangeTo<usize>> + Offset,
@@ -372,6 +384,7 @@ where
         Consumed { parser: self }
     }
 
+    #[inline]
     fn terminated<PA, O2>(self, terminator: PA) -> Terminated<Self, PA, O2>
     where
         PA: Parser<I, O2, E>,
@@ -383,6 +396,7 @@ where
         }
     }
 
+    #[inline]
     fn precedes<PS, O2>(self, successor: PS) -> Precedes<Self, PS, O>
     where
         PS: Parser<I, O2, E>,
@@ -394,6 +408,7 @@ where
         }
     }
 
+    #[inline]
     fn opt_precedes<PS, O2>(self, successor: PS) -> OptPrecedes<Self, PS, O>
     where
         PS: Parser<I, O2, E>,
@@ -406,6 +421,7 @@ where
         }
     }
 
+    #[inline]
     fn delimited_by<PA, O2>(self, delimiter: PA) -> DelimitedBy<Self, PA, O2>
     where
         PA: Parser<I, O2, E>,
@@ -417,6 +433,7 @@ where
         }
     }
 
+    #[inline]
     fn peek(self) -> Peek<Self>
     where
         I: Clone,
@@ -424,6 +441,7 @@ where
         Peek { parser: self }
     }
 
+    #[inline]
     fn not<C>(self, code: C) -> PNot<Self, C, O> {
         PNot {
             parser: self,
@@ -432,6 +450,7 @@ where
         }
     }
 
+    #[inline]
     fn verify<V, C, O2>(self, verify: V, code: C) -> Verify<Self, V, C, O2>
     where
         C: Code,

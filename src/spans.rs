@@ -456,24 +456,29 @@ impl<'s, X: Clone + 's> SpanLines<'s, X> {
         let offset = fragment.location_offset();
         let len = fragment.len();
 
-        // trim start to our bounds.
-        assert!(offset + len <= complete.len());
-        let start = offset + len;
+        let c_offset = complete.location_offset();
+        let c_len = complete.len();
 
-        let is_terminal = start == complete.len();
+        // trim start to our bounds.
+        assert!(offset >= c_offset);
+        assert!(offset + len <= c_offset + c_len);
+
+        let start = offset + len - c_offset;
+
+        let is_terminal = start == c_len;
 
         // real linecount
         let skip_lines = count(fragment.as_bytes(), sep);
 
         let self_bytes = complete.as_bytes();
         let end = match memchr(sep, &self_bytes[start..]) {
-            None => complete.len(),
+            None => c_len,
             Some(o) => start + o + 1,
         };
 
         let span = unsafe {
             LocatedSpan::new_from_raw_offset(
-                start,
+                start + c_offset,
                 fragment.location_line() + skip_lines as u32,
                 &complete[start..end],
                 complete.extra.clone(),
@@ -495,10 +500,16 @@ impl<'s, X: Clone + 's> SpanLines<'s, X> {
         sep: u8,
     ) -> (LocatedSpan<&'s str, X>, Option<LocatedSpan<&'s str, X>>) {
         let offset = fragment.location_offset();
+        let len = fragment.len();
+
+        let c_offset = complete.location_offset();
+        let c_len = complete.len();
 
         // assert our bounds.
-        assert!(offset <= complete.len());
-        let end = offset;
+        assert!(offset >= c_offset);
+        assert!(offset + len <= c_offset + c_len);
+
+        let end = offset - c_offset;
 
         // At the beginning?
         let is_terminal = end == 0;
@@ -520,7 +531,7 @@ impl<'s, X: Clone + 's> SpanLines<'s, X> {
 
         let span = unsafe {
             LocatedSpan::new_from_raw_offset(
-                start,
+                start + c_offset,
                 fragment.location_line() - skip_lines as u32,
                 &complete[start..end],
                 complete.extra.clone(),
@@ -885,7 +896,12 @@ mod tests_spanlines {
     ) -> LocatedSpan<&'a str, X> {
         let line = count(&span.as_bytes()[..start], SEP) + 1;
         unsafe {
-            LocatedSpan::new_from_raw_offset(start, line as u32, &span[start..end], span.extra)
+            LocatedSpan::new_from_raw_offset(
+                start,
+                line as u32,
+                &span[start..end],
+                span.extra.clone(),
+            )
         }
     }
 

@@ -30,6 +30,8 @@ chrono = "0.4"
 humantime = "2.1"
 rust_decimal = "1.27"
 rust_decimal_macros = "1.27"
+pest = "2.1"
+pest_derive = "2.1"
 
 [features]
 track_nom = []

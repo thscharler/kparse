@@ -1166,7 +1166,7 @@ mod cmds_parser {
             };
 
             let span = input.span_union(&token, &span_sub);
-            Context.ok(rest, span, (span_sub, sub.output))
+            Context.ok(rest, span, (span_sub, sub.output.clone()))
         }
     }
 

@@ -3,14 +3,17 @@
 //!
 
 use crate::tracker::Tracking;
-use crate::{Code, KParseError, MapRes};
-use nom::{AsBytes, InputIter, InputLength, InputTake, Parser};
+use crate::{Code, KParseError};
+use nom::error::{ErrorKind, ParseError};
+use nom::{AsBytes, AsChar, IResult, InputIter, InputLength, InputTake, Parser, Slice};
 use std::fmt::Debug;
+use std::ops::{RangeFrom, RangeTo};
 
 /// Tracked execution of a parser.
 ///
 /// ```rust
 /// use nom::bytes::complete::tag;
+/// use nom::Parser;
 /// use kparse::combinators::{err_into, with_code, track, map_res};
 /// use kparse::examples::{ExParserResult, ExSpan, ExTagB, ExTokenizerResult};
 /// use kparse::KParseError;
@@ -22,7 +25,7 @@ use std::fmt::Debug;
 /// }
 ///
 /// fn nom_parse_b(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
-///     with_code(tag("b"), ExTagB)(i)
+///     with_code(tag("b"), ExTagB).parse(i)
 /// }
 ///
 /// struct AstB<'s> {
@@ -30,7 +33,7 @@ use std::fmt::Debug;
 /// }
 ///
 /// ```
-#[inline(always)]
+#[inline]
 pub fn track<PA, C, I, O, E>(
     func: C,
     mut parser: PA,
@@ -64,7 +67,7 @@ where
 
 ///
 ///
-#[inline(always)]
+#[inline]
 pub fn err_into<PA, I, O, E1, E2>(mut parser: PA) -> impl FnMut(I) -> Result<(I, O), nom::Err<E2>>
 where
     PA: Parser<I, O, E1>,
@@ -84,6 +87,7 @@ where
 ///
 /// ```rust
 /// use nom::bytes::complete::tag;
+/// use nom::Parser;
 /// use kparse::combinators::with_code;
 /// use kparse::examples::{ExSpan, ExTagB, ExTokenizerResult};
 ///
@@ -91,7 +95,7 @@ where
 ///     with_code(tag("b"), ExTagB)(i)
 /// }
 /// ```
-#[inline(always)]
+#[inline]
 pub fn with_code<PA, C, I, O, E>(
     mut parser: PA,
     code: C,
@@ -140,23 +144,45 @@ where
 ///     })
 /// }
 /// ```
-#[inline(always)]
-pub fn map_res<PA, TR, I, O1, O2, E>(parser: PA, transform: TR) -> MapRes<PA, O1, TR, O2>
+#[inline]
+pub fn map_res<PA, TR, I, O1, O2, E>(
+    mut parser: PA,
+    map: TR,
+) -> impl FnMut(I) -> Result<(I, O2), nom::Err<E>>
 where
     PA: Parser<I, O1, E>,
     TR: Fn(O1) -> Result<O2, nom::Err<E>>,
     O1: Clone,
     I: AsBytes + Clone,
 {
-    MapRes {
-        parser,
-        map: transform,
-        _phantom: Default::default(),
+    move |input| -> IResult<I, O2, E> {
+        parser
+            .parse(input)
+            .and_then(|(rest, tok)| Ok((rest, map(tok)?)))
+    }
+}
+
+/// Same as nom::char but return the input type instead of the char
+#[inline]
+pub fn pchar<I, Error: ParseError<I>>(c: char) -> impl Fn(I) -> IResult<I, I, Error>
+where
+    I: Slice<RangeTo<usize>> + Slice<RangeFrom<usize>> + InputIter,
+    <I as InputIter>::Item: AsChar,
+{
+    move |i: I| match i.iter_elements().next() {
+        None => Err(nom::Err::Error(Error::from_char(i, c))),
+        Some(v) => {
+            if v.as_char() == c {
+                Ok((i.slice(c.len()..), i.slice(..c.len())))
+            } else {
+                Err(nom::Err::Error(Error::from_char(i, c)))
+            }
+        }
     }
 }
 
 /// Runs a condition on the input and only executes the parser on success.
-#[inline(always)]
+#[inline]
 pub fn when<CFn, PFn, C, I, O, E>(
     cond_fn: CFn,
     mut parse_fn: PFn,
@@ -172,6 +198,105 @@ where
             parse_fn.parse(i).map(|(r, v)| (r, Some(v)))
         } else {
             Ok((i, None))
+        }
+    }
+}
+
+pub fn separated_list_trailing0<PASep, PA, I, O1, O2, E>(
+    mut sep: PASep,
+    mut f: PA,
+) -> impl FnMut(I) -> Result<(I, Vec<O2>), nom::Err<E>>
+where
+    I: Clone + InputLength,
+    PASep: Parser<I, O1, E>,
+    PA: Parser<I, O2, E>,
+    E: ParseError<I>,
+{
+    move |mut i| {
+        let mut res = Vec::new();
+
+        match f.parse(i.clone()) {
+            Ok((rest, o)) => {
+                res.push(o);
+                i = rest;
+            }
+            Err(nom::Err::Error(_)) => return Ok((i, res)),
+            Err(e) => return Err(e),
+        }
+
+        loop {
+            let len = i.input_len();
+
+            match sep.parse(i.clone()) {
+                Ok((rest, _)) => i = rest,
+                Err(nom::Err::Error(_)) => return Ok((i, res)),
+                Err(e) => return Err(e),
+            }
+
+            match f.parse(i.clone()) {
+                Ok((rest, o)) => {
+                    res.push(o);
+                    i = rest;
+                }
+                Err(nom::Err::Error(_)) => return Ok((i, res)),
+                Err(e) => return Err(e),
+            }
+
+            if i.input_len() == len {
+                return Err(nom::Err::Error(E::from_error_kind(
+                    i,
+                    ErrorKind::SeparatedList,
+                )));
+            }
+        }
+    }
+}
+
+pub fn separated_list_trailing1<PASep, PA, I, O1, O2, E>(
+    mut sep: PASep,
+    mut f: PA,
+) -> impl FnMut(I) -> Result<(I, Vec<O2>), nom::Err<E>>
+where
+    I: Clone + InputLength,
+    PASep: Parser<I, O1, E>,
+    PA: Parser<I, O2, E>,
+    E: ParseError<I>,
+{
+    move |mut i| {
+        let mut res = Vec::new();
+
+        match f.parse(i) {
+            Err(e) => return Err(e),
+            Ok((rest, o)) => {
+                res.push(o);
+                i = rest;
+            }
+        }
+
+        loop {
+            let len = i.input_len();
+
+            match sep.parse(i.clone()) {
+                Ok((rest, _)) => i = rest,
+                Err(nom::Err::Error(_)) => return Ok((i, res)),
+                Err(e) => return Err(e),
+            }
+
+            match f.parse(i.clone()) {
+                Ok((rest, o)) => {
+                    res.push(o);
+                    i = rest;
+                }
+                Err(nom::Err::Error(_)) => return Ok((i, res)),
+                Err(e) => return Err(e),
+            }
+
+            if i.input_len() == len {
+                return Err(nom::Err::Error(E::from_error_kind(
+                    i,
+                    ErrorKind::SeparatedList,
+                )));
+            }
         }
     }
 }

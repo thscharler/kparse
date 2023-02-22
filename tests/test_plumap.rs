@@ -259,27 +259,6 @@ mod parser {
     use nom::sequence::preceded;
     use nom::Parser;
 
-    pub fn conditional<I, O, E, CFn, PFn>(
-        cond_fn: CFn,
-        mut parse_fn: PFn,
-    ) -> impl FnMut(I) -> Result<(I, Option<O>), nom::Err<E>>
-    where
-        I: Clone,
-        CFn: Fn(I) -> bool,
-        PFn: Parser<I, O, E>,
-    {
-        move |i| -> Result<(I, Option<O>), nom::Err<E>> {
-            if cond_fn(i) {
-                match parse_fn.parse(i) {
-                    Ok((r, v)) => Ok((r, Some(v))),
-                    Err(e) => Err(e),
-                }
-            } else {
-                Ok((i, None))
-            }
-        }
-    }
-
     /// Parser.
     pub fn parse_plumap(input: PSpan<'_>) -> PLUParserResult<'_, PPluMap<'_>> {
         Context.enter(PLUMap, input);

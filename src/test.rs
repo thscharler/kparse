@@ -68,7 +68,7 @@ pub fn track_parse<'s, C, T, O, E>(
     fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
 ) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
-    T: AsBytes + Clone,
+    T: AsBytes + Clone + Debug,
     C: Code,
 {
     track_parse_ext(buf, true, text, fn_test)
@@ -86,7 +86,7 @@ pub fn track_parse_ext<'s, C, T, O, E>(
     fn_test: impl Fn(TrackSpan<'s, C, T>) -> Result<(TrackSpan<'s, C, T>, O), nom::Err<E>>,
 ) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
-    T: AsBytes + Clone,
+    T: AsBytes + Clone + Debug,
     C: Code,
 {
     buf.replace(StdTracker::new().tracking(track));
@@ -138,7 +138,7 @@ pub fn span_parse<'s, C, T, O, E>(
     mut fn_test: impl Parser<TrackSpan<'s, C, T>, O, E>,
 ) -> Test<'s, StdTracker<C, T>, TrackSpan<'s, C, T>, O, E>
 where
-    T: AsBytes + Clone + 's,
+    T: AsBytes + Clone + Debug + 's,
     C: Code,
 {
     buf.replace(StdTracker::new());
