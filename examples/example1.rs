@@ -1,17 +1,17 @@
 #![allow(dead_code)]
 
-use kparse::combinators::{map_res, track, with_code};
+use kparse::combinators::track;
 use kparse::examples::{
-    ExABNum, ExABstar, ExAoptB, ExAorB, ExAstarB, ExAthenB, ExNumber, ExParserError,
-    ExParserResult, ExSpan, ExTagA, ExTagB, ExTokenizerError, ExTokenizerResult,
+    ExABNum, ExABstar, ExAoptB, ExAorB, ExAstarB, ExAthenB, ExNumber, ExParserResult, ExSpan,
+    ExTagA, ExTagB, ExTokenizerResult,
 };
 use kparse::prelude::*;
 #[cfg(debug_assertions)]
-use kparse::tracker::{StdTracker, TrackSpan};
+use kparse::tracker::StdTracker;
 use kparse::Context;
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
-use nom::combinator::{consumed, opt};
+use nom::combinator::consumed;
 use nom::multi::many0;
 use nom::sequence::{terminated, tuple};
 use nom::{AsChar, InputTakeAtPosition, Parser};
@@ -71,11 +71,11 @@ struct AstNumber<'s> {
 }
 
 fn nom_parse_a(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
-    with_code(tag("a"), ExTagA)(i)
+    tag("a").with_code(ExTagA).parse(i)
 }
 
 fn nom_parse_b(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
-    with_code(tag("b"), ExTagB)(i)
+    tag("b").with_code(ExTagB).parse(i)
 }
 
 fn nom_digits(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
@@ -90,40 +90,29 @@ fn nom_ws(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
 }
 
 fn nom_number(i: ExSpan<'_>) -> ExParserResult<'_, (ExSpan<'_>, u32)> {
-    Parser::into(consumed(map_res(
-        terminated(digit1, nom_ws),
-        |v| match (*v).parse::<u32>() {
-            Ok(vv) => Ok(vv),
-            Err(_) => Err(ExTokenizerError::new(ExNumber, v).failure()),
-        },
-    )))
-    .parse(i)
+    consumed(terminated(digit1, nom_ws).parse_from_str::<_, u32>(ExNumber)) //
+        .err_into()
+        .parse(i)
 }
 
 fn token_number(i: ExSpan<'_>) -> ExParserResult<'_, AstNumber<'_>> {
-    match nom_number(i) {
-        Ok((rest, (tok, val))) => Ok((
-            rest,
-            AstNumber {
-                number: val,
-                span: tok,
-            },
-        )),
-        Err(e) => Err(e.with_code(ExNumber)),
-    }
+    nom_number
+        .map(|(span, number)| AstNumber { number, span })
+        .parse(i)
 }
 
 fn parse_a(input: ExSpan<'_>) -> ExParserResult<'_, AstA> {
     Context.enter(ExTagA, input);
-    let (rest, tok) = Parser::into(nom_parse_a).parse(input).track()?;
+    let (rest, tok) = nom_parse_a.err_into().parse(input).track()?;
     Context.ok(rest, tok, AstA { span: tok })
 }
 
 fn parse_b(input: ExSpan<'_>) -> ExParserResult<'_, AstB> {
-    Parser::into(track(
-        ExTagB,
-        nom_parse_b.and_then(|span| Ok((span, AstB { span }))),
-    ))
+    track(
+        ExTagB, //
+        nom_parse_b.map(|span| AstB { span }),
+    )
+    .err_into()
     .parse(input)
 }
 
@@ -150,16 +139,24 @@ fn parse_ab_v2(input: ExSpan<'_>) -> ExParserResult<'_, AstAthenB> {
 
 // := a? b
 fn parse_a_opt_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAoptB> {
-    Context.enter(ExAoptB, input);
-    let (rest, (span, val)) = consumed(tuple((opt(parse_a), parse_b)))(input).track()?;
-    Context.ok(rest, span, AstAoptB { a: val.0, b: val.1 })
+    track(
+        ExAoptB,
+        tuple((parse_a.opt(), parse_b)) //
+            .map(|(a, b)| AstAoptB { a, b }),
+    )
+    .err_into()
+    .parse(input)
 }
 
 // := a* b
 fn parse_a_star_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAstarB> {
-    Context.enter(ExAstarB, input);
-    let (rest, (span, val)) = consumed(tuple((many0(parse_a), parse_b)))(input).track()?;
-    Context.ok(rest, span, AstAstarB { a: val.0, b: val.1 })
+    track(
+        ExAstarB,
+        tuple((many0(parse_a), parse_b)) //
+            .map(|(a, b)| AstAstarB { a, b }),
+    )
+    .err_into()
+    .parse(input)
 }
 
 // := ( a | b )*
@@ -208,66 +205,39 @@ fn parse_a_b_star(input: ExSpan<'_>) -> ExParserResult<'_, AstABstar> {
 }
 
 fn parse_a_or_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAorB> {
-    Context.enter(ExAorB, input);
-
-    let rest = input;
-
-    let (rest, a) = opt(parse_a)(rest).track()?;
-    let (rest, b) = if a.is_none() {
-        opt(parse_b)(input).track()?
-    } else {
-        (rest, None)
-    };
-
-    let span = if let Some(a) = &a {
-        a.span
-    } else if let Some(b) = &b {
-        b.span
-    } else {
-        return Context.err(ExParserError::new(ExAorB, input));
-    };
-
-    Context.ok(rest, span, AstAorB { a, b })
+    track(
+        ExAorB,
+        parse_a
+            .or_else(parse_b) //
+            .map(|(a, b)| AstAorB { a, b }),
+    )
+    .err_into()
+    .parse(input)
 }
 
 fn parse_a_b_num(input: ExSpan<'_>) -> ExParserResult<'_, AstABNum> {
-    Context.enter(ExABNum, input);
-
-    let rest = input;
-
-    let (rest, a) = opt(parse_a)(rest).track()?;
-    let (rest, b) = opt(parse_b)(rest).track()?;
-    let (rest, num) = token_number(rest).track()?;
-
-    let span = if let Some(a) = &a {
-        input.span_union(&a.span, &num.span)
-    } else if let Some(b) = &b {
-        input.span_union(&b.span, &num.span)
-    } else {
-        num.span
-    };
-
-    Context.ok(rest, span, AstABNum { a, b, num })
+    track(
+        ExABNum,
+        tuple((
+            //
+            parse_a.opt(),
+            parse_b.opt(),
+            token_number,
+        ))
+        .map(|(a, b, num)| AstABNum { a, b, num }),
+    )
+    .err_into()
+    .parse(input)
 }
 
 fn main() {
-    #[cfg(debug_assertions)]
     for txt in env::args() {
+        #[cfg(debug_assertions)]
         let trk = StdTracker::new();
+        #[cfg(debug_assertions)]
         let span = trk.span(txt.as_str());
 
-        match parse_a_b_star(span) {
-            Ok((_rest, val)) => {
-                dbg!(val);
-            }
-            Err(e) => {
-                println!("{:?}", trk.results());
-                println!("{:?}", e);
-            }
-        }
-    }
-    #[cfg(not(debug_assertions))]
-    for txt in env::args() {
+        #[cfg(not(debug_assertions))]
         let span = txt.as_str();
 
         match parse_a_b_star(span) {
@@ -275,6 +245,8 @@ fn main() {
                 dbg!(val);
             }
             Err(e) => {
+                #[cfg(debug_assertions)]
+                println!("{:?}", trk.results());
                 println!("{:?}", e);
             }
         }

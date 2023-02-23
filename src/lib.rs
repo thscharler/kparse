@@ -247,6 +247,11 @@ where
         E: KParseError<C, I>,
         I: Clone;
 
+    /// Or. Returns a (Option<A>, Option<B>)
+    fn or_else<PE, OE>(self, other: PE) -> OrElse<Self, PE, OE>
+    where
+        PE: Parser<I, OE, E>;
+
     /// Runs a verify function on the parser result.
     fn verify<V, C, O2>(self, verify: V, code: C) -> Verify<Self, V, C, O2>
     where
@@ -446,6 +451,18 @@ where
         PNot {
             parser: self,
             code,
+            _phantom: Default::default(),
+        }
+    }
+
+    #[inline]
+    fn or_else<PE, OE>(self, other: PE) -> OrElse<Self, PE, OE>
+    where
+        PE: Parser<I, OE, E>,
+    {
+        OrElse {
+            parser: self,
+            other,
             _phantom: Default::default(),
         }
     }

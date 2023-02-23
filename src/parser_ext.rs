@@ -1,3 +1,4 @@
+use crate::error::AppendParserError;
 use crate::{Code, KParseError, ParserError};
 use nom::{IResult, InputIter, InputLength, Offset, Parser, Slice};
 use std::borrow::Borrow;
@@ -425,6 +426,34 @@ where
             Ok(_) => Err(nom::Err::Error(E::from(self.code, input))),
             Err(nom::Err::Error(_)) => Ok((input, ())),
             Err(e) => Err(e),
+        }
+    }
+}
+
+/// Or-Else parser.
+pub struct OrElse<PA, PE, OE> {
+    pub(crate) parser: PA,
+    pub(crate) other: PE,
+    pub(crate) _phantom: PhantomData<OE>,
+}
+
+impl<PA, PE, I, O1, O2, E> Parser<I, (Option<O1>, Option<O2>), E> for OrElse<PA, PE, O2>
+where
+    PA: Parser<I, O1, E>,
+    PE: Parser<I, O2, E>,
+    nom::Err<E>: AppendParserError,
+    I: Clone,
+{
+    fn parse(&mut self, input: I) -> IResult<I, (Option<O1>, Option<O2>), E> {
+        match self.parser.parse(input.clone()) {
+            Ok((rest, v)) => Ok((rest, (Some(v), None))),
+            Err(e1) => match self.other.parse(input) {
+                Ok((rest, v)) => Ok((rest, (None, Some(v)))),
+                Err(mut e2) => {
+                    e2.append(e1);
+                    return Err(e2);
+                }
+            },
         }
     }
 }
