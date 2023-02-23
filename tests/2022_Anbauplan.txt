@@ -347,11 +347,11 @@ Endivie:        8 Bubikopf
 => Direktsaat
 Buschbohnen (m): 20 Maxi
 
-** Lieferant Austrosaat **
+ Lieferant Austrosaat
 Steckzwiebel:   10 Sturon # Herbst
 Steckknoblauch: 10 Sprint # Herbst
 
-** Lieferant Scherr **
+ Lieferant Scherr
 Vogerlsalat (Ki): 24 A, 24 B, 24 C # KW40/22
 Vogerlsalat (Ki): 30 A, 30 B, 30 C # KW45/22
 Vogerlsalat (Ki): 16 A, 16 B, 16 C # KW4/23

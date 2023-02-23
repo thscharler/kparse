@@ -216,25 +216,25 @@ impl<'s, X: Clone + 's> SpanLines<'s, X> {
     }
 
     /// Returns the line number.
-    pub fn line<Y>(&self, fragment: &LocatedSpan<&str, Y>) -> usize {
+    pub fn line<Y>(&self, fragment: LocatedSpan<&str, Y>) -> usize {
         fragment.location_line() as usize
     }
 
     /// Assumes ASCII text and gives a column.
-    pub fn ascii_column<Y>(&self, fragment: &LocatedSpan<&str, Y>) -> usize {
-        let prefix = Self::frame_prefix(&self.buf, fragment, self.sep);
+    pub fn ascii_column<Y>(&self, fragment: LocatedSpan<&str, Y>) -> usize {
+        let prefix = Self::frame_prefix(&self.buf, &fragment, self.sep);
         prefix.len()
     }
 
     /// Gives a column for UTF8 text.
-    pub fn utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>) -> usize {
-        let prefix = Self::frame_prefix(&self.buf, fragment, self.sep);
+    pub fn utf8_column<Y>(&self, fragment: LocatedSpan<&str, Y>) -> usize {
+        let prefix = Self::frame_prefix(&self.buf, &fragment, self.sep);
         num_chars(prefix.as_bytes())
     }
 
     /// Gives a column for UTF8 text.
-    pub fn naive_utf8_column<Y>(&self, fragment: &LocatedSpan<&str, Y>) -> usize {
-        let prefix = Self::frame_prefix(&self.buf, fragment, self.sep);
+    pub fn naive_utf8_column<Y>(&self, fragment: LocatedSpan<&str, Y>) -> usize {
+        let prefix = Self::frame_prefix(&self.buf, &fragment, self.sep);
         naive_num_chars(prefix.as_bytes())
     }
 

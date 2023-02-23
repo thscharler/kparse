@@ -11,7 +11,7 @@ use std::fmt::{Display, Formatter};
 
 use kparse::test::{track_parse, CheckDump};
 use kparse::tracker::TrackSpan;
-use kparse::{Code, ParserError, ParserResult};
+use kparse::{Code, ParserError, ParserResult, TokenizerResult};
 pub use parser::*;
 
 fn main() {
@@ -102,8 +102,12 @@ impl Code for PLUCode {
 }
 
 // type aliases to avoid typing PLUCode all the time.
+#[cfg(debug_assertions)]
 pub type PSpan<'s> = TrackSpan<'s, PLUCode, &'s str>;
+#[cfg(not(debug_assertions))]
+pub type PSpan<'s> = &'s str;
 pub type PLUParserResult<'s, O> = ParserResult<PLUCode, PSpan<'s>, O>;
+pub type PLUTokenizerResult<'s, O> = TokenizerResult<PLUCode, PSpan<'s>, O>;
 pub type PLUNomResult<'s> = ParserResult<PLUCode, PSpan<'s>, PSpan<'s>>;
 pub type PLUParserError<'s> = ParserError<PLUCode, PSpan<'s>>;
 
@@ -242,34 +246,13 @@ mod parser {
     };
     use crate::token::{token_date, token_factor, token_number};
     use crate::PLUCode::*;
-    use crate::{PLUParserError, PLUParserResult, PMap, PPluMap, PSpan};
-    use kparse::combinators::with_code;
+    use crate::{PLUParserError, PLUParserResult, PLUTokenizerResult, PMap, PPluMap, PSpan};
+    use kparse::combinators::track;
     use kparse::prelude::*;
     use kparse::Context;
-    use nom::combinator::opt;
-    use nom::sequence::preceded;
+    use nom::combinator::{consumed, opt};
+    use nom::sequence::{preceded, tuple};
     use nom::Parser;
-
-    pub fn conditional<I, O, E, CFn, PFn>(
-        cond_fn: CFn,
-        mut parse_fn: PFn,
-    ) -> impl FnMut(I) -> Result<(I, Option<O>), nom::Err<E>>
-    where
-        I: Clone,
-        CFn: Fn(I) -> bool,
-        PFn: Parser<I, O, E>,
-    {
-        move |i| -> Result<(I, Option<O>), nom::Err<E>> {
-            if cond_fn(i.clone()) {
-                match parse_fn.parse(i) {
-                    Ok((r, v)) => Ok((r, Some(v))),
-                    Err(e) => Err(e),
-                }
-            } else {
-                Ok((i, None))
-            }
-        }
-    }
 
     /// main parser
     pub fn parse_plumap(input: PSpan<'_>) -> PLUParserResult<'_, PPluMap<'_>> {
@@ -282,7 +265,7 @@ mod parser {
             let rest2 = loop_rest;
 
             let rest2 = if lah_comment(rest2) {
-                let (rest3, _) = parse_kommentar(rest2).track()?;
+                let (rest3, _) = parse_kommentar.err_into().parse(rest2).track()?;
                 rest3
             } else if lah_mapping(rest2) {
                 let (rest3, map) = parse_mapping(rest2).track()?;
@@ -310,25 +293,20 @@ mod parser {
     fn parse_mapping(input: PSpan<'_>) -> PLUParserResult<'_, PMap<'_>> {
         Context.enter(PLUMapping, input);
 
-        let (rest, nummer) = token_number(input).track()?;
-        let (rest, faktor) = opt(preceded(nom_star_op, token_factor))(rest).track()?;
-
-        let (rest, to_nummer) =
-            preceded(with_code(nom_map_op, PLUMapOp), token_number)(rest).track()?;
-
-        let (rest, from_datum) = opt(preceded(
-            with_code(nom_range_start, PLURangeStart),
-            token_date,
-        ))(rest)
+        let (rest, (span, (nummer, faktor, to_nummer, from_datum, to_datum))) = consumed(tuple((
+            token_number,
+            opt(preceded(nom_star_op, token_factor)),
+            preceded(nom_map_op, token_number),
+            opt(preceded(nom_range_start, token_date)),
+            opt(preceded(nom_range_end, token_date)),
+        )))
+        .err_into()
+        .parse(input)
         .track()?;
-        let (rest, to_datum) =
-            opt(preceded(with_code(nom_range_end, PLURangeEnd), token_date))(rest).track()?;
 
         if !nom_is_nl(rest) {
             return Context.err(PLUParserError::new(PLUMapping, rest));
         }
-
-        let span = input.span_union(&nummer.span, &nom_empty(rest));
 
         Context.ok(
             rest,
@@ -345,94 +323,90 @@ mod parser {
     }
 
     // parse and ignore
-    fn parse_kommentar(rest: PSpan<'_>) -> PLUParserResult<'_, ()> {
-        Context.enter(PLUComment, rest);
-        let (rest, kommentar) = nom_comment(rest).track()?;
-        Context.ok(rest, kommentar, ())
+    fn parse_kommentar(rest: PSpan<'_>) -> PLUTokenizerResult<'_, ()> {
+        track(PLUComment, nom_comment) //
+            .map(|_| ())
+            .parse(rest)
     }
 }
 
 mod token {
     use crate::nom_parser::{nom_float, nom_minus, nom_number};
     use crate::PLUCode::*;
-    use crate::{PDate, PFactor, PLUParserError, PLUParserResult, PNumber, PSpan};
+    use crate::{PDate, PFactor, PLUTokenizerResult, PNumber, PSpan};
     use kparse::prelude::*;
+    use kparse::token_error::TokenizerError;
+    use nom::combinator::consumed;
+    use nom::sequence::tuple;
+    use nom::Parser;
 
     /// factor
-    pub fn token_factor(rest: PSpan<'_>) -> PLUParserResult<'_, PFactor<'_>> {
-        match nom_float(rest) {
-            Ok((rest, (tok, val))) => Ok((
-                rest,
-                PFactor {
-                    faktor: val,
-                    span: tok,
-                },
-            )),
-            Err(e) => Err(e.with_code(PLUFactor)),
-        }
+    pub fn token_factor(rest: PSpan<'_>) -> PLUTokenizerResult<'_, PFactor<'_>> {
+        nom_float
+            .map(|(span, faktor)| PFactor { faktor, span })
+            .parse(rest)
     }
 
     /// token for the plu
-    pub fn token_number(rest: PSpan<'_>) -> PLUParserResult<'_, PNumber<'_>> {
-        match nom_number(rest) {
-            Ok((rest, (tok, val))) => Ok((
-                rest,
-                PNumber {
-                    nummer: val,
-                    span: tok,
-                },
-            )),
-            Err(e) => Err(e.with_code(PLUNumber)),
-        }
+    pub fn token_number(rest: PSpan<'_>) -> PLUTokenizerResult<'_, PNumber<'_>> {
+        nom_number
+            .map(|(span, nummer)| PNumber { nummer, span })
+            .parse(rest)
     }
 
     /// token for a date
-    pub fn token_date(input: PSpan<'_>) -> PLUParserResult<'_, PDate<'_>> {
-        let (rest, (year_span, year)) = nom_number(input).with_code(PLUYear)?;
-        let (rest, _) = nom_minus(rest).with_code(PLUMinus)?;
-        let (rest, (_month_span, month)) = nom_number(rest).with_code(PLUMonth)?;
-        let (rest, _) = nom_minus(rest).with_code(PLUMinus)?;
-        let (rest, (day_span, day)) = nom_number(rest).with_code(PLUDay)?;
+    pub fn token_date(input: PSpan<'_>) -> PLUTokenizerResult<'_, PDate<'_>> {
+        let (rest, (span, (year, _, month, _, day))) = consumed(tuple((
+            nom_number.with_code(PLUYear),
+            nom_minus,
+            nom_number.with_code(PLUMonth),
+            nom_minus,
+            nom_number.with_code(PLUDay),
+        )))
+        .parse(input)?;
 
-        let span = input.span_union(&year_span, &day_span);
-        let datum = chrono::NaiveDate::from_ymd_opt(year as i32, month, day);
+        let datum = chrono::NaiveDate::from_ymd_opt(year.1 as i32, month.1, day.1);
 
         if let Some(datum) = datum {
             Ok((rest, PDate { datum, span }))
         } else {
-            Err(nom::Err::Error(PLUParserError::new(PLUDate, span)))
+            Err(nom::Err::Error(TokenizerError::new(PLUDate, span)))
         }
     }
 }
 
 mod nom_parser {
-    use crate::PLUCode::{PLUFactor, PLUNumber};
-    use crate::{PLUNomResult, PLUParserError, PLUParserResult, PSpan};
-    use kparse::combinators::map_res;
+    use crate::PLUCode::{
+        PLUComment, PLUFactor, PLUMapOp, PLUMinus, PLUNumber, PLURangeEnd, PLURangeStart, PLUStarOp,
+    };
+    use crate::{PLUTokenizerResult, PSpan};
+    use kparse::prelude::*;
     use nom::branch::alt;
     use nom::bytes::complete::{tag, take_till, take_while1};
     use nom::character::complete::{char as nchar, digit1, one_of};
     use nom::combinator::{consumed, opt, recognize};
     use nom::multi::many1;
     use nom::sequence::{terminated, tuple};
-    use nom::InputTake;
     use nom::{AsChar, InputTakeAtPosition};
+    use nom::{InputTake, Parser};
     use rust_decimal::Decimal;
 
     pub fn lah_comment(i: PSpan<'_>) -> bool {
         nchar::<_, nom::error::Error<PSpan<'_>>>('#')(i).is_ok()
     }
 
-    pub fn nom_comment(i: PSpan<'_>) -> PLUParserResult<'_, PSpan<'_>> {
+    pub fn nom_comment(i: PSpan<'_>) -> PLUTokenizerResult<'_, PSpan<'_>> {
         recognize(tuple((
             terminated(tag("#"), nom_ws),
             terminated(take_till(|c: char| c == '\n'), nom_ws),
-        )))(i)
+        )))
+        .with_code(PLUComment)
+        .parse(i)
     }
 
     /// numeric value.
-    pub fn nom_float(input: PSpan<'_>) -> PLUParserResult<'_, (PSpan<'_>, Decimal)> {
-        consumed(map_res(
+    pub fn nom_float(input: PSpan<'_>) -> PLUTokenizerResult<'_, (PSpan<'_>, Decimal)> {
+        consumed(
             terminated(
                 alt((
                     // Case one: .42
@@ -459,16 +433,13 @@ mod nom_parser {
                     ))),
                 )),
                 nom_ws,
-            ),
-            |v| match (*v).parse::<Decimal>() {
-                Ok(vv) => Ok(vv),
-                Err(_) => Err(nom::Err::Failure(PLUParserError::new(PLUFactor, v))),
-            },
-        ))(input)
+            )
+            .parse_from_str::<_, Decimal>(PLUFactor),
+        )(input)
     }
 
     /// sequence of digits.
-    pub fn decimal(input: PSpan<'_>) -> PLUNomResult<'_> {
+    pub fn decimal(input: PSpan<'_>) -> PLUTokenizerResult<'_, PSpan<'_>> {
         recognize(many1(one_of("0123456789")))(input)
     }
 
@@ -476,37 +447,42 @@ mod nom_parser {
         digit1::<_, nom::error::Error<PSpan<'_>>>(i).is_ok()
     }
 
-    pub fn nom_number(i: PSpan<'_>) -> PLUParserResult<'_, (PSpan<'_>, u32)> {
-        consumed(map_res(terminated(digit1, nom_ws), |v| {
-            match (*v).parse::<u32>() {
-                Ok(vv) => Ok(vv),
-                Err(_) => Err(nom::Err::Failure(PLUParserError::new(PLUNumber, v))),
-            }
-        }))(i)
+    pub fn nom_number(i: PSpan<'_>) -> PLUTokenizerResult<'_, (PSpan<'_>, u32)> {
+        consumed(terminated(digit1, nom_ws).parse_from_str::<_, u32>(PLUNumber)).parse(i)
     }
 
-    pub fn nom_star_op(i: PSpan<'_>) -> PLUNomResult<'_> {
-        terminated(recognize(nchar('*')), nom_ws)(i)
+    pub fn nom_star_op(i: PSpan<'_>) -> PLUTokenizerResult<'_, PSpan<'_>> {
+        terminated(recognize(nchar('*')), nom_ws)
+            .with_code(PLUStarOp)
+            .parse(i)
     }
 
-    pub fn nom_map_op(i: PSpan<'_>) -> PLUNomResult<'_> {
-        terminated(tag("->"), nom_ws)(i)
+    pub fn nom_map_op(i: PSpan<'_>) -> PLUTokenizerResult<'_, PSpan<'_>> {
+        terminated(tag("->"), nom_ws) //
+            .with_code(PLUMapOp)
+            .parse(i)
     }
 
-    pub fn nom_range_start(i: PSpan<'_>) -> PLUNomResult<'_> {
-        terminated(tag(">="), nom_ws)(i)
+    pub fn nom_range_start(i: PSpan<'_>) -> PLUTokenizerResult<'_, PSpan<'_>> {
+        terminated(tag(">="), nom_ws) //
+            .with_code(PLURangeStart)
+            .parse(i)
     }
 
-    pub fn nom_range_end(i: PSpan<'_>) -> PLUNomResult<'_> {
-        terminated(tag("<="), nom_ws)(i)
+    pub fn nom_range_end(i: PSpan<'_>) -> PLUTokenizerResult<'_, PSpan<'_>> {
+        terminated(tag("<="), nom_ws) //
+            .with_code(PLURangeEnd)
+            .parse(i)
     }
 
-    pub fn nom_minus(i: PSpan<'_>) -> PLUNomResult<'_> {
-        terminated(recognize(nchar('-')), nom_ws)(i)
+    pub fn nom_minus(i: PSpan<'_>) -> PLUTokenizerResult<'_, PSpan<'_>> {
+        terminated(recognize(nchar('-')), nom_ws) //
+            .with_code(PLUMinus)
+            .parse(i)
     }
 
     // regular whitespace
-    pub fn nom_ws(i: PSpan<'_>) -> PLUNomResult<'_> {
+    pub fn nom_ws(i: PSpan<'_>) -> PLUTokenizerResult<'_, PSpan<'_>> {
         i.split_at_position_complete(|item| {
             let c = item.as_char();
             !(c == ' ' || c == '\t')
