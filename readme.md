@@ -2,16 +2,41 @@
 
 Addons for a nom parser.
 
-* A error code trait.
-* A richer error type ParserError.
-* Traits to integrate external errors.
-* A tracking system for the parser.
-* A simple framework to test parser functions.
-* SpanLines and SpanBytes to get the context around a span.
+* Trait Code for basic error codes.
+
+* ParserError for full error collection and TokenizerError for fast inner loops.
+
+* Tracking/Logging of the parser execution.
+
+* Builder style tests that can do tests from simple ok/err to deep inspection
+  of the results.
+* With simple pluggable reporting too.
+
+* Extended set of postfix adapters for a parser. Inspired by nom_supreme
+  but integrated with the error Code and error types of this crate.
+
+* SpanLines and SpanBytes to get context information around a span.
+* Can also retrieve line/column information.
+* From a plain &str too.
+
+* All of the extras can be easily cfg'ed away for a release build.
+* Usually it's just cfg(debug_assertions) vs cfg(not(debug_assertions)) to
+  change the Input type from TrackSpan to plain &str.
 
 The complete code can be found as [examples/example1.rs].
 
 ```rust
+// := a* b
+fn parse_a_star_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAstarB> {
+    track(
+        ExAstarB,
+        tuple((many0(parse_a), parse_b))
+            .map(|(a, b)| AstAstarB { a, b }),
+    )
+        .err_into()
+        .parse(input)
+}
+
 // := ( a | b )*
 fn parse_a_b_star(input: ESpan<'_>) -> EResult<'_, AstABstar> {
     Context.enter(EABstar, input);
@@ -60,6 +85,10 @@ fn parse_a_b_star(input: ESpan<'_>) -> EResult<'_, AstABstar> {
 
 # Basics
 
+## prelude
+
+There is a prelude for all common traits. 
+
 ## Error code
 
 Define the error code enum. The error codes are used in actual error reporting
@@ -91,14 +120,18 @@ impl Code for ECode {
 ```
 
 This crate is very heavy on type variables. The following type aliases
-are recommended.
+are recommended. With the two cfg's the parser can switch from detailed
+tracking to release performance.
 
 ```rust
-pub type ESpan<'s> = TrackSpan<'s, ECode, &'s str>;
-pub type EResult<'s, O> = TrackResult<ECode, ESpan<'s>, O, ()>;
-pub type ENomResult<'s> = TrackResult<ECode, ESpan<'s>, ESpan<'s>, ()>;
-pub type EParserError<'s> = ParserError<ECode, ESpan<'s>, ()>;
-
+#[cfg(debug_assertions)]
+pub type ExSpan<'s> = TrackSpan<'s, ExCode, &'s str>;
+#[cfg(not(debug_assertions))]
+pub type ExSpan<'s> = &'s str;
+pub type ExParserResult<'s, O> = ParserResult<ExCode, ExSpan<'s>, O>;
+pub type ExTokenizerResult<'s, O> = TokenizerResult<ExCode, ExSpan<'s>, O>;
+pub type ExParserError<'s> = ParserError<ExCode, ExSpan<'s>>;
+pub type ExTokenizerError<'s> = TokenizerError<ExCode, ExSpan<'s>>;
 ```
 
 ## AST
@@ -119,75 +152,32 @@ Parser functions are the same as with a plain nom parser, just using
 different input and error types
 
 ```rust
-fn token_number(i: ESpan<'_>) -> EResult<'_, AstNumber<'_>> {
-    match nom_number(i) {
-        Ok((rest, (tok, val))) => Ok((
-            rest,
-            AstNumber {
-                number: val,
-                span: tok,
-            },
-        )),
-        Err(e) => Err(e.with_code(ENumber)),
-    }
+fn token_number(i: ExSpan<'_>) -> ExParserResult<'_, AstNumber<'_>> {
+    nom_number
+        .map(|(span, number)| AstNumber { number, span })
+        .parse(i)
 }
 ```
 
 ## IResult
 
-ParserError implements nom::error::ParseError, it can be used instead of
-nom::error::Error.
+ParserError and TokenizerError implement nom::error::ParseError, they can be
+used instead of nom::error::Error.
 
 ## Error handling
 
-### WithSpan
+### err_into()
 
-The trait WithSpan is used to convert an external error to a ParserError
-and add an error code and a span at the same time.
+Error conversion with the From trait.
 
-```rust
-impl<'s, C: Code, Y: Copy> WithSpan<'s, C, nom::Err<ParserError<'s, C, Y>>>
-for std::num::ParseIntError
-{
-    fn with_span(self, code: C, span: Span<'s, C>) -> nom::Err<ParserError<'s, C, Y>>
-    {
-        nom::Err::Failure(ParserError::new(code, span))
-    }
-}
-```
+### parse_from_str()
 
-With the combinator ```transform(...)``` this can be integrated in the
-parser.
+Parsing with the FromStr trait. Takes a error code to create a error on fail.
 
-```rust
-fn nom_number(i: ESpan<'_>) -> EResult<'_, (ESpan<'_>, u32)> {
-    consumed(transform(
-        terminated(digit1, nom_ws),
-        |v| (*v).parse::<u32>(),
-        ENumber,
-    ))(i)
-}
-```
+### with_code()
 
-### WithCode
-
-The trait WithCode allows altering the error code. The previous error code
-is kept as a hint.
-
-```rust
-fn token_number(i: ESpan<'_>) -> EResult<'_, AstNumber<'_>> {
-    match nom_number(i) {
-        Ok((rest, (tok, val))) => Ok((
-            rest,
-            AstNumber {
-                number: val,
-                span: tok,
-            },
-        )),
-        Err(e) => Err(e.with_code(ENumber)),
-    }
-}
-```
+Changes the error code of an error. The old error code is kept as an expected
+code.
 
 # Parser tracking
 
@@ -263,13 +253,9 @@ CheckTrace is one of them, it dumps the trace and the error and panics.
 ```rust
 #[test]
 fn test_1() {
-    track_parse(&mut None, "", parse_ab).err_any().q(CheckTrace);
-    track_parse(&mut None, "ab", parse_ab)
-        .ok_any()
-        .q(CheckTrace);
-    track_parse(&mut None, "aba", parse_ab)
-        .rest("a")
-        .q(CheckTrace);
+    str_parse(&mut None, "", parse_ab).err_any().q(Timing(1));
+    str_parse(&mut None, "ab", parse_ab).ok_any().q(Timing(1));
+    str_parse(&mut None, "aba", parse_ab).rest("a").q(Timing(1));
 }
 ```
 
@@ -304,46 +290,71 @@ errorkind=Tag
 
 Just some things I have been missing.
 
-## transform()
+## track()
 
-Combines parsing and value conversion. If the external error type implements
-WithSpan this looks quite smooth.
+Tracks the call to the subparser.
 
-## error_code()
 
-Change the error_code of a partial parser.
+## pchar()
 
-## conditional()
+Similar to nom's char function, but with an easier name and returns the
+input type instead of char.
 
-Runs a condition function on the input and only runs the parser function
-if it succeeds. There is nom::cond(), but it's not the the same.
+## err_into()
 
+Error conversion with the From trait.
+
+## with_code()
+
+Changes the error code.
+
+## separated_list_trailing0 and 1
+
+Similar to separated_list, but allows for a trailing separator.
 
 # Error reporting
 
-# SpanExt
+# SpanUnion
 
 This trait is kind of a undo of parsing. It takes two output spans and
 can create a span that covers both of them and anything between.
 
 nom has consumed() and recognize() for this, which work fine too.
 
-# SpanLines and SpanBytes
+# SpanLocation and SpanFragment
+
+Provides the nom_locate functions location_offset(), location_line() and fragment() via traits. This way they are also available for &str etc.
+
+# SpanLines, SpanStr and SpanBytes 
 
 "Ok, so now I got the error, but what was the context?"
 
 SpanLines can help. It contains the complete parser input and can
 find the text lines surrounding any given span returned by the error.
 
-SpanBytes does the same with &[u8]. 
+It can also provide line number an column.
 
+SpanBytes does the same with &[u8], SpanStr for &str.
 
-# Performance 
+# Performance
 
-Expect some overhead when tracking is enabled. 
+Expect some overhead when tracking is enabled.
 When disabled with a different Span type the calls to Context etc boil down
 to no-ops, so there should be no difference to a equivalent nom-only parser.
 
-The size of ParserError is a bit larger than nom::error::Error, the difference
-is the size of the Vec used to store all the extra data. That still amounts
-only to 48 bytes on x64, so it's not too worrisome.
+It is also possible to replace LocatedSpan completely which gives quite a 
+boost. See example1.rs
+
+### ParserError vs TokenizerError
+
+ParserError is double the size of TokenizerError due to a Vec with all
+the extra data. 
+
+But as it tries to keep the nom ErrorKind it almost immediately allocates
+for the vec. As most parser combinators work heavily with Err results this
+can be quite heavy. There is the feature dont_track_nom to avoid this pit.
+
+But maybe the better way is to use TokenizerError for lower level parsers
+and switch to ParserError at the point where the extra features are needed.
+With err_into() this is not too annoying.
+

@@ -9,14 +9,9 @@
 //! * cause
 //! * other user data.
 //!
-//! To change the error code during parse use with_code(). This keeps the
-//! old error code as expected value. with_code() also exists for Result's
-//! that contain a ParserError.
-//!
 
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
-use crate::spans::SpanLocation;
 use crate::{Code, ErrWrapped, KParseError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
@@ -25,7 +20,6 @@ use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
 use std::marker::PhantomData;
-use std::num::NonZeroUsize;
 
 /// Parser error.
 pub struct ParserError<C, I> {
@@ -41,8 +35,6 @@ pub struct ParserError<C, I> {
 pub enum Hints<C, I> {
     /// Contains any nom error that occurred.
     Nom(Nom<C, I>),
-    /// Contains the nom needed information.
-    Needed(NonZeroUsize),
     /// Expected outcome of the parser.
     Expect(SpanAndCode<C, I>),
     /// Suggestions from the parser.
@@ -360,7 +352,7 @@ where
     I: Clone,
 {
     fn from_error_kind(input: I, _kind: ErrorKind) -> Self {
-        #[cfg(feature = "track_nom")]
+        #[cfg(not(feature = "dont_track_nom"))]
         let v = ParserError {
             code: C::NOM_ERROR,
             span: input.clone(),
@@ -371,7 +363,7 @@ where
                 _phantom: Default::default(),
             })],
         };
-        #[cfg(not(feature = "track_nom"))]
+        #[cfg(feature = "dont_track_nom")]
         let v = ParserError {
             code: C::NOM_ERROR,
             span: input,
@@ -381,7 +373,7 @@ where
     }
 
     fn append(_input: I, _kind: ErrorKind, #[allow(unused_mut)] mut other: Self) -> Self {
-        #[cfg(feature = "track_nom")]
+        #[cfg(not(feature = "dont_track_nom"))]
         other.hints.push(Hints::Nom(Nom {
             kind: _kind,
             span: _input,
@@ -392,7 +384,7 @@ where
     }
 
     fn from_char(input: I, _ch: char) -> Self {
-        #[cfg(feature = "track_nom")]
+        #[cfg(not(feature = "dont_track_nom"))]
         let v = ParserError {
             code: C::NOM_ERROR,
             span: input.clone(),
@@ -403,7 +395,7 @@ where
                 _phantom: Default::default(),
             })],
         };
-        #[cfg(not(feature = "track_nom"))]
+        #[cfg(feature = "dont_track_nom")]
         let v = ParserError {
             code: C::NOM_ERROR,
             span: input,
@@ -414,7 +406,7 @@ where
 
     /// Combines two parser errors.
     fn or(#[allow(unused_mut)] mut self, _other: Self) -> Self {
-        #[cfg(feature = "track_nom")]
+        #[cfg(not(feature = "dont_track_nom"))]
         {
             self.append_err(_other);
         }
@@ -497,7 +489,6 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Hints::Nom(v) => write!(f, "Nom {:?}", v),
-            Hints::Needed(v) => write!(f, "Needed {:?}", v),
             Hints::Expect(v) => write!(f, "Expect {:?}", v),
             Hints::Suggest(v) => write!(f, "Suggest {:?}", v),
             Hints::Cause(v) => write!(f, "Cause {:?}", v),
@@ -716,66 +707,6 @@ where
         })
     }
 
-    /// Get Expect grouped by offset into the string, starting with max first.
-    pub fn expected_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<C, I>>)>
-    where
-        I: SpanLocation,
-    {
-        let mut sorted: Vec<&SpanAndCode<C, I>> = self.iter_expected().collect();
-        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
-
-        // per offset
-        let mut grp_offset = 0;
-        let mut grp = Vec::new();
-        let mut subgrp = Vec::new();
-        for exp in &sorted {
-            if exp.span.location_offset() != grp_offset {
-                if !subgrp.is_empty() {
-                    grp.push((grp_offset, subgrp));
-                    subgrp = Vec::new();
-                }
-                grp_offset = exp.span.location_offset();
-            }
-
-            subgrp.push(*exp);
-        }
-        if !subgrp.is_empty() {
-            grp.push((grp_offset, subgrp));
-        }
-
-        grp
-    }
-
-    /// Get Expect grouped by line number, starting with max first.
-    pub fn expected_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<C, I>>)>
-    where
-        I: SpanLocation,
-    {
-        let mut sorted: Vec<&SpanAndCode<C, I>> = self.iter_expected().collect();
-        sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));
-
-        // per offset
-        let mut grp_line = 0;
-        let mut grp = Vec::new();
-        let mut subgrp = Vec::new();
-        for exp in &sorted {
-            if exp.span.location_line() != grp_line {
-                if !subgrp.is_empty() {
-                    grp.push((grp_line, subgrp));
-                    subgrp = Vec::new();
-                }
-                grp_line = exp.span.location_line();
-            }
-
-            subgrp.push(*exp);
-        }
-        if !subgrp.is_empty() {
-            grp.push((grp_line, subgrp));
-        }
-
-        grp
-    }
-
     /// Add an suggested code.
     pub fn suggest(&mut self, code: C, span: I) {
         self.hints.push(Hints::Suggest(SpanAndCode { code, span }))
@@ -794,65 +725,5 @@ where
             Hints::Suggest(n) => Some(n),
             _ => None,
         })
-    }
-
-    /// Get Suggest grouped by offset into the string, starting with max first.
-    pub fn suggested_grouped_by_offset(&self) -> Vec<(usize, Vec<&SpanAndCode<C, I>>)>
-    where
-        I: SpanLocation,
-    {
-        let mut sorted: Vec<&SpanAndCode<C, I>> = self.iter_suggested().collect();
-        sorted.sort_by(|a, b| b.span.location_offset().cmp(&a.span.location_offset()));
-
-        // per offset
-        let mut grp_offset = 0;
-        let mut grp = Vec::new();
-        let mut subgrp = Vec::new();
-        for exp in &sorted {
-            if exp.span.location_offset() != grp_offset {
-                if !subgrp.is_empty() {
-                    grp.push((grp_offset, subgrp));
-                    subgrp = Vec::new();
-                }
-                grp_offset = exp.span.location_offset();
-            }
-
-            subgrp.push(*exp);
-        }
-        if !subgrp.is_empty() {
-            grp.push((grp_offset, subgrp));
-        }
-
-        grp
-    }
-
-    /// Get Suggest grouped by line number, starting with max first.
-    pub fn suggested_grouped_by_line(&self) -> Vec<(u32, Vec<&SpanAndCode<C, I>>)>
-    where
-        I: SpanLocation,
-    {
-        let mut sorted: Vec<&SpanAndCode<C, I>> = self.iter_suggested().collect();
-        sorted.sort_by(|a, b| b.span.location_line().cmp(&a.span.location_line()));
-
-        // per offset
-        let mut grp_line = 0;
-        let mut grp = Vec::new();
-        let mut subgrp = Vec::new();
-        for exp in &sorted {
-            if exp.span.location_line() != grp_line {
-                if !subgrp.is_empty() {
-                    grp.push((grp_line, subgrp));
-                    subgrp = Vec::new();
-                }
-                grp_line = exp.span.location_line();
-            }
-
-            subgrp.push(*exp);
-        }
-        if !subgrp.is_empty() {
-            grp.push((grp_line, subgrp));
-        }
-
-        grp
     }
 }

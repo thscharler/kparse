@@ -190,18 +190,22 @@ mod debug {
             );
         }
 
-        let expect = err.expected_grouped_by_line();
+        let expect = err.iter_expected().collect::<Vec<_>>();
 
-        for t in &text1 {
-            if t.location_line() == err.span.location_line() {
-                println!("*{:04} {}", t.location_line(), t);
+        for t in text1.iter().copied() {
+            let t_line = txt.line(t);
+            let s_line = txt.line(err.span);
+            let s_column = txt.utf8_column(err.span);
+
+            if t_line == s_line {
+                println!("*{:04} {}", t_line, t);
             } else {
-                println!(" {:04}  {}", t.location_line(), t);
+                println!(" {:04}  {}", t_line, t);
             }
 
             if expect.is_empty() {
-                if t.location_line() == err.span.location_line() {
-                    println!("      {}^", " ".repeat(err.span.get_utf8_column() - 1));
+                if t_line == s_line {
+                    println!("      {}^", " ".repeat(s_column - 1));
                     if !msg.is_empty() {
                         println!("Erwarted war: {}", msg);
                     } else {
@@ -210,28 +214,29 @@ mod debug {
                 }
             }
 
-            for (line, exp) in &expect {
-                if t.location_line() == *line {
-                    for exp in exp {
-                        println!("      {}^", " ".repeat(exp.span.get_utf8_column() - 1));
-                        println!("Erwarted war: {}", exp.code);
-                    }
+            for exp in expect.iter() {
+                let e_line = txt.line(exp.span);
+
+                if t_line == e_line {
+                    println!("      {}^", " ".repeat(exp.span.get_utf8_column() - 1));
+                    println!("Erwarted war: {}", exp.code);
                 }
             }
         }
 
-        for (_line, sugg) in err.suggested_grouped_by_line() {
-            for sug in sugg {
-                println!("Hinweis: {}", sug.code);
-            }
+        for sug in err.iter_suggested() {
+            println!("Hinweis: {}", sug.code);
         }
 
         if let Some(n) = err.nom() {
+            let n_line = txt.line(n.span);
+            let n_column = txt.utf8_column(n.span);
+
             println!(
-                "Parser-Details: {:?} {}:{}:\"{}\"",
+                "Parser-Details: {:?} {}:{}:{:?}",
                 n.kind,
-                n.span.location_line(),
-                n.span.get_utf8_column(),
+                n_line,
+                n_column,
                 n.span.escape_debug().take(40).collect::<String>()
             );
         }
@@ -257,7 +262,6 @@ mod parser {
     use kparse::Context;
     use nom::combinator::opt;
     use nom::sequence::preceded;
-    use nom::Parser;
 
     /// Parser.
     pub fn parse_plumap(input: PSpan<'_>) -> PLUParserResult<'_, PPluMap<'_>> {

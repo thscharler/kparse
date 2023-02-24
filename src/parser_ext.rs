@@ -1,3 +1,7 @@
+//!
+//! Struct definitions for the postfix parsers.
+//!
+
 use crate::error::AppendParserError;
 use crate::{Code, KParseError, ParserError};
 use nom::{IResult, InputIter, InputLength, Offset, Parser, Slice};
@@ -451,7 +455,7 @@ where
                 Ok((rest, v)) => Ok((rest, (None, Some(v)))),
                 Err(mut e2) => {
                     e2.append(e1);
-                    return Err(e2);
+                    Err(e2)
                 }
             },
         }

@@ -378,6 +378,7 @@ pub mod parser4 {
         use crate::parser4::APCode::*;
         use crate::parser4::APSpan;
         use chrono::NaiveDate;
+        #[cfg(not(debug_assertions))]
         use kparse::prelude::*;
         use std::fmt::{Debug, Formatter};
 
@@ -876,7 +877,6 @@ pub mod parser4 {
         use kparse::combinators::{err_into, separated_list_trailing1, track};
         use kparse::prelude::*;
         use kparse::{Context, ParserError};
-        use nom::branch::alt;
         use nom::combinator::{consumed, not, opt};
         use nom::multi::separated_list0;
         use nom::sequence::tuple;

@@ -6,17 +6,17 @@
 //!
 
 use chrono::NaiveDate;
-use rust_decimal::Decimal;
-use std::fmt::{Display, Formatter};
-
-use kparse::test::{track_parse, CheckDump};
+use kparse::test::{str_parse, CheckDump};
+#[cfg(debug_assertions)]
 use kparse::tracker::TrackSpan;
 use kparse::{Code, ParserError, ParserResult, TokenizerResult};
 pub use parser::*;
+use rust_decimal::Decimal;
+use std::fmt::{Display, Formatter};
 
 fn main() {
     // call into test framework
-    track_parse(&mut None, "1 -> 2\n", parse_plumap)
+    str_parse(&mut None, "1 -> 2\n", parse_plumap)
         .ok_any()
         .q(CheckDump);
 }
@@ -151,7 +151,10 @@ pub struct PDate<'s> {
 
 mod debug {
     use crate::{PLUCode, PLUParserError, PSpan};
+    #[cfg(debug_assertions)]
     use kparse::spans::SpanLines;
+    #[cfg(not(debug_assertions))]
+    use kparse::spans::SpanStr;
     use kparse::tracker::Tracks;
     use std::ffi::OsStr;
     use std::path::Path;
@@ -165,7 +168,11 @@ mod debug {
         msg: &str,
         is_err: bool,
     ) {
+        #[cfg(debug_assertions)]
         let txt = SpanLines::new(txt);
+        #[cfg(not(debug_assertions))]
+        let txt = SpanStr::new(txt);
+
         let text1 = txt.get_lines_around(&err.span, 3);
 
         println!();
@@ -185,18 +192,22 @@ mod debug {
             );
         }
 
-        let expect = err.expected_grouped_by_line();
+        let expect = err.iter_expected().collect::<Vec<_>>();
 
-        for t in &text1 {
-            if t.location_line() == err.span.location_line() {
-                println!("*{:04} {}", t.location_line(), t);
+        for t in text1.iter().copied() {
+            let t_line = txt.line(t);
+            let s_line = txt.line(err.span);
+            let s_column = txt.utf8_column(err.span);
+
+            if t_line == s_line {
+                println!("*{:04} {}", t_line, t);
             } else {
-                println!(" {:04}  {}", t.location_line(), t);
+                println!(" {:04}  {}", t_line, t);
             }
 
             if expect.is_empty() {
-                if t.location_line() == err.span.location_line() {
-                    println!("      {}^", " ".repeat(err.span.get_utf8_column() - 1));
+                if t_line == s_line {
+                    println!("      {}^", " ".repeat(s_column - 1));
                     if !msg.is_empty() {
                         println!("expected: {}", msg);
                     } else {
@@ -205,28 +216,28 @@ mod debug {
                 }
             }
 
-            for (line, exp) in &expect {
-                if t.location_line() == *line {
-                    for exp in exp {
-                        println!("      {}^", " ".repeat(exp.span.get_utf8_column() - 1));
-                        println!("expected: {}", exp.code);
-                    }
+            for exp in &expect {
+                let e_line = txt.line(exp.span);
+                let e_column = txt.utf8_column(exp.span);
+                if t_line == e_line {
+                    println!("      {}^", " ".repeat(e_column - 1));
+                    println!("expected: {}", exp.code);
                 }
             }
         }
 
-        for (_line, sugg) in err.suggested_grouped_by_line() {
-            for sug in sugg {
-                println!("hint: {}", sug.code);
-            }
+        for sugg in err.iter_suggested() {
+            println!("hint: {}", sugg.code);
         }
 
         if let Some(n) = err.nom() {
+            let n_line = txt.line(n.span);
+            let n_column = txt.utf8_column(n.span);
             println!(
                 "parser details: {:?} {}:{}:\"{}\"",
                 n.kind,
-                n.span.location_line(),
-                n.span.get_utf8_column(),
+                n_line,
+                n_column,
                 n.span.escape_debug().take(40).collect::<String>()
             );
         }

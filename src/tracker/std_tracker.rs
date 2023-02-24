@@ -1,16 +1,6 @@
 //!
 //! Tracking context for a parser.
 //!
-//! ```rust ignore
-//! use kparse::TrackingContext;
-//!
-//! let txt = "1234";
-//!
-//! let ctx = TrackingContext::new(true);
-//! let span = ctx.span(txt);
-//!
-//! // ... run parser with span.
-//! ```
 
 use crate::debug::tracks::debug_tracks;
 use crate::tracker::{DynTracker, TrackSpan, Tracker, TrackerData};
@@ -25,14 +15,26 @@ use std::ops::{RangeFrom, RangeTo};
 /// Context that can track the execution of a parser.
 ///
 /// ```rust ignore
-/// use kparse::TrackingContext;
+/// use nom::character::complete::digit1;
+/// use kparse::examples::{ExSpan, ExTokenizerResult};
+/// use kparse::tracker::StdTracker;
 ///
-/// let txt = "1234";
+/// fn main() {
+///     let txt = "1234";
 ///
-/// let ctx = TrackingContext::new(true);
-/// let span = ctx.span(txt);
+///     #[cfg(debug_assertions)]
+///     let ctx = StdTracker::new();
+///     #[cfg(debug_assertions)]
+///     let txt = ctx.span(txt);
 ///
-/// // ... run parser with span.
+///     // ... run parser with span.
+///     nom_digits(txt);
+/// }
+///
+/// fn nom_digits(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
+///     digit1(i)
+/// }
+///
 /// ```
 pub struct StdTracker<C, T>
 where
@@ -246,7 +248,7 @@ where
             func,
             span,
             parsed,
-            parents: parent.clone(),
+            parents: parent,
         }));
     }
 
@@ -258,7 +260,7 @@ where
             code,
             span,
             err: err_str,
-            parents: parent.clone(),
+            parents: parent,
         }));
     }
 

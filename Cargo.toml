@@ -34,9 +34,9 @@ pest = "2.1"
 pest_derive = "2.1"
 
 [features]
-track_nom = []
+dont_track_nom = []
 alloc = ["nom/alloc"]
-default = ["std", "track_nom"]
+default = ["std"]
 generic-simd = ["bytecount/generic-simd"]
 runtime-dispatch-simd = ["bytecount/runtime-dispatch-simd"]
 std = [ "nom/std", "alloc", "memchr/use_std"]

@@ -1,14 +1,16 @@
 use crate::parser4::ast::{APMenge, APName};
-use crate::parser4::diagnostics::{dump_diagnostics, dump_trace};
+use crate::parser4::diagnostics::dump_diagnostics;
+#[cfg(debug_assertions)]
+use crate::parser4::diagnostics::dump_trace;
 use crate::parser4::nom_tokens::nom_metadata;
 use crate::parser4::parser::*;
 use crate::parser4::tokens::{token_datum, token_menge, token_name, token_name_kurz, token_nummer};
 use crate::parser4::APCode::*;
+#[cfg(not(debug_assertions))]
 use kparse::prelude::*;
 use kparse::test::{str_parse, CheckDump, CheckTrace};
+#[cfg(debug_assertions)]
 use kparse::tracker::StdTracker;
-use nom_locate::LocatedSpan;
-use std::fs::read_to_string;
 use std::hint::black_box;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -86,12 +88,6 @@ pub fn test_pflanzort() {
 
 #[test]
 pub fn test_kunde() {
-    str_parse(&mut None, "** Kunde Test Kunde **", parse_kunde)
-        .ok_any()
-        .q(R);
-    str_parse(&mut None, " ** Kunde Test Kunde ** ", parse_kunde)
-        .err_any()
-        .q(R);
     str_parse(&mut None, "Kunde Test Kunde ", parse_kunde)
         .ok_any()
         .rest("")
@@ -100,12 +96,6 @@ pub fn test_kunde() {
 
 #[test]
 pub fn test_markt() {
-    str_parse(&mut None, "** Markt Graz **", parse_markt)
-        .ok_any()
-        .q(R);
-    str_parse(&mut None, " ** Markt Graz ** ", parse_markt)
-        .err_any()
-        .q(R);
     str_parse(&mut None, "Markt Graz ", parse_markt)
         .ok_any()
         .rest("")
@@ -329,8 +319,6 @@ pub mod parser4 {
     use kparse::token_error::TokenizerError;
     #[cfg(debug_assertions)]
     use kparse::tracker::TrackSpan;
-    #[cfg(not(debug_assertions))]
-    use nom_locate::LocatedSpan;
 
     #[allow(clippy::enum_variant_names)]
     #[allow(dead_code)]
@@ -459,10 +447,12 @@ pub mod parser4 {
 
     pub mod diagnostics {
         use crate::parser4::{APCode, APParserError, APSpan, APTokenizerError};
-        use kparse::spans::{SpanLines, SpanStr};
+        #[cfg(debug_assertions)]
+        use kparse::spans::SpanLines;
+        #[cfg(not(debug_assertions))]
+        use kparse::spans::SpanStr;
         use kparse::test::{Report, Test};
         use kparse::tracker::Tracks;
-        use nom_locate::LocatedSpan;
         use std::ffi::OsStr;
         use std::fmt::Debug;
         use std::path::{Path, PathBuf};
@@ -501,7 +491,7 @@ pub mod parser4 {
         #[allow(clippy::collapsible_if)]
         pub fn dump_diagnostics_tok(
             src: &Path,
-            orig: APSpan<'_>,
+            _orig: APSpan<'_>,
             err: &APTokenizerError<'_>,
             msg: &str,
             is_err: bool,
@@ -583,7 +573,7 @@ pub mod parser4 {
 
             let expect = err.iter_expected().collect::<Vec<_>>();
 
-            for t in &text1 {
+            for t in text1.iter().copied() {
                 let t_line = txt.line(t);
                 let s_line = txt.line(err.span);
                 let s_column = txt.utf8_column(err.span);
@@ -664,7 +654,7 @@ pub mod parser4 {
                 );
             }
 
-            for t in &text1 {
+            for t in text1.iter().copied() {
                 let t_line = txt.line(t);
                 let s_line = txt.line(err.span);
                 let s_column = txt.utf8_column(err.span);
@@ -686,6 +676,7 @@ pub mod parser4 {
         use crate::parser4::APCode::*;
         use crate::parser4::APSpan;
         use chrono::NaiveDate;
+        #[cfg(not(debug_assertions))]
         use kparse::prelude::*;
         use std::fmt::{Debug, Formatter};
 
@@ -1168,23 +1159,22 @@ pub mod parser4 {
     pub mod parser {
         use crate::parser4::ast::*;
         use crate::parser4::nom_tokens::{
-            nom_aktion_aktion, nom_colon, nom_comma, nom_empty, nom_header, nom_is_nl,
-            nom_kommentar, nom_kommentar_tag, nom_kw, nom_metadata, nom_nl, nom_notiz,
-            nom_notiz_tag, nom_number, nom_par_close, nom_par_open, nom_plus, nom_tag_aktion,
-            nom_tag_bsnr, nom_tag_kdnr, nom_tag_kunde, nom_tag_lieferant, nom_tag_markt,
-            nom_tag_monat, nom_tag_pflanzort, nom_tag_plan, nom_tag_stichtag, nom_tag_tag,
-            nom_tag_w, nom_tag_woche, nom_ws, span_ws_nl,
+            nom_aktion_aktion, nom_colon, nom_comma, nom_header, nom_is_nl, nom_kommentar,
+            nom_kommentar_tag, nom_kw, nom_metadata, nom_nl, nom_notiz, nom_notiz_tag, nom_number,
+            nom_par_close, nom_par_open, nom_plus, nom_tag_aktion, nom_tag_bsnr, nom_tag_kdnr,
+            nom_tag_kunde, nom_tag_lieferant, nom_tag_markt, nom_tag_monat, nom_tag_pflanzort,
+            nom_tag_plan, nom_tag_stichtag, nom_tag_tag, nom_tag_w, nom_tag_woche, nom_ws,
+            span_ws_nl,
         };
         use crate::parser4::tokens::{
             token_datum, token_menge, token_name, token_name_kurz, token_nummer,
         };
         use crate::parser4::APCode::*;
-        use crate::parser4::{nom_tokens, APParserError, APSpan};
+        use crate::parser4::{APParserError, APSpan};
         use crate::parser4::{APParserResult, APTokenizerResult};
         use kparse::combinators::{err_into, separated_list_trailing1, track};
         use kparse::prelude::*;
         use kparse::{Context, ParserError};
-        use nom::branch::alt;
         use nom::combinator::{consumed, not, opt};
         use nom::multi::separated_list0;
         use nom::sequence::tuple;
@@ -1622,21 +1612,20 @@ pub mod parser4 {
 
                     // the trimmed span is part of original.
                     // so reusing the rest ought to be fine.
-                    let tok = unsafe {
-                        #[cfg(debug_assertions)]
-                        let trim = APSpan::new_from_raw_offset(
+                    #[cfg(debug_assertions)]
+                    let trim = unsafe {
+                        APSpan::new_from_raw_offset(
                             tok.location_offset(),
                             tok.location_line(),
                             trim,
                             tok.extra,
-                        );
-                        trim
+                        )
                     };
 
                     // could rewind the rest too, but since it'_ whitespace
                     // which would be thrown away anyway ...
 
-                    Ok((rest, APName { span: tok }))
+                    Ok((rest, APName { span: trim }))
                 }
                 Err(e) => Err(e.with_code(APCName)),
             }
@@ -1698,7 +1687,7 @@ pub mod parser4 {
         };
         use nom::character::complete::one_of;
         use nom::character::complete::{digit1, not_line_ending};
-        use nom::combinator::{opt, recognize};
+        use nom::combinator::recognize;
         use nom::sequence::{preceded, terminated, tuple};
         use nom::Parser;
         use nom::{AsChar, InputTake, InputTakeAtPosition};

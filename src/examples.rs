@@ -1,7 +1,7 @@
 //!
-//! example parser
+//! Types used in doc tests.
 //!
-
+#![cfg(test)]
 #![allow(missing_docs)]
 
 use crate::token_error::TokenizerError;

@@ -9,8 +9,16 @@
 //!
 //! * A simple framework to test parser functions.
 //!
-//! * SpanLines and SpanBytes to get the context around a span.
+//! * Took some inspiration from nom_supreme and implemented a similar subset of
+//!   postfix functions. They are integrated with the error Code and the error types of
+//!   this crate.
 //!
+//! * SpanLines, SpanBytes, SpanStr to get context information around a Span.
+//!   Can also retrieve line/column information.
+//!
+//! All of the extras can be easily cfg'ed away for a release build.
+//! Usually it's just cfg(debug_assertions) vs cfg(not(debug_assertions)) to change
+//! the Input type from TrackSpan to plain &str.
 
 #![doc(html_root_url = "https://docs.rs/kparse")]
 #![warn(absolute_paths_not_starting_with_crate)]
@@ -45,6 +53,26 @@
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::type_complexity)]
 
+pub mod combinators;
+pub mod error;
+pub mod examples;
+pub mod parser_ext;
+pub mod spans;
+pub mod test;
+pub mod token_error;
+pub mod tracker;
+
+mod debug;
+
+pub use crate::error::ParserError;
+pub use crate::token_error::TokenizerError;
+pub use crate::tracker::Context;
+
+use crate::parser_ext::{
+    AllConsuming, Complete, Consumed, Cut, DelimitedBy, FromStrParser, IntoErr, MapRes,
+    OptPrecedes, Optional, OrElse, PNot, Peek, Precedes, Recognize, Terminated, Value, Verify,
+    WithCode, WithContext,
+};
 use nom::{InputIter, InputLength, Offset, Parser, Slice};
 use nom_locate::LocatedSpan;
 use std::borrow::Borrow;
@@ -52,29 +80,12 @@ use std::fmt::{Debug, Display};
 use std::ops::RangeTo;
 use std::str::FromStr;
 
-pub mod combinators;
-pub mod error;
-pub mod examples;
-pub mod spans;
-pub mod test;
-pub mod token_error;
-pub mod tracker;
-
-mod context;
-mod debug;
-mod parser_ext;
-
-pub use crate::context::Context;
-pub use crate::error::ParserError;
-use crate::token_error::TokenizerError;
-pub use parser_ext::*;
-
 /// Prelude, import the traits.
 pub mod prelude {
     pub use crate::error::AppendParserError;
-    pub use crate::spans::{SpanFragment, SpanLocation, SpanUnion};
+    pub use crate::spans::{SpanFragment, SpanUnion};
     pub use crate::tracker::{ResultTracking, Tracking};
-    pub use crate::{KParseError, KParser};
+    pub use crate::{ErrInto, ErrWrapped, KParseError, KParser};
 }
 
 /// Alias for LocatedSpan.
@@ -97,16 +108,7 @@ pub trait Code: Copy + Display + Debug + Eq {
 
 /// This trait catches the essentials for an error type within this library.
 ///
-/// It is built this way so that it can be implemented for the concrete error
-/// and the nom::Err wrapped error.
-/// With some restrictions for a Result containing a nom::Err wrapped error too.
-///
-/// The functions returning an Option return None if
-/// * self is nom::Err::Incomplete
-/// * self is Result::Ok
-///
-/// The first case is a special error path aside from parsing, and the second
-/// is not an error at all.
+/// It is implemented for `E`, `nom::Err<E>` and `Result<(I,O), nom::Err<E>>`.
 ///
 pub trait KParseError<C, I> {
     /// The base error type.
@@ -115,14 +117,14 @@ pub trait KParseError<C, I> {
     /// Create a matching error.
     fn from(code: C, span: I) -> Self;
 
-    /// Returns the error code if applicable.
+    /// Returns the error code if self is `Result::Err` and it's not `nom::Err::Incomplete`.
     fn code(&self) -> Option<C>;
-    /// Returns the error span if applicable.
+    /// Returns the error span if self is `Result::Err` and it's not `nom::Err::Incomplete`.
     fn span(&self) -> Option<I>;
-    /// Returns the error if applicable.
+    /// Returns the error if self is `Result::Err` and it's not `nom::Err::Incomplete`.
     fn err(&self) -> Option<&Self::WrappedError>;
 
-    /// Returns all the parts if applicable.
+    /// Returns all the parts if self is `Result::Err` and it's not `nom::Err::Incomplete`.
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)>;
 
     /// Changes the error code.
@@ -130,13 +132,38 @@ pub trait KParseError<C, I> {
 }
 
 /// This trait is used in a few places where the function wants to accept both
-/// E and nom::Err<E>.
+/// `E` and `nom::Err<E>`.
 pub trait ErrWrapped {
     /// The base error type.
     type WrappedError: Debug;
 
-    /// Converts self to a nom::Err wrapped error.
+    /// Converts self to a `nom::Err` wrapped error.
     fn wrap(self) -> nom::Err<Self::WrappedError>;
+}
+
+/// Analog function for err_into() working on a parser, but working on the Result instead.
+pub trait ErrInto<E2> {
+    /// Result of the conversion.
+    type Result;
+
+    /// Converts the error value of the result.
+    fn err_into(self) -> Self::Result;
+}
+
+impl<I, O, E1, E2> ErrInto<E2> for Result<(I, O), nom::Err<E1>>
+where
+    E2: From<E1>,
+{
+    type Result = Result<(I, O), nom::Err<E2>>;
+
+    fn err_into(self) -> Self::Result {
+        match self {
+            Ok(v) => Ok(v),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.into())),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Failure(e.into())),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+        }
+    }
 }
 
 /// Adds some common parser combinators as postfix operators to parser.
@@ -247,7 +274,7 @@ where
         E: KParseError<C, I>,
         I: Clone;
 
-    /// Or. Returns a (Option<A>, Option<B>)
+    /// Or. Returns a `(Option<A>, Option<B>)`
     fn or_else<PE, OE>(self, other: PE) -> OrElse<Self, PE, OE>
     where
         PE: Parser<I, OE, E>;

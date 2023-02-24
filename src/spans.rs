@@ -82,31 +82,6 @@ impl<'s> SpanUnion for &'s [u8] {
     }
 }
 
-/// Trait for two functions of LocatedSpan.
-pub trait SpanLocation {
-    /// The offset represents the position of the fragment relatively to
-    /// the input of the parser. It starts at offset 0.
-    fn location_offset(&self) -> usize;
-
-    /// The line number of the fragment relatively to the input of the
-    /// parser. It starts at line 1.
-    fn location_line(&self) -> u32;
-}
-
-impl<T, X> SpanLocation for LocatedSpan<T, X>
-where
-    T: AsBytes,
-    X: Clone,
-{
-    fn location_offset(&self) -> usize {
-        LocatedSpan::location_offset(self)
-    }
-
-    fn location_line(&self) -> u32 {
-        LocatedSpan::location_line(self)
-    }
-}
-
 /// Get the fragment from a span.
 pub trait SpanFragment {
     /// Type of the fragment.
@@ -191,7 +166,7 @@ where
     }
 }
 
-/// Operations on 'lines' of text.
+/// Allows accessing text-lines starting with a fragment of the text.
 ///
 /// Can use any other ASCII value besides \n.
 #[derive(Debug)]
@@ -548,6 +523,7 @@ impl<'s, X: Clone + 's> SpanLines<'s, X> {
 }
 
 /// Iterates all lines.
+#[doc(hidden)]
 pub struct SpanIter<'s, X> {
     sep: u8,
     buf: LocatedSpan<&'s str, X>,
@@ -565,6 +541,7 @@ impl<'s, X: Clone + 's> Iterator for SpanIter<'s, X> {
 }
 
 /// Backward iterator.
+#[doc(hidden)]
 pub struct RSpanIter<'s, X> {
     sep: u8,
     buf: LocatedSpan<&'s str, X>,
@@ -581,7 +558,7 @@ impl<'s, X: Clone + 's> Iterator for RSpanIter<'s, X> {
     }
 }
 
-/// Operations on 'lines' of text.
+/// Allows accessing text-lines starting with a fragment of the text.
 ///
 /// Can use any other ASCII value besides \n.
 #[derive(Debug)]
@@ -599,6 +576,14 @@ impl<'s> SpanBytes<'s> {
     /// Create a new SpanBytes buffer.
     pub fn with_separator(buf: &'s [u8], sep: u8) -> Self {
         Self { sep, buf }
+    }
+
+    /// Returns the line number.
+    pub fn line(&self, fragment: &[u8]) -> usize {
+        let offset = Self::offset_from(self.buf, fragment);
+
+        assert!(offset <= self.buf.len());
+        memchr_iter(self.sep, &self.buf[..offset]).count() + 1
     }
 
     /// Assumes ASCII text and gives a column.
@@ -853,6 +838,7 @@ impl<'s> SpanBytes<'s> {
 }
 
 /// Iterates all lines.
+#[doc(hidden)]
 pub struct BytesIter<'s> {
     sep: u8,
     buf: &'s [u8],
@@ -870,6 +856,7 @@ impl<'s> Iterator for BytesIter<'s> {
 }
 
 /// Backward iterator.
+#[doc(hidden)]
 pub struct RBytesIter<'s> {
     sep: u8,
     buf: &'s [u8],
@@ -886,48 +873,32 @@ impl<'s> Iterator for RBytesIter<'s> {
     }
 }
 
-/// Operations on 'lines' of text.
+/// Allows accessing text-lines starting with a fragment of the text.
 ///
 /// Can use any other ASCII value besides \n.
 #[derive(Debug)]
 pub struct SpanStr<'s> {
     sep: u8,
     buf: &'s str,
-    nl: Vec<usize>,
 }
 
 impl<'s> SpanStr<'s> {
     /// Create a new SpanStr buffer.
     pub fn new(buf: &'s str) -> Self {
-        Self {
-            sep: b'\n',
-            buf,
-            nl: Self::scan(buf, b'\n'),
-        }
+        Self { sep: b'\n', buf }
     }
 
     /// Create a new SpanStr buffer.
     pub fn with_separator(buf: &'s str, sep: u8) -> Self {
-        Self {
-            sep,
-            buf,
-            nl: Self::scan(buf, sep),
-        }
-    }
-
-    fn scan(buf: &'s str, sep: u8) -> Vec<usize> {
-        let mut s = Vec::new();
-        s.extend(memchr_iter(sep, buf.as_bytes()));
-        s
+        Self { sep, buf }
     }
 
     /// Returns the line number.
     pub fn line(&self, fragment: &str) -> usize {
         let offset = Self::offset_from(self.buf, fragment);
-        match self.nl.binary_search(&offset) {
-            Ok(r) => r + 1,
-            Err(r) => r + 1,
-        }
+
+        assert!(offset <= self.buf.len());
+        memchr_iter(self.sep, self.buf[..offset].as_bytes()).count() + 1
     }
 
     /// Assumes ASCII text and gives a column.
@@ -1182,6 +1153,7 @@ impl<'s> SpanStr<'s> {
 }
 
 /// Iterates all lines.
+#[doc(hidden)]
 pub struct StrIter<'s> {
     sep: u8,
     buf: &'s str,
@@ -1199,6 +1171,7 @@ impl<'s> Iterator for StrIter<'s> {
 }
 
 /// Backward iterator.
+#[doc(hidden)]
 pub struct RStrIter<'s> {
     sep: u8,
     buf: &'s str,

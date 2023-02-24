@@ -5,10 +5,10 @@
 //! use nom::bytes::complete::tag;
 //! use kparse::combinators::with_code;
 //! use kparse::examples::{ExSpan, ExTagB, ExTokenizerResult};
-//! use kparse::test::{CheckDump, span_parse};
+//! use kparse::test::{CheckDump, str_parse};
 //!
 //! // run the parser and expect Ok(). Otherwise dump & panic.
-//! span_parse(&mut None, "b", nom_parse_b).ok_any().q(CheckDump);
+//! str_parse(&mut None, "b", nom_parse_b).ok_any().q(CheckDump);
 //!
 //! fn nom_parse_b(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
 //!     with_code(tag("b"), ExTagB)(i)
@@ -33,15 +33,15 @@ use std::time::{Duration, Instant};
 use std::vec::Vec;
 
 /// Value comparison.
-pub type CompareFn<O, V> = for<'a> fn(parsed: &'a O, test: V) -> bool;
+pub type TestEqFn<O, V> = for<'a> fn(parsed: &'a O, test: V) -> bool;
 
 /// Collected data of the test run.
 ///
 /// Call any of the test functions and finish with q().
 pub struct Test<'s, P, I, O, E> {
-    /// ParseContext
+    /// Tracking context.
     pub context: &'s P,
-    /// text
+    /// Text
     pub span: I,
     /// Test Result
     pub result: Result<(I, O), nom::Err<E>>,
@@ -90,6 +90,7 @@ where
 }
 
 /// Not an error code.
+#[doc(hidden)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NoCode;
 
@@ -439,12 +440,12 @@ where
 
     /// Checks for ok results.
     ///
-    /// This takes a CompareFn to convert the parser result to a type which can be compared
+    /// This takes a TestEqFn to convert the parser result to a type which can be compared
     /// with the test value.
     ///
     /// Finish the test with q()
     #[must_use]
-    pub fn ok<V>(&'s self, eq: CompareFn<O, V>, test: V) -> &Self
+    pub fn ok<V>(&'s self, eq: TestEqFn<O, V>, test: V) -> &Self
     where
         V: Debug + Clone,
         O: Debug,

@@ -33,6 +33,32 @@ use std::ops::{RangeFrom, RangeTo};
 /// }
 ///
 /// ```
+///
+/// The same can be achieved in a imperative style.
+///
+/// ```
+/// use nom::bytes::complete::tag;
+/// use nom::Parser;
+/// use kparse::{Context, KParser};
+/// use kparse::examples::{ExParserResult, ExSpan, ExTagA, ExTokenizerResult};
+/// use kparse::prelude::*;
+///
+/// fn parse_a(input: ExSpan<'_>) -> ExParserResult<'_, AstA> {
+///     Context.enter(ExTagA, input);
+///     let (rest, tok) = nom_parse_a.err_into().parse(input).track()?;
+///     Context.ok(rest, tok, AstA { span: tok })
+/// }
+///
+/// fn nom_parse_a(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {
+///     tag("a").with_code(ExTagA).parse(i)
+/// }
+///
+/// #[derive(Debug)]
+/// struct AstA<'s> {
+///     pub span: ExSpan<'s>,
+/// }
+/// ```
+///
 #[inline]
 pub fn track<PA, C, I, O, E>(
     func: C,
@@ -65,8 +91,10 @@ where
     }
 }
 
+/// Converts the error type with the From trait.
 ///
-///
+/// The same function is available as postfix function `parser.err_into()` for parsers
+/// and as `Result::err_into()` for Result's.
 #[inline]
 pub fn err_into<PA, I, O, E1, E2>(mut parser: PA) -> impl FnMut(I) -> Result<(I, O), nom::Err<E2>>
 where
@@ -84,6 +112,8 @@ where
 }
 
 /// Takes a parser and converts the error.
+///
+/// This is also available as postfix fn `parser.with_code(..)` for parsers.
 ///
 /// ```rust
 /// use nom::bytes::complete::tag;
@@ -117,7 +147,8 @@ where
 }
 
 /// Takes a parser and a transformation of the parser result.
-/// Maps any error to the given error code.
+///
+/// This is also available as postfix fn `parser.map_res()` for parsers.
 ///
 /// ```rust
 /// use nom::character::complete::digit1;
@@ -162,7 +193,7 @@ where
     }
 }
 
-/// Same as nom::char but return the input type instead of the char
+/// Same as nom::char but return the input type instead of the char.
 #[inline]
 pub fn pchar<I, Error: ParseError<I>>(c: char) -> impl Fn(I) -> IResult<I, I, Error>
 where
@@ -177,27 +208,6 @@ where
             } else {
                 Err(nom::Err::Error(Error::from_char(i, c)))
             }
-        }
-    }
-}
-
-/// Runs a condition on the input and only executes the parser on success.
-#[inline]
-pub fn when<CFn, PFn, C, I, O, E>(
-    cond_fn: CFn,
-    mut parse_fn: PFn,
-) -> impl FnMut(I) -> Result<(I, Option<O>), nom::Err<E>>
-where
-    CFn: Fn(I) -> bool,
-    PFn: Parser<I, O, E>,
-    C: Code,
-    I: AsBytes + Clone,
-{
-    move |i| -> Result<(I, Option<O>), nom::Err<E>> {
-        if cond_fn(i.clone()) {
-            parse_fn.parse(i).map(|(r, v)| (r, Some(v)))
-        } else {
-            Ok((i, None))
         }
     }
 }

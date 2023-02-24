@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
+use crate::ExCode::*;
 use kparse::combinators::track;
-use kparse::examples::{
-    ExABNum, ExABstar, ExAoptB, ExAorB, ExAstarB, ExAthenB, ExNumber, ExParserResult, ExSpan,
-    ExTagA, ExTagB, ExTokenizerResult,
-};
 use kparse::prelude::*;
+use kparse::token_error::TokenizerError;
 #[cfg(debug_assertions)]
 use kparse::tracker::StdTracker;
-use kparse::Context;
+#[cfg(debug_assertions)]
+use kparse::tracker::TrackSpan;
+use kparse::{Code, Context, ParserError, ParserResult, TokenizerResult};
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
 use nom::combinator::consumed;
@@ -16,6 +16,57 @@ use nom::multi::many0;
 use nom::sequence::{terminated, tuple};
 use nom::{AsChar, InputTakeAtPosition, Parser};
 use std::env;
+use std::fmt::{Display, Formatter};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExCode {
+    ExNomError,
+
+    ExTagA,
+    ExTagB,
+    ExNumber,
+
+    ExAthenB,
+    ExAoptB,
+    ExAstarB,
+    ExABstar,
+    ExAorB,
+    ExABNum,
+}
+
+impl Display for ExCode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ExNomError => "nom",
+                ExTagA => "a",
+                ExTagB => "b",
+                ExNumber => "number",
+                ExAthenB => "A B",
+                ExAoptB => "A? B",
+                ExAstarB => "A* B",
+                ExABstar => "(A | B)*",
+                ExAorB => "A | B",
+                ExABNum => "A B Number",
+            }
+        )
+    }
+}
+
+impl Code for ExCode {
+    const NOM_ERROR: Self = Self::ExNomError;
+}
+
+#[cfg(debug_assertions)]
+pub type ExSpan<'s> = TrackSpan<'s, ExCode, &'s str>;
+#[cfg(not(debug_assertions))]
+pub type ExSpan<'s> = &'s str;
+pub type ExParserResult<'s, O> = ParserResult<ExCode, ExSpan<'s>, O>;
+pub type ExTokenizerResult<'s, O> = TokenizerResult<ExCode, ExSpan<'s>, O>;
+pub type ExParserError<'s> = ParserError<ExCode, ExSpan<'s>>;
+pub type ExTokenizerError<'s> = TokenizerError<ExCode, ExSpan<'s>>;
 
 #[derive(Debug)]
 struct AstA<'s> {
@@ -103,7 +154,7 @@ fn token_number(i: ExSpan<'_>) -> ExParserResult<'_, AstNumber<'_>> {
 
 fn parse_a(input: ExSpan<'_>) -> ExParserResult<'_, AstA> {
     Context.enter(ExTagA, input);
-    let (rest, tok) = nom_parse_a.err_into().parse(input).track()?;
+    let (rest, tok) = nom_parse_a.parse(input).err_into().track()?;
     Context.ok(rest, tok, AstA { span: tok })
 }
 
