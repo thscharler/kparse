@@ -557,7 +557,7 @@ impl Track {
         I: InputTake + InputLength + InputIter,
         I: 's,
     {
-        provider.span(text)
+        provider.track_span(text)
     }
 
     #[cfg(not(debug_assertions))]
@@ -568,10 +568,9 @@ impl Track {
         I: InputTake + InputLength + InputIter,
         I: 's,
     {
-        provider.span(text)
+        text
     }
 
-    // todo: open for locatedspan
     /// Create a source text map for the given text.
     pub fn source_str<'a>(&self, text: &'a str) -> SourceStr<'a> {
         SourceStr::new(text)

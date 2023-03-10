@@ -33,14 +33,10 @@ pub trait TrackProvider<C, T>
 where
     C: Code,
 {
-    /// Create a new Span from this context using the original str.
-    #[cfg(debug_assertions)]
-    fn span<'s>(&'s self, text: T) -> LocatedSpan<T, &'s dyn TrackProvider<C, T>>
+    /// Create a span with this TrackingProvider attached.
+    fn track_span<'s>(&'s self, text: T) -> LocatedSpan<T, &'s dyn TrackProvider<C, T>>
     where
         T: 's;
-
-    #[cfg(not(debug_assertions))]
-    fn span<'s>(&'s self, text: T) -> T;
 
     /// Extract the tracking results.
     /// Removes the result from the context.
@@ -161,17 +157,11 @@ where
     C: Code,
 {
     /// Create a new Span from this context using the original str.
-    #[cfg(debug_assertions)]
-    fn span<'s>(&'s self, text: T) -> LocatedSpan<T, &'s dyn TrackProvider<C, T>>
+    fn track_span<'s>(&'s self, text: T) -> LocatedSpan<T, &'s dyn TrackProvider<C, T>>
     where
         T: 's,
     {
         LocatedSpan::new_extra(text, self)
-    }
-
-    #[cfg(not(debug_assertions))]
-    fn span<'s>(&'s self, text: T) -> T {
-        text
     }
 
     /// Extract the tracking results.

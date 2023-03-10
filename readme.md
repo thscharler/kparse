@@ -2,26 +2,28 @@
 
 Addons for a nom parser.
 
-* Trait Code for basic error codes.
+* Trait Code for error codes.
 
 * ParserError for full error collection and TokenizerError for fast inner loops.
 
 * Tracking/Logging of the parser execution.
 
-* Builder style tests that can do tests from simple ok/err to deep inspection
-  of the results.
-* With simple pluggable reporting too.
+* Builder style tests that can do tests from simple ok/err to deep
+  inspection of the results.
+* With pluggable reporting.
 
-* Extended set of postfix adapters for a parser. Inspired by nom_supreme
-  but integrated with the error Code and error types of this crate.
+* Extended set of postfix adapters for a parser. Inspired by 
+  nom_supreme but integrated with the error Code and error types 
+  of this crate.
 
-* SpanLines and SpanBytes to get context information around a span.
-* Can also retrieve line/column information.
-* From a plain &str too.
 
-* All of the extras can be easily cfg'ed away for a release build.
-* Usually it's just cfg(debug_assertions) vs cfg(not(debug_assertions)) to
-  change the Input type from TrackSpan to plain &str.
+* SourceStr and SourceBytes to get context information for a span.
+  * Line/Column information
+  * Context source lines.
+  * Works without LocatedSpan.
+
+* By default the tracking function is only active in debug mode.
+* In release mode all the tracking is compiled away to nothing. 
 
 The complete code can be found as [examples/example1.rs].
 
@@ -33,8 +35,8 @@ fn parse_a_star_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAstarB> {
         tuple((many0(parse_a), parse_b))
             .map(|(a, b)| AstAstarB { a, b }),
     )
-        .err_into()
-        .parse(input)
+    .err_into()
+    .parse(input)
 }
 
 // := ( a | b )*
@@ -87,15 +89,14 @@ fn parse_a_b_star(input: ESpan<'_>) -> EResult<'_, AstABstar> {
 
 ## prelude
 
-There is a prelude for all common traits. 
+There is a prelude for all common traits.
 
 ## Error code
 
 Define the error code enum. The error codes are used in actual error reporting
-and as a marker when tracing the execution of the parser.
+and as a marker when tracking the execution of the parser.
 
-All the nom errorkind are mapped to one parser error and it's kept as extra
-info.
+All the nom errorkind are mapped to one parser error.
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -120,19 +121,22 @@ impl Code for ECode {
 ```
 
 This crate is very heavy on type variables. The following type aliases
-are recommended. With the two cfg's the parser can switch from detailed
-tracking to release performance.
+are recommended. 
 
 ```rust
-#[cfg(debug_assertions)]
-pub type ExSpan<'s> = TrackSpan<'s, ExCode, &'s str>;
-#[cfg(not(debug_assertions))]
-pub type ExSpan<'s> = &'s str;
+define_span!(ExSpan = ExCode, str);
 pub type ExParserResult<'s, O> = ParserResult<ExCode, ExSpan<'s>, O>;
 pub type ExTokenizerResult<'s, O> = TokenizerResult<ExCode, ExSpan<'s>, O>;
 pub type ExParserError<'s> = ParserError<ExCode, ExSpan<'s>>;
 pub type ExTokenizerError<'s> = TokenizerError<ExCode, ExSpan<'s>>;
 ```
+
+define_span creates a type alias for the data. It's result differs between
+debug and release mode. 
+
+ParserError can hold more than one error code and various extra data. 
+On the other side TokenizerError is only one error code and a span to minimize
+it's size.
 
 ## AST
 
@@ -177,7 +181,8 @@ Parsing with the FromStr trait. Takes a error code to create a error on fail.
 ### with_code()
 
 Changes the error code of an error. The old error code is kept as an expected
-code.
+code. This function is available as a combinator function and as a function
+defined for Result<>.
 
 # Parser tracking
 
@@ -186,18 +191,18 @@ code.
 The tracker is added as the LocatedSpan.extra field, this way no extra
 parameters are needed.
 
-To access the tracker the Context struct is used.
+To access the tracker the Track struct is used.
 
 ```rust
 fn parse_a(input: ESpan<'_>) -> EResult<'_, AstA> {
-    Context.enter(ETagA, input);
+    Track.enter(ETagA, input);
     let (rest, tok) = nom_parse_a(input).track()?;
 
     if false {
-        return Context.err(EParserError::new(EAorB, input));
+        return Track.err(EParserError::new(EAorB, input));
     }
 
-    Context.ok(rest, tok, AstA { span: tok })
+    Track.ok(rest, tok, AstA { span: tok })
 }
 ```
 
@@ -206,17 +211,20 @@ parser.
 
 track() acts on Result to allow easy error propagation.
 
-Note: There are track_as() and track_ok() too.
+Note: There is track_as(code: ExCode) to change the error code.
 
 ## Calling the parser
 
 Create a StdTracker and call the parser with an annotated span.
 
+Depending on debug/release mode Track.span() returns a LocatedSpan or the
+original text. 
+
 ```rust
 fn main() {
     for txt in env::args() {
-        let trk = StdTracker::new();
-        let span = trk.span(txt.as_str());
+        let trk = Track.new_tracker();
+        let span = Track.span(trk, txt.as_str());
 
         match parse_a_b_star(span) {
             Ok((rest, val)) => {}
@@ -229,21 +237,16 @@ fn main() {
 }
 ```
 
-Tracking only works if a TrackSpan is used in the parser.
-
-If the type alias points to a &str, a &[u8] or any LocatedSpan<T, ()>
-everything still works, just without tracking.
-
 ## Getting the tracking data
 
 The call to StdTracker::results() returns the tracking data.
 
 # Testing the parser
 
-The test module has several functions to run a test for one parser function
-and to evaluate the result.
+The test module has several functions to run a test for one parser 
+function and to evaluate the result.
 
-track_parse() runs the parser and returns a Test struct with a variety of
+str_parse() runs the parser and returns a Test struct with a variety of
 builder like functions to check the results. If any check went wrong the
 q() call reports this as failed test.
 
@@ -292,8 +295,8 @@ Just some things I have been missing.
 
 ## track()
 
-Tracks the call to the subparser.
-
+Tracks the call to the subparser. Calls Track.enter() and 
+Track.ok()/Track.err() before and after the subparser.
 
 ## pchar()
 
@@ -316,45 +319,32 @@ Similar to separated_list, but allows for a trailing separator.
 
 # SpanUnion
 
-This trait is kind of a undo of parsing. It takes two output spans and
-can create a span that covers both of them and anything between.
+This trait is kind of a undo of parsing. It's called as a method of 
+the input value and takes two parsed fragments. It then returns a new
+fragment that covers both input fragments.
 
 nom has consumed() and recognize() for this, which work fine too.
 
-# SpanLocation and SpanFragment
+# SpanFragment
 
-Provides the nom_locate functions location_offset(), location_line() and fragment() via traits. This way they are also available for &str etc.
+Provides the nom_locate functions fragment() via a trait.  
+This way it's available for &str too. This is essential when switching
+between LocatedSpan and plain &str.
 
-# SpanLines, SpanStr and SpanBytes 
+# SourceStr and SourceBytes
 
-"Ok, so now I got the error, but what was the context?"
+They can be created with Track.source_str()/Track.source_bytes(). 
 
-SpanLines can help. It contains the complete parser input and can
-find the text lines surrounding any given span returned by the error.
-
-It can also provide line number an column.
-
-SpanBytes does the same with &[u8], SpanStr for &str.
-
-# Performance
-
-Expect some overhead when tracking is enabled.
-When disabled with a different Span type the calls to Context etc boil down
-to no-ops, so there should be no difference to a equivalent nom-only parser.
-
-It is also possible to replace LocatedSpan completely which gives quite a 
-boost. See example1.rs
+They can map any parsed fragment to line/column index, and they can 
+extract the surrounding text lines. 
 
 ### ParserError vs TokenizerError
 
 ParserError is double the size of TokenizerError due to a Vec with all
-the extra data. 
+the extra data.
 
-But as it tries to keep the nom ErrorKind it almost immediately allocates
-for the vec. As most parser combinators work heavily with Err results this
-can be quite heavy. There is the feature dont_track_nom to avoid this pit.
+Personally I use TokenizerError for the lower level parsers and switch 
+to ParserError at the point where I need the extra information.
 
-But maybe the better way is to use TokenizerError for lower level parsers
-and switch to ParserError at the point where the extra features are needed.
 With err_into() this is not too annoying.
 

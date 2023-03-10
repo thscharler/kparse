@@ -1527,18 +1527,6 @@ pub mod parser4 {
             terminated(pchar(':'), nom_ws).with_code(APCColon).parse(i)
         }
 
-        // pub fn nom_star_star(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-        //     terminated(tag("**"), nom_ws)
-        //         .with_code(APCStarStar)
-        //         .parse(i)
-        // }
-        //
-        // pub fn nom_slash_slash(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
-        //     terminated(tag("//"), nom_ws)
-        //         .with_code(APCSlashSlash)
-        //         .parse(i)
-        // }
-
         pub fn nom_header(i: APSpan<'_>) -> APTokenizerResult<'_, APSpan<'_>> {
             terminated(take_while(|c| c == '='), nom_ws)
                 .with_code(APCHeader)
