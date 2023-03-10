@@ -12,14 +12,13 @@
 
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, ErrWrapped, KParseError};
+use crate::{Code, ErrOrNomErr, KParseError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::any::Any;
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
-use std::marker::PhantomData;
 
 /// Parser error.
 pub struct ParserError<C, I> {
@@ -33,8 +32,6 @@ pub struct ParserError<C, I> {
 
 /// Extra information added to a ParserError.
 pub enum Hints<C, I> {
-    /// Contains any nom error that occurred.
-    Nom(Nom<C, I>),
     /// Expected outcome of the parser.
     Expect(SpanAndCode<C, I>),
     /// Suggestions from the parser.
@@ -45,45 +42,25 @@ pub enum Hints<C, I> {
     UserData(Box<dyn Any>),
 }
 
-/// Contains the data of a nom error.
-#[derive(Clone, Copy)]
-pub struct Nom<C, I> {
-    /// nom ErrorKind
-    pub kind: ErrorKind,
-    /// Span
-    pub span: I,
-    /// Optional char from error.
-    pub ch: Option<char>,
-    /// ...
-    pub _phantom: PhantomData<C>,
-}
-
-/// Contains a error code and the span.
-#[derive(Clone, Copy)]
-pub struct SpanAndCode<C, I> {
-    /// Error code
-    pub code: C,
-    /// Span
-    pub span: I,
-}
-
-impl<C, I> ErrWrapped for ParserError<C, I>
+impl<C, I> ErrOrNomErr for ParserError<C, I>
 where
     C: Code,
     I: Clone + Debug + InputTake + InputLength + InputIter,
 {
     type WrappedError = ParserError<C, I>;
+
     fn wrap(self) -> nom::Err<Self::WrappedError> {
         nom::Err::Error(self)
     }
 }
 
-impl<C, I> ErrWrapped for nom::Err<ParserError<C, I>>
+impl<C, I> ErrOrNomErr for nom::Err<ParserError<C, I>>
 where
     C: Code,
     I: Clone + Debug + InputTake + InputLength + InputIter,
 {
     type WrappedError = ParserError<C, I>;
+
     fn wrap(self) -> nom::Err<Self::WrappedError> {
         self
     }
@@ -98,6 +75,10 @@ where
 
     fn from(code: C, span: I) -> Self {
         ParserError::new(code, span)
+    }
+
+    fn with_code(self, code: C) -> Self {
+        ParserError::with_code(self, code)
     }
 
     fn code(&self) -> Option<C> {
@@ -115,10 +96,6 @@ where
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
         Some((self.code, self.span.clone(), self))
     }
-
-    fn with_code(self, code: C) -> Self {
-        ParserError::with_code(self, code)
-    }
 }
 
 impl<C, I> KParseError<C, I> for nom::Err<ParserError<C, I>>
@@ -130,6 +107,14 @@ where
 
     fn from(code: C, span: I) -> Self {
         nom::Err::Error(KParseError::from(code, span))
+    }
+
+    fn with_code(self, code: C) -> Self {
+        match self {
+            nom::Err::Incomplete(_) => self,
+            nom::Err::Error(e) => nom::Err::Error(e.with_code(code)),
+            nom::Err::Failure(e) => nom::Err::Failure(e.with_code(code)),
+        }
     }
 
     fn code(&self) -> Option<C> {
@@ -163,14 +148,6 @@ where
             nom::Err::Failure(e) => Some((e.code, e.span.clone(), e)),
         }
     }
-
-    fn with_code(self, code: C) -> Self {
-        match self {
-            nom::Err::Incomplete(_) => self,
-            nom::Err::Error(e) => nom::Err::Error(e.with_code(code)),
-            nom::Err::Failure(e) => nom::Err::Failure(e.with_code(code)),
-        }
-    }
 }
 
 impl<C, I, O> KParseError<C, I> for Result<(I, O), nom::Err<ParserError<C, I>>>
@@ -182,6 +159,15 @@ where
 
     fn from(code: C, span: I) -> Self {
         Err(nom::Err::Error(KParseError::from(code, span)))
+    }
+
+    fn with_code(self, code: C) -> Self {
+        match self {
+            Ok((rest, token)) => Ok((rest, token)),
+            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(code))),
+            Err(nom::Err::Failure(e)) => Err(nom::Err::Error(e.with_code(code))),
+            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
+        }
     }
 
     fn code(&self) -> Option<C> {
@@ -217,15 +203,6 @@ where
             Err(nom::Err::Error(e)) => Some((e.code, e.span.clone(), e)),
             Err(nom::Err::Failure(e)) => Some((e.code, e.span.clone(), e)),
             Err(nom::Err::Incomplete(_)) => None,
-        }
-    }
-
-    fn with_code(self, code: C) -> Self {
-        match self {
-            Ok((rest, token)) => Ok((rest, token)),
-            Err(nom::Err::Error(e)) => Err(nom::Err::Error(e.with_code(code))),
-            Err(nom::Err::Failure(e)) => Err(nom::Err::Error(e.with_code(code))),
-            Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
         }
     }
 }
@@ -352,64 +329,28 @@ where
     I: Clone,
 {
     fn from_error_kind(input: I, _kind: ErrorKind) -> Self {
-        #[cfg(not(feature = "dont_track_nom"))]
-        let v = ParserError {
+        ParserError {
             code: C::NOM_ERROR,
             span: input.clone(),
-            hints: vec![Hints::Nom(Nom {
-                kind: _kind,
-                span: input,
-                ch: None,
-                _phantom: Default::default(),
-            })],
-        };
-        #[cfg(feature = "dont_track_nom")]
-        let v = ParserError {
-            code: C::NOM_ERROR,
-            span: input,
             hints: Default::default(),
-        };
-        v
+        }
     }
 
-    fn append(_input: I, _kind: ErrorKind, #[allow(unused_mut)] mut other: Self) -> Self {
-        #[cfg(not(feature = "dont_track_nom"))]
-        other.hints.push(Hints::Nom(Nom {
-            kind: _kind,
-            span: _input,
-            ch: None,
-            _phantom: Default::default(),
-        }));
+    fn append(_input: I, _kind: ErrorKind, other: Self) -> Self {
         other
     }
 
     fn from_char(input: I, _ch: char) -> Self {
-        #[cfg(not(feature = "dont_track_nom"))]
-        let v = ParserError {
+        ParserError {
             code: C::NOM_ERROR,
             span: input.clone(),
-            hints: vec![Hints::Nom(Nom {
-                kind: ErrorKind::Char,
-                span: input,
-                ch: Some(_ch),
-                _phantom: Default::default(),
-            })],
-        };
-        #[cfg(feature = "dont_track_nom")]
-        let v = ParserError {
-            code: C::NOM_ERROR,
-            span: input,
             hints: Default::default(),
-        };
-        v
+        }
     }
 
     /// Combines two parser errors.
-    fn or(#[allow(unused_mut)] mut self, _other: Self) -> Self {
-        #[cfg(not(feature = "dont_track_nom"))]
-        {
-            self.append_err(_other);
-        }
+    fn or(mut self, other: Self) -> Self {
+        self.append_err(other);
         self
     }
 }
@@ -431,14 +372,6 @@ where
                 write!(f, " ")?;
             }
             write!(f, "{}", exp.code)?;
-        }
-
-        if let Some(nom) = self.nom() {
-            if let Some(ch) = nom.ch {
-                write!(f, " errorkind {:?} {:?}", nom.kind, ch)?
-            } else {
-                write!(f, " errorkind {:?}", nom.kind)?
-            }
         }
 
         if self.iter_suggested().next().is_some() {
@@ -488,38 +421,11 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Hints::Nom(v) => write!(f, "Nom {:?}", v),
-            Hints::Expect(v) => write!(f, "Expect {:?}", v),
-            Hints::Suggest(v) => write!(f, "Suggest {:?}", v),
+            Hints::Expect(v) => write!(f, "Expect {:?} ", v),
+            Hints::Suggest(v) => write!(f, "Suggest {:?} ", v),
             Hints::Cause(v) => write!(f, "Cause {:?}", v),
             Hints::UserData(v) => write!(f, "UserData {:?}", v),
         }
-    }
-}
-
-impl<C, I> Debug for Nom<C, I>
-where
-    C: Code,
-    I: Clone + Debug,
-    I: InputTake + InputLength + InputIter,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let w = f.width().into();
-        write!(f, "{:?}:{:?}", self.kind, restrict(w, self.span.clone()))?;
-        Ok(())
-    }
-}
-
-impl<C, I> Debug for SpanAndCode<C, I>
-where
-    C: Code,
-    I: Clone + Debug,
-    I: InputTake + InputLength + InputIter,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let w = f.width().into();
-        write!(f, "{:?}:{:?}", self.code, restrict(w, self.span.clone()))?;
-        Ok(())
     }
 }
 
@@ -543,6 +449,28 @@ where
     }
 }
 
+/// Contains a error code and the span.
+#[derive(Clone, Copy)]
+pub struct SpanAndCode<C, I> {
+    /// Error code
+    pub code: C,
+    /// Span
+    pub span: I,
+}
+
+impl<C, I> Debug for SpanAndCode<C, I>
+where
+    C: Code,
+    I: Clone + Debug,
+    I: InputTake + InputLength + InputIter,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let w = f.width().into();
+        write!(f, "{:?}:{:?}", self.code, restrict(w, self.span.clone()))?;
+        Ok(())
+    }
+}
+
 impl<C, I> ParserError<C, I>
 where
     C: Code,
@@ -555,17 +483,6 @@ where
             span,
             hints: Vec::new(),
         }
-    }
-
-    /// With a nom errorkind
-    pub fn with_nom(mut self, span: I, kind: ErrorKind) -> Self {
-        self.hints.push(Hints::Nom(Nom {
-            kind,
-            span,
-            ch: None,
-            _phantom: Default::default(),
-        }));
-        self
     }
 
     /// With a cause.
@@ -584,17 +501,6 @@ where
     {
         self.hints.push(Hints::UserData(Box::new(user_data)));
         self
-    }
-
-    /// Finds the first (only) nom error.
-    pub fn nom(&self) -> Option<&Nom<C, I>> {
-        self.hints
-            .iter()
-            .find(|v| matches!(v, Hints::Nom(_)))
-            .and_then(|v| match v {
-                Hints::Nom(e) => Some(e),
-                _ => None,
-            })
     }
 
     /// Finds the first (single) cause.
@@ -655,18 +561,6 @@ where
         self
     }
 
-    /// Is this one of the nom ErrorKind codes?
-    pub fn is_error_kind(&self, kind: ErrorKind) -> bool {
-        for n in &self.hints {
-            if let Hints::Nom(n) = n {
-                if n.kind == kind {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
     /// Was this one of the expected errors.
     /// The main error code is one of the tested values.
     pub fn is_expected(&self, code: C) -> bool {
@@ -674,8 +568,8 @@ where
             return true;
         }
         for exp in &self.hints {
-            if let Hints::Expect(exp) = exp {
-                if exp.code == code {
+            if let Hints::Expect(v) = exp {
+                if v.code == code {
                     return true;
                 }
             }
@@ -700,9 +594,9 @@ where
     /// # Beware
     ///
     /// The main error code is not included here.
-    pub fn iter_expected(&self) -> impl Iterator<Item = &SpanAndCode<C, I>> {
+    pub fn iter_expected(&self) -> impl Iterator<Item = SpanAndCode<C, I>> + '_ {
         self.hints.iter().rev().filter_map(|v| match v {
-            Hints::Expect(n) => Some(n),
+            Hints::Expect(v) => Some(v.clone()),
             _ => None,
         })
     }
@@ -720,9 +614,9 @@ where
     }
 
     /// Returns the suggested codes.
-    pub fn iter_suggested(&self) -> impl Iterator<Item = &SpanAndCode<C, I>> {
+    pub fn iter_suggested(&self) -> impl Iterator<Item = SpanAndCode<C, I>> + '_ {
         self.hints.iter().rev().filter_map(|v| match v {
-            Hints::Suggest(n) => Some(n),
+            Hints::Suggest(v) => Some(v.clone()),
             _ => None,
         })
     }

@@ -3,10 +3,10 @@
 //!
 //! Can only hold one error code and a span.
 //!
-//!
 
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, ErrWrapped, KParseError, ParserError};
+use crate::parser_error::ParserError;
+use crate::{Code, ErrOrNomErr, KParseError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::error::Error;
@@ -22,23 +22,25 @@ pub struct TokenizerError<C, I> {
     pub span: I,
 }
 
-impl<C, I> ErrWrapped for TokenizerError<C, I>
+impl<C, I> ErrOrNomErr for TokenizerError<C, I>
 where
     C: Code,
     I: Clone + Debug + InputTake + InputLength + InputIter,
 {
     type WrappedError = TokenizerError<C, I>;
+
     fn wrap(self) -> nom::Err<Self::WrappedError> {
         nom::Err::Error(self)
     }
 }
 
-impl<C, I> ErrWrapped for nom::Err<TokenizerError<C, I>>
+impl<C, I> ErrOrNomErr for nom::Err<TokenizerError<C, I>>
 where
     C: Code,
     I: Clone + Debug + InputTake + InputLength + InputIter,
 {
     type WrappedError = TokenizerError<C, I>;
+
     fn wrap(self) -> nom::Err<Self::WrappedError> {
         self
     }
@@ -55,6 +57,10 @@ where
         TokenizerError::new(code, span)
     }
 
+    fn with_code(self, code: C) -> Self {
+        TokenizerError::with_code(self, code)
+    }
+
     fn code(&self) -> Option<C> {
         Some(self.code)
     }
@@ -69,10 +75,6 @@ where
 
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)> {
         Some((self.code, self.span.clone(), self))
-    }
-
-    fn with_code(self, code: C) -> Self {
-        TokenizerError::with_code(self, code)
     }
 }
 

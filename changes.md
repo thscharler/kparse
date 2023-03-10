@@ -1,3 +1,29 @@
+# 3.0
+
+## New
+
+* Make the distinction between Debug and Release mode a central point. 
+  * ParseSpan switches between LocatedSpan<T> and T
+
+* Make Track the central starting point.
+  * Track.new_tracker() creates the Tracker.
+  * Track.span() creates the LocatedSpan<T> or T
+  * Track.source_str() and Track.source_bytes() for row/column/context access.
+
+## Breaking
+
+* Rename 
+  * Context to Track.
+  * Tracker to TrackProvider.
+  * Tracks to TrackedDataVec.
+  * ErrWrapped to ErrOrNomErr.
+* Add 
+  * TrackedData instead of Track+XXXTrack
+
+* Remove nom error codes from ParserError.
+
+* SourceBytes, SourceStr instead of SpanBytes, SpanLines and SpanStr
+
 # 2.0
 
 ## New

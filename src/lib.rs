@@ -13,12 +13,13 @@
 //!   postfix functions. They are integrated with the error Code and the error types of
 //!   this crate.
 //!
-//! * SpanLines, SpanBytes, SpanStr to get context information around a Span.
-//!   Can also retrieve line/column information.
+//! * SourceStr and SourceBytes to get context information around a Span.
+//!   Can retrieve line/column information and context data without
+//!   burdening every single span.
 //!
-//! All of the extras can be easily cfg'ed away for a release build.
-//! Usually it's just cfg(debug_assertions) vs cfg(not(debug_assertions)) to change
-//! the Input type from TrackSpan to plain &str.
+//! * Uses LocatedSpan for debug builds and replaces with plan `&str` or `&[u8]` for release
+//!   builds. Tracking is compiled away completely for release builds.
+//!
 
 #![doc(html_root_url = "https://docs.rs/kparse")]
 #![warn(absolute_paths_not_starting_with_crate)]
@@ -29,9 +30,7 @@
 #![warn(macro_use_extern_crate)]
 #![warn(meta_variable_misuse)]
 #![warn(missing_abi)]
-// #![warn(missing_copy_implementations)]
-// #![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
 #![warn(non_ascii_idents)]
 #![warn(noop_method_call)]
 #![warn(pointer_structural_match)]
@@ -54,49 +53,52 @@
 #![allow(clippy::type_complexity)]
 
 pub mod combinators;
-pub mod error;
-pub mod examples;
-pub mod parser_ext;
+mod debug;
+pub mod parser_error;
+mod parser_ext;
+pub mod provider;
+pub mod source;
 pub mod spans;
 pub mod test;
 pub mod token_error;
-pub mod tracker;
 
-mod debug;
-
-pub use crate::error::ParserError;
+pub use crate::parser_error::ParserError;
 pub use crate::token_error::TokenizerError;
-pub use crate::tracker::Context;
+use std::borrow::Borrow;
 
 use crate::parser_ext::{
     AllConsuming, Complete, Consumed, Cut, DelimitedBy, FromStrParser, IntoErr, MapRes,
     OptPrecedes, Optional, OrElse, PNot, Peek, Precedes, Recognize, Terminated, Value, Verify,
     WithCode, WithContext,
 };
-use nom::{InputIter, InputLength, Offset, Parser, Slice};
+use crate::provider::{DynTracker, StdTracker, TrackData, TrackProvider};
+use crate::source::{SourceBytes, SourceStr};
+use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Parser, Slice};
 use nom_locate::LocatedSpan;
-use std::borrow::Borrow;
 use std::fmt::{Debug, Display};
-use std::ops::RangeTo;
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut, RangeTo};
 use std::str::FromStr;
 
-/// Prelude, import the traits.
+/// Prelude for all traits.
 pub mod prelude {
-    pub use crate::error::AppendParserError;
+    pub use crate::parser_error::AppendParserError;
+    pub use crate::provider::TrackProvider;
+    pub use crate::source::Source;
     pub use crate::spans::{SpanFragment, SpanUnion};
-    pub use crate::tracker::{ResultTracking, Tracking};
-    pub use crate::{ErrInto, ErrWrapped, KParseError, KParser};
+    pub use crate::test::Report;
+    pub use crate::{Code, ErrInto, ErrOrNomErr, KParseError, KParser, TrackResult, TrackedSpan};
 }
 
-/// Alias for LocatedSpan.
-/// No special properties, just for completeness.
-pub type ParseSpan<T, X> = LocatedSpan<T, X>;
+/// Standard input type. This is a LocatedSpan for debug builds
+/// and a plain reference for release builds.
+pub type ParseSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
 
-/// ParserResult without tracking.  
+/// ParserResult for ParserError.
 /// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
 pub type ParserResult<C, I, O> = Result<(I, O), nom::Err<ParserError<C, I>>>;
 
-/// ParserResult without tracking.  
+/// ParserResult for TokenizerError.  
 /// Equivalent to [nom::IResult]<(I, O), TokenizerError<C, I>>
 pub type TokenizerResult<C, I, O> = Result<(I, O), nom::Err<TokenizerError<C, I>>>;
 
@@ -110,12 +112,16 @@ pub trait Code: Copy + Display + Debug + Eq {
 ///
 /// It is implemented for `E`, `nom::Err<E>` and `Result<(I,O), nom::Err<E>>`.
 ///
+// todo: necessary for Result?
 pub trait KParseError<C, I> {
     /// The base error type.
     type WrappedError: Debug;
 
     /// Create a matching error.
     fn from(code: C, span: I) -> Self;
+
+    /// Changes the error code.
+    fn with_code(self, code: C) -> Self;
 
     /// Returns the error code if self is `Result::Err` and it's not `nom::Err::Incomplete`.
     fn code(&self) -> Option<C>;
@@ -126,19 +132,6 @@ pub trait KParseError<C, I> {
 
     /// Returns all the parts if self is `Result::Err` and it's not `nom::Err::Incomplete`.
     fn parts(&self) -> Option<(C, I, &Self::WrappedError)>;
-
-    /// Changes the error code.
-    fn with_code(self, code: C) -> Self;
-}
-
-/// This trait is used in a few places where the function wants to accept both
-/// `E` and `nom::Err<E>`.
-pub trait ErrWrapped {
-    /// The base error type.
-    type WrappedError: Debug;
-
-    /// Converts self to a `nom::Err` wrapped error.
-    fn wrap(self) -> nom::Err<Self::WrappedError>;
 }
 
 /// Analog function for err_into() working on a parser, but working on the Result instead.
@@ -164,6 +157,16 @@ where
             Err(nom::Err::Incomplete(e)) => Err(nom::Err::Incomplete(e)),
         }
     }
+}
+
+/// This trait is used for Track.err() where the function wants to accept both
+/// `E` and `nom::Err<E>`.
+pub trait ErrOrNomErr {
+    /// The base error type.
+    type WrappedError: Debug;
+
+    /// Converts self to a `nom::Err` wrapped error.
+    fn wrap(self) -> nom::Err<Self::WrappedError>;
 }
 
 /// Adds some common parser combinators as postfix operators to parser.
@@ -510,4 +513,409 @@ where
             _phantom: Default::default(),
         }
     }
+}
+
+/// TODO:
+///
+///
+pub struct Track;
+
+impl Track {
+    /// Provider/Container for tracking data.
+    pub fn new_tracker<C, I>(&self) -> StdTracker<C, I>
+    where
+        C: Code,
+        I: Clone + Debug + AsBytes,
+        I: InputTake + InputLength + InputIter,
+    {
+        StdTracker::new()
+    }
+
+    /// Create a tracking span for the given text and TrackProvider.
+    #[cfg(debug_assertions)]
+    pub fn span<'s, C, I>(
+        &self,
+        provider: &'s impl TrackProvider<C, I>,
+        text: I,
+    ) -> LocatedSpan<I, DynTracker<'s, C, I>>
+    where
+        C: Code,
+        I: Clone + Debug + AsBytes,
+        I: InputTake + InputLength + InputIter,
+        I: 's,
+    {
+        provider.span(text)
+    }
+
+    #[cfg(not(debug_assertions))]
+    pub fn span<'s, C, I>(&self, provider: &'s impl TrackProvider<C, I>, text: I) -> I
+    where
+        C: Code,
+        I: Clone + Debug + AsBytes,
+        I: InputTake + InputLength + InputIter,
+        I: 's,
+    {
+        provider.span(text)
+    }
+
+    // todo: open for locatedspan
+    /// Create a source text map for the given text.
+    pub fn source_str<'a>(&self, text: &'a str) -> SourceStr<'a> {
+        SourceStr::new(text)
+    }
+
+    /// Create a source text map for the given text.
+    pub fn source_bytes<'a>(&self, text: &'a [u8]) -> SourceBytes<'a> {
+        SourceBytes::new(text)
+    }
+
+    /// Creates an Ok() Result from the parameters and tracks the result.
+    #[inline(always)]
+    pub fn ok<C, I, O, E>(&self, rest: I, input: I, value: O) -> Result<(I, O), nom::Err<E>>
+    where
+        C: Code,
+        I: Clone + Debug,
+        I: TrackedSpan<C>,
+        I: InputTake + InputLength + InputIter,
+        E: KParseError<C, I> + Debug,
+    {
+        rest.track_ok(input);
+        rest.track_exit();
+        Ok((rest, value))
+    }
+
+    /// Tracks the error and creates a Result.
+    #[inline(always)]
+    pub fn err<C, I, O, E>(
+        &self,
+        err: E,
+    ) -> Result<(I, O), nom::Err<<E as ErrOrNomErr>::WrappedError>>
+    where
+        C: Code,
+        I: Clone + Debug,
+        I: TrackedSpan<C>,
+        I: InputTake + InputLength + InputIter,
+        E: KParseError<C, I> + ErrOrNomErr + Debug,
+    {
+        match err.parts() {
+            None => Err(err.wrap()),
+            Some((code, span, e)) => {
+                span.track_err(code, e);
+                span.track_exit();
+                Err(err.wrap())
+            }
+        }
+    }
+
+    /// When multiple Context.enter() calls are used within one function
+    /// (to denote some separation), this can be used to exit such a compartment
+    /// with an ok track.
+    #[inline(always)]
+    pub fn ok_section<C, I>(&self, rest: I, input: I)
+    where
+        C: Code,
+        I: TrackedSpan<C>,
+    {
+        rest.track_ok(input);
+    }
+
+    /// When multiple Context.enter() calls are used within one function
+    /// (to denote some separation), this can be used to exit such a compartment
+    /// with an ok track.
+    #[inline(always)]
+    pub fn err_section<C, I, E>(&self, err: &E)
+    where
+        C: Code,
+        I: Clone + Debug,
+        I: TrackedSpan<C>,
+        I: InputTake + InputLength + InputIter,
+        E: KParseError<C, I> + Debug,
+    {
+        match err.parts() {
+            None => {}
+            Some((code, span, e)) => {
+                span.track_err(code, e);
+            }
+        }
+    }
+
+    /// Enter a parser function.
+    #[inline(always)]
+    pub fn enter<C, I>(&self, func: C, span: I)
+    where
+        C: Code,
+        I: TrackedSpan<C>,
+    {
+        span.track_enter(func);
+    }
+
+    /// Track some debug info.
+    #[inline(always)]
+    pub fn debug<C, I>(&self, span: I, debug: String)
+    where
+        C: Code,
+        I: TrackedSpan<C>,
+    {
+        span.track_debug(debug);
+    }
+
+    /// Track some other info.
+    #[inline(always)]
+    pub fn info<C, I>(&self, span: I, info: &'static str)
+    where
+        C: Code,
+        I: TrackedSpan<C>,
+    {
+        span.track_info(info);
+    }
+
+    /// Track some warning.
+    #[inline(always)]
+    pub fn warn<C, I>(&self, span: I, warn: &'static str)
+    where
+        C: Code,
+        I: TrackedSpan<C>,
+    {
+        span.track_warn(warn);
+    }
+}
+
+/// This is an extension trait for nom-Results.
+///
+/// This is for inline tracking of parser results.
+///
+/// ```rust ignore
+/// let (rest, h0) = nom_header(input).track_as(APCHeader)?;
+/// let (rest, _) = nom_tag_plan(rest).track_as(APCPlan)?;
+/// let (rest, plan) = token_name(rest).track()?;
+/// let (rest, h1) = nom_header(rest).track_as(APCHeader)?;
+/// ```
+pub trait TrackResult<C, I>
+where
+    C: Code,
+    I: Clone + Debug,
+    I: TrackedSpan<C>,
+    I: InputTake + InputLength + InputIter + AsBytes,
+{
+    /// Track an Err() result.
+    fn track(self) -> Self;
+
+    /// Track an Err() result and modify the error code in one go.
+    fn track_as(self, code: C) -> Self;
+}
+
+impl<C, I, O, E> TrackResult<C, I> for Result<(I, O), nom::Err<E>>
+where
+    C: Code,
+    I: Clone + Debug,
+    I: TrackedSpan<C>,
+    I: InputTake + InputLength + InputIter + AsBytes,
+    E: Debug,
+    nom::Err<E>: KParseError<C, I>,
+{
+    /// Tracks the result if it is an error.
+    #[inline(always)]
+    fn track(self) -> Self {
+        match self {
+            Ok((rest, token)) => Ok((rest, token)),
+            Err(e) => match e.parts() {
+                None => Err(e),
+                Some((code, span, err)) => {
+                    span.track_err(code, err);
+                    span.track_exit();
+                    Err(e)
+                }
+            },
+        }
+    }
+
+    /// Changes the error code and tracks the result.
+    #[inline(always)]
+    fn track_as(self, code: C) -> Self {
+        match self {
+            Ok((rest, token)) => Ok((rest, token)),
+            Err(e) => {
+                let e = e.with_code(code);
+                match e.parts() {
+                    None => Err(e),
+                    Some((code, span, err)) => {
+                        span.track_err(code, err);
+                        span.track_exit();
+                        Err(e)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// This trait is implemented for an input type. It takes a tracking event and
+/// its raw data, converts if necessary and sends it to the actual tracker.
+pub trait TrackedSpan<C>
+where
+    C: Code,
+    Self: Sized,
+{
+    /// Enter a parser function.
+    fn track_enter(&self, func: C);
+
+    /// Track some debug info.
+    fn track_debug(&self, debug: String);
+
+    /// Track some other info.
+    fn track_info(&self, info: &'static str);
+
+    /// Track some warning.
+    fn track_warn(&self, warn: &'static str);
+
+    /// Calls exit_ok() on the ParseContext. You might want to use ok() instead.
+    fn track_ok(&self, parsed: Self);
+
+    /// Calls exit_err() on the ParseContext. You might want to use err() instead.
+    fn track_err<E: Debug>(&self, code: C, err: &E);
+
+    /// Calls exit() on the ParseContext. You might want to use err() or ok() instead.
+    fn track_exit(&self);
+}
+
+impl<'s, C, T> TrackedSpan<C> for LocatedSpan<T, DynTracker<'s, C, T>>
+where
+    C: Code,
+    T: Clone + Debug + AsBytes + InputTake + InputLength,
+{
+    #[inline(always)]
+    fn track_enter(&self, func: C) {
+        self.extra.0.track(TrackData::Enter(func, clear_span(self)));
+    }
+
+    #[inline(always)]
+    fn track_debug(&self, debug: String) {
+        self.extra
+            .0
+            .track(TrackData::Debug(clear_span(self), debug));
+    }
+
+    #[inline(always)]
+    fn track_info(&self, info: &'static str) {
+        self.extra.0.track(TrackData::Info(clear_span(self), info));
+    }
+
+    #[inline(always)]
+    fn track_warn(&self, warn: &'static str) {
+        self.extra.0.track(TrackData::Warn(clear_span(self), warn));
+    }
+
+    #[inline(always)]
+    fn track_ok(&self, parsed: LocatedSpan<T, DynTracker<'s, C, T>>) {
+        self.extra
+            .0
+            .track(TrackData::Ok(clear_span(self), clear_span(&parsed)));
+    }
+
+    #[inline(always)]
+    fn track_err<E: Debug>(&self, code: C, err: &E) {
+        self.extra
+            .0
+            .track(TrackData::Err(clear_span(self), code, format!("{:?}", err)));
+    }
+
+    #[inline(always)]
+    fn track_exit(&self) {
+        self.extra.0.track(TrackData::Exit());
+    }
+}
+
+fn clear_span<C, T>(span: &LocatedSpan<T, DynTracker<'_, C, T>>) -> LocatedSpan<T, ()>
+where
+    C: Code,
+    T: AsBytes + Clone,
+{
+    unsafe {
+        LocatedSpan::new_from_raw_offset(
+            span.location_offset(),
+            span.location_line(),
+            span.fragment().clone(),
+            (),
+        )
+    }
+}
+
+impl<C, T> TrackedSpan<C> for LocatedSpan<T, ()>
+where
+    T: Clone + Debug,
+    T: InputTake + InputLength + AsBytes,
+    C: Code,
+{
+    #[inline(always)]
+    fn track_enter(&self, _func: C) {}
+
+    #[inline(always)]
+    fn track_debug(&self, _debug: String) {}
+
+    #[inline(always)]
+    fn track_info(&self, _info: &'static str) {}
+
+    #[inline(always)]
+    fn track_warn(&self, _warn: &'static str) {}
+
+    #[inline(always)]
+    fn track_ok(&self, _parsed: LocatedSpan<T, ()>) {}
+
+    #[inline(always)]
+    fn track_err<E>(&self, _func: C, _err: &E) {}
+
+    #[inline(always)]
+    fn track_exit(&self) {}
+}
+
+impl<'s, C> TrackedSpan<C> for &'s str
+where
+    C: Code,
+{
+    #[inline(always)]
+    fn track_enter(&self, _func: C) {}
+
+    #[inline(always)]
+    fn track_debug(&self, _debug: String) {}
+
+    #[inline(always)]
+    fn track_info(&self, _info: &'static str) {}
+
+    #[inline(always)]
+    fn track_warn(&self, _warn: &'static str) {}
+
+    #[inline(always)]
+    fn track_ok(&self, _input: Self) {}
+
+    #[inline(always)]
+    fn track_err<E>(&self, _func: C, _err: &E) {}
+
+    #[inline(always)]
+    fn track_exit(&self) {}
+}
+
+impl<'s, C> TrackedSpan<C> for &'s [u8]
+where
+    C: Code,
+{
+    #[inline(always)]
+    fn track_enter(&self, _func: C) {}
+
+    #[inline(always)]
+    fn track_debug(&self, _debug: String) {}
+
+    #[inline(always)]
+    fn track_info(&self, _info: &'static str) {}
+
+    #[inline(always)]
+    fn track_warn(&self, _warn: &'static str) {}
+
+    #[inline(always)]
+    fn track_ok(&self, _input: Self) {}
+
+    #[inline(always)]
+    fn track_err<E>(&self, _func: C, _err: &E) {}
+
+    #[inline(always)]
+    fn track_exit(&self) {}
 }

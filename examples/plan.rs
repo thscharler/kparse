@@ -15,12 +15,9 @@ pub mod parser4 {
         dump_diagnostics as dump_diagnostics_v4, dump_diagnostics_info as dump_diagnostics_info_v4,
         dump_trace as dump_trace_v4,
     };
-    use kparse::{Code, ParserError, ParserResult, TokenizerResult};
-    use std::fmt::{Display, Formatter};
-
     use kparse::token_error::TokenizerError;
-    #[cfg(debug_assertions)]
-    use kparse::tracker::TrackSpan;
+    use kparse::{Code, ParseSpan, ParserError, ParserResult, TokenizerResult};
+    use std::fmt::{Display, Formatter};
 
     #[allow(clippy::enum_variant_names)]
     #[allow(dead_code)]
@@ -137,10 +134,10 @@ pub mod parser4 {
         }
     }
 
+    #[cfg(debug_assertions)]
+    pub type APSpan<'s> = ParseSpan<'s, APCode, &'s str>;
     #[cfg(not(debug_assertions))]
     pub type APSpan<'s> = &'s str;
-    #[cfg(debug_assertions)]
-    pub type APSpan<'s> = TrackSpan<'s, APCode, &'s str>;
     pub type APParserError<'s> = ParserError<APCode, APSpan<'s>>;
     pub type APTokenizerError<'s> = TokenizerError<APCode, APSpan<'s>>;
     pub type APParserResult<'s, O> = ParserResult<APCode, APSpan<'s>, O>;
@@ -149,19 +146,17 @@ pub mod parser4 {
 
     pub mod diagnostics {
         use crate::parser4::{APCode, APParserError, APSpan, APTokenizerError};
-        #[cfg(debug_assertions)]
-        use kparse::spans::SpanLines;
-        #[cfg(not(debug_assertions))]
-        use kparse::spans::SpanStr;
+        use kparse::prelude::*;
+        use kparse::provider::TrackedDataVec;
         use kparse::test::{Report, Test};
-        use kparse::tracker::Tracks;
+        use kparse::Track;
         use std::ffi::OsStr;
         use std::fmt::Debug;
         use std::path::{Path, PathBuf};
 
         /// Write out the Tracer.
         #[allow(dead_code)]
-        pub fn dump_trace(tracks: &Tracks<APCode, &'_ str>) {
+        pub fn dump_trace(tracks: &TrackedDataVec<APCode, &'_ str>) {
             println!("{:?}", tracks);
         }
 
@@ -249,12 +244,9 @@ pub mod parser4 {
             msg: &str,
             is_err: bool,
         ) {
-            #[cfg(debug_assertions)]
-            let txt = SpanLines::new(orig);
-            #[cfg(not(debug_assertions))]
-            let txt = SpanStr::new(orig);
+            let txt = Track.source_str(orig.fragment());
 
-            let text1 = txt.get_lines_around(&err.span, 3);
+            let text1 = txt.get_lines_around(err.span, 3);
 
             println!();
             if !msg.is_empty() {
@@ -278,7 +270,7 @@ pub mod parser4 {
             for t in text1.iter().copied() {
                 let t_line = txt.line(t);
                 let s_line = txt.line(err.span);
-                let s_column = txt.utf8_column(err.span);
+                let s_column = txt.column(err.span);
 
                 if t_line == s_line {
                     println!("*{:04} {}", t_line, t);
@@ -299,7 +291,7 @@ pub mod parser4 {
 
                 for exp in &expect {
                     let e_line = txt.line(exp.span);
-                    let e_column = txt.utf8_column(exp.span);
+                    let e_column = txt.column(exp.span);
 
                     if t_line == e_line {
                         println!("      {}^", " ".repeat(e_column - 1));
@@ -311,19 +303,6 @@ pub mod parser4 {
             for sug in err.iter_suggested() {
                 println!("Hinweis: {}", sug.code);
             }
-
-            if let Some(n) = err.nom() {
-                let n_line = txt.line(n.span);
-                let n_column = txt.utf8_column(n.span);
-
-                println!(
-                    "Parser-Details: {:?} {}:{}:{:?}",
-                    n.kind,
-                    n_line,
-                    n_column,
-                    n.span.escape_debug().take(40).collect::<String>()
-                );
-            }
         }
 
         /// Write some diagnostics.
@@ -334,12 +313,8 @@ pub mod parser4 {
             err: &APParserError<'_>,
             msg: &str,
         ) {
-            #[cfg(debug_assertions)]
-            let txt = SpanLines::new(orig);
-            #[cfg(not(debug_assertions))]
-            let txt = SpanStr::new(orig);
-
-            let text1 = txt.get_lines_around(&err.span, 0);
+            let txt = Track.source_str(orig.fragment());
+            let text1 = txt.get_lines_around(err.span, 0);
 
             println!();
             if !msg.is_empty() {
@@ -359,7 +334,7 @@ pub mod parser4 {
             for t in text1.iter().copied() {
                 let t_line = txt.line(t);
                 let s_line = txt.line(err.span);
-                let s_column = txt.utf8_column(err.span);
+                let s_column = txt.column(err.span);
 
                 if t_line == s_line {
                     println!("*{:04} {}", t_line, t);
@@ -876,14 +851,14 @@ pub mod parser4 {
         use crate::parser4::{APParserResult, APTokenizerResult};
         use kparse::combinators::{err_into, separated_list_trailing1, track};
         use kparse::prelude::*;
-        use kparse::{Context, ParserError};
+        use kparse::{ParserError, Track};
         use nom::combinator::{consumed, not, opt};
         use nom::multi::separated_list0;
         use nom::sequence::tuple;
         use nom::Parser;
 
         pub fn parse_anbauplan(rest: APSpan<'_>) -> APParserResult<'_, APAnbauPlan<'_>> {
-            Context.enter(APCAnbauplan, rest);
+            Track.enter(APCAnbauplan, rest);
 
             let mut loop_rest = rest;
             loop {
@@ -917,7 +892,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCStichtag => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_bsnr(loop_rest) {
                     Ok((rest, val)) => {
@@ -926,7 +901,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCBsNr => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_monat(loop_rest) {
                     Ok((rest, val)) => {
@@ -935,7 +910,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCMonat => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_woche(loop_rest) {
                     Ok((rest, val)) => {
@@ -944,7 +919,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCWoche => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_tag(loop_rest) {
                     Ok((rest, val)) => {
@@ -953,7 +928,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCTag => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_notiz.err_into::<APParserError<'_>>().parse(loop_rest) {
                     Ok((rest, val)) => {
@@ -962,7 +937,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCNotiz => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_kommentar
                     .err_into::<APParserError<'_>>()
@@ -974,7 +949,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCKommentar => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_kunde(loop_rest) {
                     Ok((rest, val)) => {
@@ -983,7 +958,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCKunde => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_lieferant(loop_rest) {
                     Ok((rest, val)) => {
@@ -992,7 +967,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCLieferant => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_markt(loop_rest) {
                     Ok((rest, val)) => {
@@ -1001,7 +976,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCMarkt => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_aktion(loop_rest) {
                     Ok((rest, val)) => {
@@ -1010,7 +985,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCAktion => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
                 match parse_pflanzort(loop_rest) {
                     Ok((rest, val)) => {
@@ -1019,7 +994,7 @@ pub mod parser4 {
                         continue;
                     }
                     Err(nom::Err::Error(e)) if e.code == APCPflanzort => {}
-                    Err(e) => return Context.err(e),
+                    Err(e) => return Track.err(e),
                 }
 
                 if loop_rest.len() > 0 {
@@ -1029,7 +1004,7 @@ pub mod parser4 {
                             data.push(PlanValues::Kultur(val));
                             continue;
                         }
-                        Err(e) => return Context.err(e),
+                        Err(e) => return Track.err(e),
                     }
                 };
 
@@ -1037,7 +1012,7 @@ pub mod parser4 {
             }
             let rest = loop_rest;
 
-            Context.ok(rest, rest, APAnbauPlan { plan, kdnr, data })
+            Track.ok(rest, rest, APAnbauPlan { plan, kdnr, data })
         }
 
         pub fn parse_plan(input: APSpan<'_>) -> APParserResult<'_, APPlan<'_>> {
@@ -1196,7 +1171,7 @@ pub mod parser4 {
         }
 
         pub fn parse_kultur(input: APSpan<'_>) -> APParserResult<'_, APKultur<'_>> {
-            Context.enter(APCKultur, input);
+            Track.enter(APCKultur, input);
 
             let (rest, kultur) = consumed(tuple((
                 token_name.err_into(),
@@ -1225,12 +1200,12 @@ pub mod parser4 {
 
             // must be at line end now, and can eat some whitespace
             let rest = if !nom_is_nl(rest) {
-                return Context.err(ParserError::new(APCSorten, rest));
+                return Track.err(ParserError::new(APCSorten, rest));
             } else {
                 span_ws_nl(rest)
             };
 
-            Context.ok(rest, input, kultur)
+            Track.ok(rest, input, kultur)
         }
 
         pub fn parse_einheit(input: APSpan<'_>) -> APParserResult<'_, APEinheit<'_>> {

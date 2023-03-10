@@ -1,5 +1,6 @@
 use crate::debug::{restrict, DebugWidth};
-use crate::{Code, ParserError};
+use crate::parser_error::ParserError;
+use crate::Code;
 use nom::{InputIter, InputLength, InputTake};
 use std::fmt;
 use std::fmt::Debug;
@@ -35,9 +36,6 @@ where
         restrict(DebugWidth::Short, err.span.clone())
     )?;
 
-    if let Some(nom) = err.nom() {
-        write!(f, "nom={:0?}, ", nom)?;
-    }
     for v in err.iter_expected() {
         write!(f, "expect={:0?}, ", v)?;
     }
@@ -67,11 +65,6 @@ where
         restrict(DebugWidth::Medium, err.span.clone())
     )?;
 
-    if let Some(nom) = err.nom() {
-        writeln!(f, "nom")?;
-        indent(f, 1)?;
-        writeln!(f, "{:1?}, ", nom)?;
-    }
     if err.iter_expected().next().is_some() {
         writeln!(f, "expected")?;
     }
@@ -113,11 +106,6 @@ where
         restrict(DebugWidth::Long, err.span.clone())
     )?;
 
-    if let Some(nom) = err.nom() {
-        writeln!(f, "nom")?;
-        indent(f, 1)?;
-        writeln!(f, "{:2?}, ", nom)?;
-    }
     if err.iter_expected().next().is_some() {
         writeln!(f, "expected")?;
     }

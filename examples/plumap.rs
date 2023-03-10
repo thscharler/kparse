@@ -7,8 +7,7 @@
 
 use chrono::NaiveDate;
 use kparse::test::{str_parse, CheckDump};
-#[cfg(debug_assertions)]
-use kparse::tracker::TrackSpan;
+use kparse::ParseSpan;
 use kparse::{Code, ParserError, ParserResult, TokenizerResult};
 pub use parser::*;
 use rust_decimal::Decimal;
@@ -103,7 +102,7 @@ impl Code for PLUCode {
 
 // type aliases to avoid typing PLUCode all the time.
 #[cfg(debug_assertions)]
-pub type PSpan<'s> = TrackSpan<'s, PLUCode, &'s str>;
+pub type PSpan<'s> = ParseSpan<'s, PLUCode, &'s str>;
 #[cfg(not(debug_assertions))]
 pub type PSpan<'s> = &'s str;
 pub type PLUParserResult<'s, O> = ParserResult<PLUCode, PSpan<'s>, O>;
@@ -151,11 +150,9 @@ pub struct PDate<'s> {
 
 mod debug {
     use crate::{PLUCode, PLUParserError, PSpan};
-    #[cfg(debug_assertions)]
-    use kparse::spans::SpanLines;
-    #[cfg(not(debug_assertions))]
-    use kparse::spans::SpanStr;
-    use kparse::tracker::Tracks;
+    use kparse::prelude::*;
+    use kparse::provider::TrackedDataVec;
+    use kparse::Track;
     use std::ffi::OsStr;
     use std::path::Path;
 
@@ -168,12 +165,9 @@ mod debug {
         msg: &str,
         is_err: bool,
     ) {
-        #[cfg(debug_assertions)]
-        let txt = SpanLines::new(txt);
-        #[cfg(not(debug_assertions))]
-        let txt = SpanStr::new(txt);
+        let txt = Track.source_str(txt.fragment());
 
-        let text1 = txt.get_lines_around(&err.span, 3);
+        let text1 = txt.get_lines_around(err.span, 3);
 
         println!();
         if !msg.is_empty() {
@@ -197,7 +191,7 @@ mod debug {
         for t in text1.iter().copied() {
             let t_line = txt.line(t);
             let s_line = txt.line(err.span);
-            let s_column = txt.utf8_column(err.span);
+            let s_column = txt.column(err.span);
 
             if t_line == s_line {
                 println!("*{:04} {}", t_line, t);
@@ -218,7 +212,7 @@ mod debug {
 
             for exp in &expect {
                 let e_line = txt.line(exp.span);
-                let e_column = txt.utf8_column(exp.span);
+                let e_column = txt.column(exp.span);
                 if t_line == e_line {
                     println!("      {}^", " ".repeat(e_column - 1));
                     println!("expected: {}", exp.code);
@@ -229,23 +223,11 @@ mod debug {
         for sugg in err.iter_suggested() {
             println!("hint: {}", sugg.code);
         }
-
-        if let Some(n) = err.nom() {
-            let n_line = txt.line(n.span);
-            let n_column = txt.utf8_column(n.span);
-            println!(
-                "parser details: {:?} {}:{}:\"{}\"",
-                n.kind,
-                n_line,
-                n_column,
-                n.span.escape_debug().take(40).collect::<String>()
-            );
-        }
     }
 
     /// dump the parser trace
     #[allow(dead_code)]
-    pub fn dump_trace(tracks: &Tracks<PLUCode, &'_ str>) {
+    pub fn dump_trace(tracks: &TrackedDataVec<PLUCode, &'_ str>) {
         println!("{:?}", tracks);
     }
 }
@@ -260,14 +242,14 @@ mod parser {
     use crate::{PLUParserError, PLUParserResult, PLUTokenizerResult, PMap, PPluMap, PSpan};
     use kparse::combinators::track;
     use kparse::prelude::*;
-    use kparse::Context;
+    use kparse::Track;
     use nom::combinator::{consumed, opt};
     use nom::sequence::{preceded, tuple};
     use nom::Parser;
 
     /// main parser
     pub fn parse_plumap(input: PSpan<'_>) -> PLUParserResult<'_, PPluMap<'_>> {
-        Context.enter(PLUMap, input);
+        Track.enter(PLUMap, input);
 
         let mut r = Vec::new();
 
@@ -283,7 +265,7 @@ mod parser {
                 r.push(map);
                 rest3
             } else {
-                return Context.err(PLUParserError::new(PLUMapping, rest2));
+                return Track.err(PLUParserError::new(PLUMapping, rest2));
             };
 
             loop_rest = nom_ws_nl(rest2); // eat all whitespace & line breaks
@@ -293,7 +275,7 @@ mod parser {
         }
         let rest = loop_rest;
 
-        Context.ok(rest, nom_empty(rest), PPluMap { maps: r })
+        Track.ok(rest, nom_empty(rest), PPluMap { maps: r })
     }
 
     fn lah_mapping(span: PSpan<'_>) -> bool {
@@ -302,7 +284,7 @@ mod parser {
 
     // parse one mapping
     fn parse_mapping(input: PSpan<'_>) -> PLUParserResult<'_, PMap<'_>> {
-        Context.enter(PLUMapping, input);
+        Track.enter(PLUMapping, input);
 
         let (rest, (span, (nummer, faktor, to_nummer, from_datum, to_datum))) = consumed(tuple((
             token_number,
@@ -316,10 +298,10 @@ mod parser {
         .track()?;
 
         if !nom_is_nl(rest) {
-            return Context.err(PLUParserError::new(PLUMapping, rest));
+            return Track.err(PLUParserError::new(PLUMapping, rest));
         }
 
-        Context.ok(
+        Track.ok(
             rest,
             span,
             PMap {

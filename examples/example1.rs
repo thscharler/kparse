@@ -4,11 +4,7 @@ use crate::ExCode::*;
 use kparse::combinators::track;
 use kparse::prelude::*;
 use kparse::token_error::TokenizerError;
-#[cfg(debug_assertions)]
-use kparse::tracker::StdTracker;
-#[cfg(debug_assertions)]
-use kparse::tracker::TrackSpan;
-use kparse::{Code, Context, ParserError, ParserResult, TokenizerResult};
+use kparse::{ParseSpan, ParserError, ParserResult, TokenizerResult, Track};
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
 use nom::combinator::consumed;
@@ -60,7 +56,7 @@ impl Code for ExCode {
 }
 
 #[cfg(debug_assertions)]
-pub type ExSpan<'s> = TrackSpan<'s, ExCode, &'s str>;
+pub type ExSpan<'s> = ParseSpan<'s, ExCode, &'s str>;
 #[cfg(not(debug_assertions))]
 pub type ExSpan<'s> = &'s str;
 pub type ExParserResult<'s, O> = ParserResult<ExCode, ExSpan<'s>, O>;
@@ -153,9 +149,9 @@ fn token_number(i: ExSpan<'_>) -> ExParserResult<'_, AstNumber<'_>> {
 }
 
 fn parse_a(input: ExSpan<'_>) -> ExParserResult<'_, AstA> {
-    Context.enter(ExTagA, input);
+    Track.enter(ExTagA, input);
     let (rest, tok) = nom_parse_a.parse(input).err_into().track()?;
-    Context.ok(rest, tok, AstA { span: tok })
+    Track.ok(rest, tok, AstA { span: tok })
 }
 
 fn parse_b(input: ExSpan<'_>) -> ExParserResult<'_, AstB> {
@@ -169,7 +165,7 @@ fn parse_b(input: ExSpan<'_>) -> ExParserResult<'_, AstB> {
 
 // := a b
 fn parse_ab(input: ExSpan<'_>) -> ExParserResult<'_, AstAthenB> {
-    Context.enter(ExAthenB, input);
+    Track.enter(ExAthenB, input);
 
     let rest = input;
 
@@ -178,14 +174,14 @@ fn parse_ab(input: ExSpan<'_>) -> ExParserResult<'_, AstAthenB> {
 
     let span = input.span_union(&a.span, &b.span);
 
-    Context.ok(rest, span, AstAthenB { a, b })
+    Track.ok(rest, span, AstAthenB { a, b })
 }
 
 // := a b
 fn parse_ab_v2(input: ExSpan<'_>) -> ExParserResult<'_, AstAthenB> {
-    Context.enter(ExAthenB, input);
+    Track.enter(ExAthenB, input);
     let (rest, (span, (a, b))) = consumed(tuple((parse_a, parse_b)))(input).track()?;
-    Context.ok(rest, span, AstAthenB { a, b })
+    Track.ok(rest, span, AstAthenB { a, b })
 }
 
 // := a? b
@@ -212,7 +208,7 @@ fn parse_a_star_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAstarB> {
 
 // := ( a | b )*
 fn parse_a_b_star(input: ExSpan<'_>) -> ExParserResult<'_, AstABstar> {
-    Context.enter(ExABstar, input);
+    Track.enter(ExABstar, input);
 
     let mut loop_rest = input;
     let mut res = AstABstar {
@@ -243,7 +239,7 @@ fn parse_a_b_star(input: ExSpan<'_>) -> ExParserResult<'_, AstABstar> {
         };
 
         if let Some(err) = err {
-            return Context.err(err);
+            return Track.err(err);
         }
         if rest2.is_empty() {
             break;
@@ -252,7 +248,7 @@ fn parse_a_b_star(input: ExSpan<'_>) -> ExParserResult<'_, AstABstar> {
         loop_rest = rest2;
     }
 
-    Context.ok(loop_rest, input, res)
+    Track.ok(loop_rest, input, res)
 }
 
 fn parse_a_or_b(input: ExSpan<'_>) -> ExParserResult<'_, AstAorB> {
@@ -283,13 +279,8 @@ fn parse_a_b_num(input: ExSpan<'_>) -> ExParserResult<'_, AstABNum> {
 
 fn main() {
     for txt in env::args() {
-        #[cfg(debug_assertions)]
-        let trk = StdTracker::new();
-        #[cfg(debug_assertions)]
+        let trk = Track.new_tracker::<ExCode, _>();
         let span = trk.span(txt.as_str());
-
-        #[cfg(not(debug_assertions))]
-        let span = txt.as_str();
 
         match parse_a_b_star(span) {
             Ok((_rest, val)) => {

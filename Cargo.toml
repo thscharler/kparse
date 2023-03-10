@@ -1,6 +1,6 @@
 [package]
 name = "kparse"
-version = "2.0.0"
+version = "3.0.0"
 authors = [ "thomasscharler <thscharler@gmail.com>" ]
 edition = "2021"
 description = "Tracking and better error handling for nom parsers"

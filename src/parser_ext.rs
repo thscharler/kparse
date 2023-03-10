@@ -2,7 +2,7 @@
 //! Struct definitions for the postfix parsers.
 //!
 
-use crate::error::AppendParserError;
+use crate::parser_error::AppendParserError;
 use crate::{Code, KParseError, ParserError};
 use nom::{IResult, InputIter, InputLength, Offset, Parser, Slice};
 use std::borrow::Borrow;

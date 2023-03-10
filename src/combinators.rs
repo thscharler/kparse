@@ -2,8 +2,7 @@
 //! Provides some extra parser combinators.
 //!
 
-use crate::tracker::Tracking;
-use crate::{Code, KParseError};
+use crate::{Code, KParseError, TrackedSpan};
 use nom::error::{ErrorKind, ParseError};
 use nom::{AsBytes, AsChar, IResult, InputIter, InputLength, InputTake, Parser, Slice};
 use std::fmt::Debug;
@@ -67,7 +66,8 @@ pub fn track<PA, C, I, O, E>(
 where
     PA: Parser<I, O, E>,
     C: Code,
-    I: Clone + Debug + Tracking<C>,
+    I: Clone + Debug,
+    I: TrackedSpan<C>,
     I: InputTake + InputLength + InputIter + AsBytes,
     nom::Err<E>: KParseError<C, I>,
 {
