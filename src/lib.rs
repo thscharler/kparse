@@ -86,12 +86,26 @@ pub mod prelude {
     pub use crate::source::Source;
     pub use crate::spans::{SpanFragment, SpanUnion};
     pub use crate::test::Report;
-    pub use crate::{Code, ErrInto, ErrOrNomErr, KParseError, KParser, TrackResult, TrackedSpan};
+    pub use crate::{
+        define_span, Code, ErrInto, ErrOrNomErr, KParseError, KParser, ParseSpan, Track,
+        TrackResult, TrackedSpan,
+    };
 }
 
-/// Standard input type. This is a LocatedSpan for debug builds
-/// and a plain reference for release builds.
+/// Standard input type. This is a LocatedSpan with a TrackProvider.
 pub type ParseSpan<'s, C, T> = LocatedSpan<T, &'s dyn TrackProvider<C, T>>;
+
+/// Defines a type alias for the span type.
+/// Switches between ParseSpan<> in debug mode and plain type in release mode.
+#[macro_export]
+macro_rules! define_span {
+    ($name:ident = $code:ty, $typ:ty) => {
+        #[cfg(debug_assertions)]
+        pub type $name<'a> = ParseSpan<'a, $code, &'a $typ>;
+        #[cfg(not(debug_assertions))]
+        pub type $name<'a> = &'a $typ;
+    };
+}
 
 /// ParserResult for ParserError.
 /// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>

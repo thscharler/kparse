@@ -301,8 +301,9 @@ pub mod parser4 {
         dump_diagnostics as dump_diagnostics_v4, dump_diagnostics_info as dump_diagnostics_info_v4,
         dump_trace as dump_trace_v4,
     };
+    use kparse::prelude::*;
     use kparse::token_error::TokenizerError;
-    use kparse::{Code, ParseSpan, ParserError, ParserResult, TokenizerResult};
+    use kparse::{define_span, Code, ParserError, ParserResult, TokenizerResult};
     use std::fmt::{Display, Formatter};
 
     #[allow(clippy::enum_variant_names)]
@@ -420,15 +421,11 @@ pub mod parser4 {
         }
     }
 
-    #[cfg(debug_assertions)]
-    pub type APSpan<'s> = ParseSpan<'s, APCode, &'s str>;
-    #[cfg(not(debug_assertions))]
-    pub type APSpan<'s> = &'s str;
+    define_span!(APSpan = APCode, str);
     pub type APParserError<'s> = ParserError<APCode, APSpan<'s>>;
     pub type APTokenizerError<'s> = TokenizerError<APCode, APSpan<'s>>;
     pub type APParserResult<'s, O> = ParserResult<APCode, APSpan<'s>, O>;
     pub type APTokenizerResult<'s, O> = TokenizerResult<APCode, APSpan<'s>, O>;
-    pub type APNomResult<'s> = ParserResult<APCode, APSpan<'s>, APSpan<'s>>;
 
     pub mod diagnostics {
         use crate::parser4::{APCode, APParserError, APSpan, APTokenizerError};

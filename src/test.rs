@@ -20,7 +20,7 @@
 //! Note: The &mut None is because lifetimes.
 
 use crate::debug::{restrict, DebugWidth};
-use crate::prelude::TrackProvider;
+use crate::prelude::*;
 use crate::provider::StdTracker;
 use crate::spans::SpanFragment;
 use crate::{Code, KParseError, ParseSpan, ParserError};

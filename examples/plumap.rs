@@ -7,8 +7,7 @@
 
 use chrono::NaiveDate;
 use kparse::test::{str_parse, CheckDump};
-use kparse::ParseSpan;
-use kparse::{Code, ParserError, ParserResult, TokenizerResult};
+use kparse::{define_span, Code, ParseSpan, ParserError, ParserResult, TokenizerResult};
 pub use parser::*;
 use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
@@ -101,10 +100,7 @@ impl Code for PLUCode {
 }
 
 // type aliases to avoid typing PLUCode all the time.
-#[cfg(debug_assertions)]
-pub type PSpan<'s> = ParseSpan<'s, PLUCode, &'s str>;
-#[cfg(not(debug_assertions))]
-pub type PSpan<'s> = &'s str;
+define_span!(PSpan = PLUCode, str);
 pub type PLUParserResult<'s, O> = ParserResult<PLUCode, PSpan<'s>, O>;
 pub type PLUTokenizerResult<'s, O> = TokenizerResult<PLUCode, PSpan<'s>, O>;
 pub type PLUNomResult<'s> = ParserResult<PLUCode, PSpan<'s>, PSpan<'s>>;

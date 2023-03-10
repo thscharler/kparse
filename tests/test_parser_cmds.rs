@@ -1,5 +1,4 @@
 pub use cmds_parser::*;
-use kparse::test;
 use kparse::test::{str_parse, CheckDump};
 use std::time::Instant;
 
@@ -130,7 +129,7 @@ mod cmds_parser {
     use glob::PatternError;
     use kparse::combinators::{map_res, with_code};
     use kparse::prelude::*;
-    use kparse::{Code, ParseSpan, ParserError, ParserResult, Track};
+    use kparse::{define_span, Code, ParserError, ParserResult, Track};
     use nom::bytes::complete::{tag, take_till1, take_while1};
     use nom::character::complete::{char as nchar, digit1};
     use nom::combinator::{consumed, recognize};
@@ -141,10 +140,7 @@ mod cmds_parser {
     use std::{fs, io};
     use CCode::*;
 
-    #[cfg(debug_assertions)]
-    pub type CSpan<'s> = ParseSpan<'s, CCode, &'s str>;
-    #[cfg(not(debug_assertions))]
-    pub type CSpan<'s> = &'s str;
+    define_span!(CSpan = CCode, str);
     pub type CParserError<'s> = ParserError<CCode, CSpan<'s>>;
     pub type CParserResult<'s, O> = ParserResult<CCode, CSpan<'s>, O>;
     pub type CNomResult<'s> = ParserResult<CCode, CSpan<'s>, CSpan<'s>>;

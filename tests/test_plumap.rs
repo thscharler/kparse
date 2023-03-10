@@ -5,13 +5,12 @@
 //!
 
 use chrono::NaiveDate;
-use nom_locate::LocatedSpan;
+use kparse::prelude::*;
+use kparse::test::{str_parse, CheckDump};
+use kparse::{ParserError, ParserResult};
+pub use parser::*;
 use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
-
-use kparse::test::{str_parse, CheckDump};
-use kparse::{Code, ParseSpan, ParserError};
-pub use parser::*;
 
 #[test]
 fn test_plumap() {
@@ -104,13 +103,9 @@ impl Code for PLUCode {
     const NOM_ERROR: Self = Self::PLUNomError;
 }
 
-#[cfg(debug_assertions)]
-pub type PSpan<'s> = ParseSpan<'s, PLUCode, &'s str>;
-#[cfg(not(debug_assertions))]
-pub type PSpan<'s> = &'s str;
-pub type PLUParserResult<'s, O> = Result<(PSpan<'s>, O), nom::Err<ParserError<PLUCode, PSpan<'s>>>>;
-pub type PLUNomResult<'s> =
-    Result<(PSpan<'s>, PSpan<'s>), nom::Err<ParserError<PLUCode, PSpan<'s>>>>;
+define_span!(PSpan = PLUCode, str);
+pub type PLUParserResult<'s, O> = ParserResult<PLUCode, PSpan<'s>, O>;
+pub type PLUNomResult<'s> = ParserResult<PLUCode, PSpan<'s>, PSpan<'s>>;
 pub type PLUParserError<'s> = ParserError<PLUCode, PSpan<'s>>;
 
 /// Gesamte Map.

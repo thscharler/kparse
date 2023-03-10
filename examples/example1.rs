@@ -4,7 +4,7 @@ use crate::ExCode::*;
 use kparse::combinators::track;
 use kparse::prelude::*;
 use kparse::token_error::TokenizerError;
-use kparse::{ParseSpan, ParserError, ParserResult, TokenizerResult, Track};
+use kparse::{ParserError, ParserResult, TokenizerResult};
 use nom::bytes::complete::tag;
 use nom::character::complete::digit1;
 use nom::combinator::consumed;
@@ -55,10 +55,7 @@ impl Code for ExCode {
     const NOM_ERROR: Self = Self::ExNomError;
 }
 
-#[cfg(debug_assertions)]
-pub type ExSpan<'s> = ParseSpan<'s, ExCode, &'s str>;
-#[cfg(not(debug_assertions))]
-pub type ExSpan<'s> = &'s str;
+define_span!(ExSpan = ExCode, str);
 pub type ExParserResult<'s, O> = ParserResult<ExCode, ExSpan<'s>, O>;
 pub type ExTokenizerResult<'s, O> = TokenizerResult<ExCode, ExSpan<'s>, O>;
 pub type ExParserError<'s> = ParserError<ExCode, ExSpan<'s>>;

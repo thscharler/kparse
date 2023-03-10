@@ -2,7 +2,7 @@
 
 use kparse::parser_error::Hints;
 use kparse::provider::{StdTracker, TrackData, TrackedData};
-use kparse::{Code, ParseSpan, ParserError, ParserResult, Track, TrackedSpan};
+use kparse::{Code, ParseSpan, ParserError, ParserResult, Track};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Display, Formatter};
 use std::mem::size_of;
