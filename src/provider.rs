@@ -35,7 +35,7 @@ where
 {
     /// Create a new Span from this context using the original str.
     #[cfg(debug_assertions)]
-    fn span<'s>(&'s self, text: T) -> LocatedSpan<T, DynTracker<'s, C, T>>
+    fn span<'s>(&'s self, text: T) -> LocatedSpan<T, &'s dyn TrackProvider<C, T>>
     where
         T: 's;
 
@@ -50,16 +50,7 @@ where
     fn track(&self, data: TrackData<C, T>);
 }
 
-/// An instance of this struct ist kept in the extra field of LocatedSpan.
-/// This way it's propagated all the way through the parser.
-// This indirection is needed because of the debug impl of LocatedSpan.
-#[derive(Clone, Copy)]
-#[repr(transparent)]
-pub struct DynTracker<'c, C, T>(pub(crate) &'c dyn TrackProvider<C, T>)
-where
-    C: Code;
-
-impl<'c, C, T> Debug for DynTracker<'c, C, T>
+impl<'c, C, T> Debug for &'c dyn TrackProvider<C, T>
 where
     C: Code,
 {
@@ -171,11 +162,11 @@ where
 {
     /// Create a new Span from this context using the original str.
     #[cfg(debug_assertions)]
-    fn span<'s>(&'s self, text: T) -> LocatedSpan<T, DynTracker<'s, C, T>>
+    fn span<'s>(&'s self, text: T) -> LocatedSpan<T, &'s dyn TrackProvider<C, T>>
     where
         T: 's,
     {
-        LocatedSpan::new_extra(text, DynTracker(self))
+        LocatedSpan::new_extra(text, self)
     }
 
     #[cfg(not(debug_assertions))]

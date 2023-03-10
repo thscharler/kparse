@@ -71,13 +71,12 @@ use crate::parser_ext::{
     OptPrecedes, Optional, OrElse, PNot, Peek, Precedes, Recognize, Terminated, Value, Verify,
     WithCode, WithContext,
 };
-use crate::provider::{DynTracker, StdTracker, TrackData, TrackProvider};
+use crate::provider::{StdTracker, TrackData, TrackProvider};
 use crate::source::{SourceBytes, SourceStr};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Parser, Slice};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Display};
-use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut, RangeTo};
+use std::ops::RangeTo;
 use std::str::FromStr;
 
 /// Prelude for all traits.
@@ -92,7 +91,7 @@ pub mod prelude {
 
 /// Standard input type. This is a LocatedSpan for debug builds
 /// and a plain reference for release builds.
-pub type ParseSpan<'s, C, T> = LocatedSpan<T, DynTracker<'s, C, T>>;
+pub type ParseSpan<'s, C, T> = LocatedSpan<T, &'s dyn TrackProvider<C, T>>;
 
 /// ParserResult for ParserError.
 /// Equivalent to [nom::IResult]<(I, O), ParserError<C, I>>
@@ -537,7 +536,7 @@ impl Track {
         &self,
         provider: &'s impl TrackProvider<C, I>,
         text: I,
-    ) -> LocatedSpan<I, DynTracker<'s, C, I>>
+    ) -> LocatedSpan<I, &'s dyn TrackProvider<C, I>>
     where
         C: Code,
         I: Clone + Debug + AsBytes,
@@ -778,54 +777,50 @@ where
     fn track_exit(&self);
 }
 
-impl<'s, C, T> TrackedSpan<C> for LocatedSpan<T, DynTracker<'s, C, T>>
+impl<'s, C, T> TrackedSpan<C> for LocatedSpan<T, &'s dyn TrackProvider<C, T>>
 where
     C: Code,
     T: Clone + Debug + AsBytes + InputTake + InputLength,
 {
     #[inline(always)]
     fn track_enter(&self, func: C) {
-        self.extra.0.track(TrackData::Enter(func, clear_span(self)));
+        self.extra.track(TrackData::Enter(func, clear_span(self)));
     }
 
     #[inline(always)]
     fn track_debug(&self, debug: String) {
-        self.extra
-            .0
-            .track(TrackData::Debug(clear_span(self), debug));
+        self.extra.track(TrackData::Debug(clear_span(self), debug));
     }
 
     #[inline(always)]
     fn track_info(&self, info: &'static str) {
-        self.extra.0.track(TrackData::Info(clear_span(self), info));
+        self.extra.track(TrackData::Info(clear_span(self), info));
     }
 
     #[inline(always)]
     fn track_warn(&self, warn: &'static str) {
-        self.extra.0.track(TrackData::Warn(clear_span(self), warn));
+        self.extra.track(TrackData::Warn(clear_span(self), warn));
     }
 
     #[inline(always)]
-    fn track_ok(&self, parsed: LocatedSpan<T, DynTracker<'s, C, T>>) {
+    fn track_ok(&self, parsed: LocatedSpan<T, &'s dyn TrackProvider<C, T>>) {
         self.extra
-            .0
             .track(TrackData::Ok(clear_span(self), clear_span(&parsed)));
     }
 
     #[inline(always)]
     fn track_err<E: Debug>(&self, code: C, err: &E) {
         self.extra
-            .0
             .track(TrackData::Err(clear_span(self), code, format!("{:?}", err)));
     }
 
     #[inline(always)]
     fn track_exit(&self) {
-        self.extra.0.track(TrackData::Exit());
+        self.extra.track(TrackData::Exit());
     }
 }
 
-fn clear_span<C, T>(span: &LocatedSpan<T, DynTracker<'_, C, T>>) -> LocatedSpan<T, ()>
+fn clear_span<C, T>(span: &LocatedSpan<T, &'_ dyn TrackProvider<C, T>>) -> LocatedSpan<T, ()>
 where
     C: Code,
     T: AsBytes + Clone,

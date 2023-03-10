@@ -20,7 +20,8 @@
 //! Note: The &mut None is because lifetimes.
 
 use crate::debug::{restrict, DebugWidth};
-use crate::provider::{StdTracker, TrackProvider};
+use crate::prelude::TrackProvider;
+use crate::provider::StdTracker;
 use crate::spans::SpanFragment;
 use crate::{Code, KParseError, ParseSpan, ParserError};
 use nom::{AsBytes, InputIter, InputLength, InputTake};
@@ -143,14 +144,13 @@ pub fn str_parse<'s, O, E>(
 /// In release mode no tracking is active and it expects a &[u8] for the parser function.
 #[must_use]
 #[cfg(debug_assertions)]
-pub fn byte_parse<'s, C, I, O, E>(
-    buf: &'s mut Option<StdTracker<C, I>>,
+pub fn byte_parse<'s, C, O, E>(
+    buf: &'s mut Option<StdTracker<C, &'s [u8]>>,
     text: &'s [u8],
-    fn_test: impl Fn(I) -> Result<(I, O), nom::Err<E>>,
-) -> Test<'s, StdTracker<C, I>, I, O, E>
+    fn_test: impl Fn(ParseSpan<'s, C, &'s [u8]>) -> Result<(ParseSpan<'s, C, &'s [u8]>, O), nom::Err<E>>,
+) -> Test<'s, StdTracker<C, &'s [u8]>, ParseSpan<'s, C, &'s [u8]>, O, E>
 where
     C: Code,
-    I: AsBytes + Clone,
 {
     buf.replace(StdTracker::new());
     let context = buf.as_ref().expect("yes");
@@ -420,7 +420,7 @@ where
 mod report {
     use crate::debug::{restrict, restrict_ref, DebugWidth};
     use crate::prelude::*;
-    use crate::provider::{StdTracker, TrackProvider};
+    use crate::provider::StdTracker;
     use crate::test::{Report, Test};
     use crate::{Code, ParseSpan};
     use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};

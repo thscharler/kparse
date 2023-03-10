@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use kparse::parser_error::Hints;
-use kparse::provider::{DynTracker, StdTracker, TrackData, TrackedData};
+use kparse::provider::{StdTracker, TrackData, TrackedData};
 use kparse::{Code, ParseSpan, ParserError, ParserResult, Track, TrackedSpan};
 use nom_locate::LocatedSpan;
 use std::fmt::{Debug, Display, Formatter};
@@ -69,8 +69,6 @@ fn test_size2() {
     dbg!(size_of::<ParserResult<ZCode, &str, Nummer<'_>>>());
     dbg!(size_of::<TrackedData<ZCode, &str>>());
     dbg!(size_of::<LocatedSpan<&str>>());
-
-    dbg!(size_of::<DynTracker<ZCode, &str>>());
 
     dbg!(size_of::<StdTracker<ZCode, &str>>());
     dbg!(size_of::<TrackData<ZCode, &str>>());
