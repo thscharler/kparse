@@ -3,7 +3,7 @@
 ## New
 
 * Make the distinction between Debug and Release mode a central point. 
-  * ParseSpan switches between LocatedSpan<T> and T
+  * The parsed span switches between LocatedSpan<T> and T
 
 * Make Track the central starting point.
   * Track.new_tracker() creates the Tracker.

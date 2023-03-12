@@ -25,6 +25,8 @@ pub trait Source<I> {
     /// column calculation.
     fn with_ascii(self, ascii: bool) -> Self;
 
+    /// Returns the offset of the fragment.
+    fn offset(&self, fragment: I) -> usize;
     /// Returns the line of the fragment.
     fn line(&self, fragment: I) -> usize;
     /// Returns the column of the fragment.
@@ -98,6 +100,10 @@ where
     fn with_ascii(mut self, ascii: bool) -> Self {
         self.ascii = ascii;
         self
+    }
+
+    fn offset(&self, fragment: LocatedSpan<&'i [u8], Y>) -> usize {
+        raw::offset_from(self.buf, fragment.as_bytes())
     }
 
     fn line(&self, fragment: LocatedSpan<&'i [u8], Y>) -> usize {
@@ -237,6 +243,10 @@ impl<'i, 's> Source<&'i [u8]> for SourceBytes<'s> {
     fn with_ascii(mut self, ascii: bool) -> Self {
         self.ascii = ascii;
         self
+    }
+
+    fn offset(&self, fragment: &'i [u8]) -> usize {
+        raw::offset_from(self.buf, fragment.as_bytes())
     }
 
     fn line(&self, fragment: &'i [u8]) -> usize {
@@ -396,6 +406,10 @@ where
         self
     }
 
+    fn offset(&self, fragment: LocatedSpan<&'i str, Y>) -> usize {
+        raw::offset_from(self.buf, fragment.as_bytes())
+    }
+
     fn line(&self, fragment: LocatedSpan<&'i str, Y>) -> usize {
         raw::line_index(&self.idx, raw::offset_from(self.buf, fragment.as_bytes()))
     }
@@ -537,6 +551,10 @@ impl<'i, 's> Source<&'i str> for SourceStr<'s> {
     fn with_ascii(mut self, ascii: bool) -> Self {
         self.ascii = ascii;
         self
+    }
+
+    fn offset(&self, fragment: &'i str) -> usize {
+        raw::offset_from(self.buf, fragment.as_bytes())
     }
 
     fn line(&self, fragment: &'i str) -> usize {

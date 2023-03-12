@@ -561,7 +561,7 @@ impl Track {
     }
 
     #[cfg(not(debug_assertions))]
-    pub fn span<'s, C, I>(&self, provider: &'s impl TrackProvider<C, I>, text: I) -> I
+    pub fn span<'s, C, I>(&self, _provider: &'s impl TrackProvider<C, I>, text: I) -> I
     where
         C: Code,
         I: Clone + Debug + AsBytes,
@@ -572,11 +572,25 @@ impl Track {
     }
 
     /// Create a source text map for the given text.
+    #[cfg(debug_assertions)]
+    pub fn source_str<'a, X>(&self, text: LocatedSpan<&'a str, X>) -> SourceStr<'a> {
+        SourceStr::new(text.fragment())
+    }
+
+    /// Create a source text map for the given text.
+    #[cfg(not(debug_assertions))]
     pub fn source_str<'a>(&self, text: &'a str) -> SourceStr<'a> {
         SourceStr::new(text)
     }
 
     /// Create a source text map for the given text.
+    #[cfg(debug_assertions)]
+    pub fn source_bytes<'a, X>(&self, text: LocatedSpan<&'a [u8], X>) -> SourceBytes<'a> {
+        SourceBytes::new(text.fragment())
+    }
+
+    /// Create a source text map for the given text.
+    #[cfg(not(debug_assertions))]
     pub fn source_bytes<'a>(&self, text: &'a [u8]) -> SourceBytes<'a> {
         SourceBytes::new(text)
     }

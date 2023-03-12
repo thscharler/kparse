@@ -23,7 +23,9 @@ use crate::debug::{restrict, DebugWidth};
 use crate::prelude::*;
 use crate::provider::StdTracker;
 use crate::spans::SpanFragment;
-use crate::{Code, KParseError, ParseSpan, ParserError};
+#[cfg(debug_assertions)]
+use crate::ParseSpan;
+use crate::{Code, KParseError, ParserError};
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 pub use report::*;
 use std::cell::Cell;
@@ -90,10 +92,10 @@ pub fn str_parse<'s, C, O, E>(
 where
     C: Code,
 {
-    buf.replace(StdTracker::new());
+    buf.replace(Track.new_tracker());
     let context = buf.as_ref().expect("yes");
 
-    let span = context.span(text);
+    let span = Track.span(context, text);
 
     let now = Instant::now();
     let result = fn_test(span.clone());
@@ -152,10 +154,10 @@ pub fn byte_parse<'s, C, O, E>(
 where
     C: Code,
 {
-    buf.replace(StdTracker::new());
+    buf.replace(Track.new_tracker());
     let context = buf.as_ref().expect("yes");
 
-    let span = context.span(text);
+    let span = Track.span(context, text);
 
     let now = Instant::now();
     let result = fn_test(span.clone());
