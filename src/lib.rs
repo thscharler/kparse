@@ -536,7 +536,7 @@ pub struct Track;
 
 impl Track {
     /// Provider/Container for tracking data.
-    pub fn new_tracker<C, I>(&self) -> StdTracker<C, I>
+    pub fn new_tracker<C, I>() -> StdTracker<C, I>
     where
         C: Code,
         I: Clone + Debug + AsBytes,
@@ -547,8 +547,7 @@ impl Track {
 
     /// Create a tracking span for the given text and TrackProvider.
     #[cfg(debug_assertions)]
-    pub fn span<'s, C, I>(
-        &self,
+    pub fn new_span<'s, C, I>(
         provider: &'s impl TrackProvider<C, I>,
         text: I,
     ) -> LocatedSpan<I, &'s dyn TrackProvider<C, I>>
@@ -562,7 +561,7 @@ impl Track {
     }
 
     #[cfg(not(debug_assertions))]
-    pub fn span<'s, C, I>(&self, _provider: &'s impl TrackProvider<C, I>, text: I) -> I
+    pub fn new_span<'s, C, I>(_provider: &'s impl TrackProvider<C, I>, text: I) -> I
     where
         C: Code,
         I: Clone + Debug + AsBytes,
@@ -573,12 +572,12 @@ impl Track {
     }
 
     /// Create a source text map for the given text.
-    pub fn source_str<'a>(&self, text: &'a str) -> SourceStr<'a> {
+    pub fn source_str(text: &str) -> SourceStr<'_> {
         SourceStr::new(text)
     }
 
     /// Create a source text map for the given text.
-    pub fn source_bytes<'a>(&self, text: &'a [u8]) -> SourceBytes<'a> {
+    pub fn source_bytes(text: &[u8]) -> SourceBytes<'_> {
         SourceBytes::new(text)
     }
 

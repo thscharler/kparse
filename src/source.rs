@@ -82,6 +82,10 @@ impl<'s> SourceBytes<'s> {
             idx: raw::index_lines(buf, b'\n'),
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.buf.len()
+    }
 }
 
 impl<'s, 'i, Y> Source<LocatedSpan<&'i [u8], Y>> for SourceBytes<'s>
@@ -385,6 +389,10 @@ impl<'s> SourceStr<'s> {
             buf: buf.as_bytes(),
             idx: raw::index_lines(buf.as_bytes(), b'\n'),
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.buf.len()
     }
 }
 

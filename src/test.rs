@@ -91,10 +91,10 @@ pub fn str_parse<'s, C, O, E>(
 where
     C: Code,
 {
-    buf.replace(Track.new_tracker());
+    buf.replace(Track::new_tracker());
     let context = buf.as_ref().expect("yes");
 
-    let span = Track.span(context, text);
+    let span = Track::new_span(context, text);
 
     let now = Instant::now();
     let result = fn_test(span.clone());
@@ -153,10 +153,10 @@ pub fn byte_parse<'s, C, O, E>(
 where
     C: Code,
 {
-    buf.replace(Track.new_tracker());
+    buf.replace(Track::new_tracker());
     let context = buf.as_ref().expect("yes");
 
-    let span = Track.span(context, text);
+    let span = Track::new_span(context, text);
 
     let now = Instant::now();
     let result = fn_test(span.clone());
