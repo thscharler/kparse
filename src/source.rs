@@ -13,6 +13,7 @@ pub struct SourceLocation {
 }
 
 /// Source span.
+#[allow(clippy::needless_lifetimes)]
 pub trait Source<I> {
     type Result;
 
@@ -86,8 +87,13 @@ impl<'s> SourceBytes<'s> {
     pub fn len(&self) -> usize {
         self.buf.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.buf.is_empty()
+    }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'s, 'i, Y> Source<LocatedSpan<&'i [u8], Y>> for SourceBytes<'s>
 where
     Y: Clone + 'i,
@@ -148,7 +154,7 @@ where
     }
 
     fn end(&self, fragment: LocatedSpan<&'i [u8], Y>) -> Self::Result {
-        raw::end_frame(&self.buf, fragment.as_bytes(), self.sep).as_span_bytes(&self.idx)
+        raw::end_frame(self.buf, fragment.as_bytes(), self.sep).as_span_bytes(&self.idx)
     }
 
     type SpanIter<'it> = LocatedSpanBytesIter<'it, 's>
@@ -229,12 +235,13 @@ impl<'i, 's> Iterator for RLocatedSpanBytesIter<'i, 's> {
     type Item = LocatedSpan<&'s [u8], ()>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let frag = raw::prev_fragment(&self.buf, &self.fragment, self.sep);
+        let frag = raw::prev_fragment(self.buf, self.fragment, self.sep);
         self.fragment = frag.span;
         frag.as_iter_span_bytes(self.idx)
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'i, 's> Source<&'i [u8]> for SourceBytes<'s> {
     type Result = &'s [u8];
 
@@ -394,8 +401,13 @@ impl<'s> SourceStr<'s> {
     pub fn len(&self) -> usize {
         self.buf.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.buf.is_empty()
+    }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'s, 'i, Y> Source<LocatedSpan<&'i str, Y>> for SourceStr<'s>
 where
     Y: Clone + 'i,
@@ -460,7 +472,7 @@ where
     }
 
     fn end(&self, fragment: LocatedSpan<&'i str, Y>) -> LocatedSpan<&'s str, ()> {
-        raw::end_frame(&self.buf, fragment.as_bytes(), self.sep).as_span_str(&self.idx)
+        raw::end_frame(self.buf, fragment.as_bytes(), self.sep).as_span_str(&self.idx)
     }
 
     type SpanIter<'it> = LocatedSpanStrIter<'it, 's>
@@ -541,12 +553,13 @@ impl<'i, 's> Iterator for RLocatedSpanStrIter<'i, 's> {
     type Item = LocatedSpan<&'s str, ()>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let frag = raw::prev_fragment(&self.buf, &self.fragment, self.sep);
+        let frag = raw::prev_fragment(self.buf, self.fragment, self.sep);
         self.fragment = frag.span;
         frag.as_iter_span_str(self.idx)
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'i, 's> Source<&'i str> for SourceStr<'s> {
     type Result = &'s str;
 
@@ -798,6 +811,7 @@ mod raw {
 
     /// Returns the part of the frame from the last separator up to the start of the
     /// fragment.
+    #[allow(clippy::needless_lifetimes)]
     pub(crate) fn frame_prefix<'s, 'a>(
         complete: &'s [u8],
         fragment: &'a [u8],
@@ -822,6 +836,7 @@ mod raw {
     }
 
     /// Empty span at the beginning of the fragment.
+    #[allow(clippy::needless_lifetimes)]
     pub(crate) fn empty_frame<'s, 'a>(complete: &'s [u8], fragment: &'a [u8]) -> MemFragment<'s> {
         let offset = offset_from(complete, fragment);
         assert!(offset <= complete.len());
@@ -835,6 +850,7 @@ mod raw {
     }
 
     /// Return the first full line for the fragment.
+    #[allow(clippy::needless_lifetimes)]
     pub(crate) fn start_frame<'s, 'a>(
         complete: &'s [u8],
         fragment: &'a [u8],
@@ -866,6 +882,7 @@ mod raw {
     }
 
     /// Returns the last full frame of the fragment.
+    #[allow(clippy::needless_lifetimes)]
     pub(crate) fn end_frame<'s, 'a>(
         complete: &'s [u8],
         fragment: &'a [u8],
@@ -895,6 +912,7 @@ mod raw {
     }
 
     /// Completes the fragment to a full frame.
+    #[allow(clippy::needless_lifetimes)]
     pub(crate) fn complete_fragment<'s, 'a>(
         complete: &'s [u8],
         fragment: &'a [u8],
@@ -935,6 +953,7 @@ mod raw {
     /// The separator is included at the end of the frame.
     ///
     /// The line-count is corrected.
+    #[allow(clippy::needless_lifetimes)]
     pub(crate) fn next_fragment<'s, 'a>(
         complete: &'s [u8],
         fragment: &'a [u8],
@@ -971,6 +990,7 @@ mod raw {
     /// just a truncated fragment is returned.
     ///
     /// The separator is included at the end of a frame.
+    #[allow(clippy::needless_lifetimes)]
     pub(crate) fn prev_fragment<'s, 'a>(
         complete: &'s [u8],
         fragment: &'a [u8],

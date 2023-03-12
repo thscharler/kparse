@@ -97,7 +97,7 @@ where
     let span = Track::new_span(context, text);
 
     let now = Instant::now();
-    let result = fn_test(span.clone());
+    let result = fn_test(span);
     let duration = now.elapsed();
 
     Test {
@@ -159,7 +159,7 @@ where
     let span = Track::new_span(context, text);
 
     let now = Instant::now();
-    let result = fn_test(span.clone());
+    let result = fn_test(span);
     let duration = now.elapsed();
 
     Test {

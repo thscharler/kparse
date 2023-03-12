@@ -331,7 +331,7 @@ where
     fn from_error_kind(input: I, _kind: ErrorKind) -> Self {
         ParserError {
             code: C::NOM_ERROR,
-            span: input.clone(),
+            span: input,
             hints: Default::default(),
         }
     }
@@ -343,7 +343,7 @@ where
     fn from_char(input: I, _ch: char) -> Self {
         ParserError {
             code: C::NOM_ERROR,
-            span: input.clone(),
+            span: input,
             hints: Default::default(),
         }
     }

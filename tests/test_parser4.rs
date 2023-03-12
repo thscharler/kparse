@@ -24,8 +24,8 @@ pub fn timing() {
     let now = Instant::now();
     let cnt = 100;
     for _i in 0..cnt {
-        let track = Track.new_tracker::<APCode, _>();
-        let span = Track.span(&track, s);
+        let track = Track::new_tracker::<APCode, _>();
+        let span = Track::new_span(&track, s);
 
         let _r = black_box(parse_anbauplan(span));
     }
@@ -37,8 +37,8 @@ pub fn timing() {
 pub fn full_plan() {
     let s = include_str!("2022_Anbauplan.txt");
 
-    let track = Track.new_tracker();
-    let span = Track.span(&track, s);
+    let track = Track::new_tracker();
+    let span = Track::new_span(&track, s);
 
     match parse_anbauplan(span) {
         Ok((_r, v)) => {
@@ -301,6 +301,7 @@ pub mod parser4 {
         dump_diagnostics as dump_diagnostics_v4, dump_diagnostics_info as dump_diagnostics_info_v4,
         dump_trace as dump_trace_v4,
     };
+    #[cfg(debug_assertions)]
     use kparse::prelude::*;
     use kparse::token_error::TokenizerError;
     use kparse::{define_span, Code, ParserError, ParserResult, TokenizerResult};
@@ -527,7 +528,7 @@ pub mod parser4 {
             msg: &str,
             is_err: bool,
         ) {
-            let txt = Track.source_str(orig.fragment());
+            let txt = Track::source_str(orig.fragment());
 
             let text1 = txt.get_lines_around(err.span, 3);
 
@@ -596,7 +597,7 @@ pub mod parser4 {
             err: &APParserError<'_>,
             msg: &str,
         ) {
-            let txt = Track.source_str(orig.fragment());
+            let txt = Track::source_str(orig.fragment());
 
             let text1 = txt.get_lines_around(err.span, 0);
 

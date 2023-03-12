@@ -15,6 +15,7 @@ pub mod parser4 {
         dump_diagnostics as dump_diagnostics_v4, dump_diagnostics_info as dump_diagnostics_info_v4,
         dump_trace as dump_trace_v4,
     };
+    #[cfg(debug_assertions)]
     use kparse::prelude::*;
     use kparse::token_error::TokenizerError;
     use kparse::{define_span, Code, ParserError, ParserResult, TokenizerResult};
@@ -241,7 +242,7 @@ pub mod parser4 {
             msg: &str,
             is_err: bool,
         ) {
-            let txt = Track.source_str(orig.fragment());
+            let txt = Track::source_str(orig.fragment());
 
             let text1 = txt.get_lines_around(err.span, 3);
 
@@ -310,7 +311,7 @@ pub mod parser4 {
             err: &APParserError<'_>,
             msg: &str,
         ) {
-            let txt = Track.source_str(orig.fragment());
+            let txt = Track::source_str(orig.fragment());
             let text1 = txt.get_lines_around(err.span, 0);
 
             println!();

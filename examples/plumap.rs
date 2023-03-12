@@ -7,7 +7,9 @@
 
 use chrono::NaiveDate;
 use kparse::test::{str_parse, CheckDump};
-use kparse::{define_span, Code, ParseSpan, ParserError, ParserResult, TokenizerResult};
+#[cfg(debug_assertions)]
+use kparse::ParseSpan;
+use kparse::{define_span, Code, ParserError, ParserResult, TokenizerResult};
 pub use parser::*;
 use rust_decimal::Decimal;
 use std::fmt::{Display, Formatter};
@@ -161,7 +163,7 @@ mod debug {
         msg: &str,
         is_err: bool,
     ) {
-        let txt = Track.source_str(txt.fragment());
+        let txt = Track::source_str(txt.fragment());
 
         let text1 = txt.get_lines_around(err.span, 3);
 

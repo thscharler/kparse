@@ -169,7 +169,7 @@ mod debug {
         msg: &str,
         is_err: bool,
     ) {
-        let txt = Track.source_str(txt.fragment());
+        let txt = Track::source_str(txt.fragment());
         let text1 = txt.get_lines_around(err.span, 3);
 
         println!();
