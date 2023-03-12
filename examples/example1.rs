@@ -277,14 +277,13 @@ fn parse_a_b_num(input: ExSpan<'_>) -> ExParserResult<'_, AstABNum> {
 fn main() {
     for txt in env::args() {
         let trk = Track.new_tracker::<ExCode, _>();
-        let span = trk.span(txt.as_str());
+        let span = Track.span(&trk, txt.as_str());
 
         match parse_a_b_star(span) {
             Ok((_rest, val)) => {
                 dbg!(val);
             }
             Err(e) => {
-                #[cfg(debug_assertions)]
                 println!("{:?}", trk.results());
                 println!("{:?}", e);
             }

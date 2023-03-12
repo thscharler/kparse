@@ -38,14 +38,14 @@ use std::ops::{RangeFrom, RangeTo};
 /// ```
 /// use nom::bytes::complete::tag;
 /// use nom::Parser;
-/// use kparse::{Context, KParser};
+/// use kparse::{Track, KParser};
 /// use kparse::examples::{ExParserResult, ExSpan, ExTagA, ExTokenizerResult};
 /// use kparse::prelude::*;
 ///
 /// fn parse_a(input: ExSpan<'_>) -> ExParserResult<'_, AstA> {
-///     Context.enter(ExTagA, input);
+///     Track.enter(ExTagA, input);
 ///     let (rest, tok) = nom_parse_a.err_into().parse(input).track()?;
-///     Context.ok(rest, tok, AstA { span: tok })
+///     Track.ok(rest, tok, AstA { span: tok })
 /// }
 ///
 /// fn nom_parse_a(i: ExSpan<'_>) -> ExTokenizerResult<'_, ExSpan<'_>> {

@@ -25,7 +25,7 @@ pub fn timing() {
     let cnt = 100;
     for _i in 0..cnt {
         let track = Track.new_tracker::<APCode, _>();
-        let span = track.span(s);
+        let span = Track.span(&track, s);
 
         let _r = black_box(parse_anbauplan(span));
     }
@@ -38,7 +38,7 @@ pub fn full_plan() {
     let s = include_str!("2022_Anbauplan.txt");
 
     let track = Track.new_tracker();
-    let span = track.span(s);
+    let span = Track.span(&track, s);
 
     match parse_anbauplan(span) {
         Ok((_r, v)) => {

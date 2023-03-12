@@ -3,11 +3,12 @@
 //!
 #![cfg(test)]
 #![allow(missing_docs)]
+#![allow(dead_code)]
+#![allow(unreachable_pub)]
 
+use crate::prelude::*;
 use crate::token_error::TokenizerError;
-#[cfg(debug_assertions)]
-use crate::tracker::TrackSpan;
-use crate::{Code, ParserError, ParserResult, TokenizerResult};
+use crate::{ParserError, ParserResult, TokenizerResult};
 use std::fmt::{Display, Formatter};
 pub use ExCode::*;
 
@@ -52,10 +53,7 @@ impl Code for ExCode {
     const NOM_ERROR: Self = Self::ExNomError;
 }
 
-#[cfg(debug_assertions)]
-pub type ExSpan<'s> = TrackSpan<'s, ExCode, &'s str>;
-#[cfg(not(debug_assertions))]
-pub type ExSpan<'s> = &'s str;
+define_span!(ExSpan = ExCode, str);
 pub type ExParserResult<'s, O> = ParserResult<ExCode, ExSpan<'s>, O>;
 pub type ExTokenizerResult<'s, O> = TokenizerResult<ExCode, ExSpan<'s>, O>;
 pub type ExParserError<'s> = ParserError<ExCode, ExSpan<'s>>;

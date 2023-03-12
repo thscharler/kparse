@@ -54,6 +54,7 @@
 
 pub mod combinators;
 mod debug;
+pub mod examples;
 pub mod parser_error;
 mod parser_ext;
 pub mod provider;
