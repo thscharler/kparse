@@ -20,12 +20,11 @@
 //! Note: The &mut None is because lifetimes.
 
 use crate::debug::{restrict, DebugWidth};
-use crate::prelude::*;
 use crate::provider::StdTracker;
 use crate::spans::SpanFragment;
-#[cfg(debug_assertions)]
-use crate::ParseSpan;
 use crate::{Code, KParseError, ParserError};
+#[cfg(debug_assertions)]
+use crate::{ParseSpan, Track};
 use nom::{AsBytes, InputIter, InputLength, InputTake};
 pub use report::*;
 use std::cell::Cell;
