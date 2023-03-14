@@ -1,3 +1,7 @@
+# 3.0.1
+
+* define_span! accepts visibility 
+
 # 3.0
 
 ## New

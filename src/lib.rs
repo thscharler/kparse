@@ -100,11 +100,11 @@ pub type ParseSpan<'s, C, T> = LocatedSpan<T, &'s dyn TrackProvider<C, T>>;
 /// Switches between ParseSpan<> in debug mode and plain type in release mode.
 #[macro_export]
 macro_rules! define_span {
-    ($name:ident = $code:ty, $typ:ty) => {
+    ($v:vis $name:ident = $code:ty, $typ:ty) => {
         #[cfg(debug_assertions)]
-        pub type $name<'a> = ParseSpan<'a, $code, &'a $typ>;
+        $v type $name<'a> = ParseSpan<'a, $code, &'a $typ>;
         #[cfg(not(debug_assertions))]
-        pub type $name<'a> = &'a $typ;
+        $v type $name<'a> = &'a $typ;
     };
 }
 
