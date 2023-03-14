@@ -1,7 +1,6 @@
 //!
 //! Types used in doc tests.
 //!
-#![cfg(test)]
 #![allow(missing_docs)]
 #![allow(dead_code)]
 #![allow(unreachable_pub)]

@@ -529,8 +529,15 @@ where
     }
 }
 
-/// TODO:
+/// Central struct for tracking.
 ///
+/// - Create a TrackProvider with ```Track::new_tracker()```
+/// - Create a matching span with ```new_span()```. Switches between debug and release mode,
+///   and tracking is only active in debug mode.
+/// - Create a SourceStr/SourceBytes for row/column information.
+///
+/// - Call the actual tracking functions:
+///   - Track.enter(), Track.ok(), Track.err(), ...
 ///
 pub struct Track;
 
