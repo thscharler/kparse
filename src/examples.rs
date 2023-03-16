@@ -52,7 +52,7 @@ impl Code for ExCode {
     const NOM_ERROR: Self = Self::ExNomError;
 }
 
-define_span!(ExSpan = ExCode, str);
+define_span!(pub ExSpan = ExCode, str);
 pub type ExParserResult<'s, O> = ParserResult<ExCode, ExSpan<'s>, O>;
 pub type ExTokenizerResult<'s, O> = TokenizerResult<ExCode, ExSpan<'s>, O>;
 pub type ExParserError<'s> = ParserError<ExCode, ExSpan<'s>>;
