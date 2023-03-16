@@ -94,7 +94,8 @@ pub mod prelude {
 }
 
 /// Standard input type. This is a LocatedSpan with a TrackProvider.
-pub type ParseSpan<'s, C, T> = LocatedSpan<T, &'s dyn TrackProvider<C, T>>;
+pub type DynTrackProvider<'s, C, T> = &'s (dyn TrackProvider<C, T> + Send);
+pub type ParseSpan<'s, C, T> = LocatedSpan<T, DynTrackProvider<'s, C, T>>;
 
 /// Defines a type alias for the span type.
 /// Switches between ParseSpan<> in debug mode and plain type in release mode.
@@ -117,7 +118,7 @@ pub type ParserResult<C, I, O> = Result<(I, O), nom::Err<ParserError<C, I>>>;
 pub type TokenizerResult<C, I, O> = Result<(I, O), nom::Err<TokenizerError<C, I>>>;
 
 /// Parser error code.
-pub trait Code: Copy + Display + Debug + Eq {
+pub trait Code: Copy + Display + Debug + Eq + Send {
     /// Default error code for nom-errors.
     const NOM_ERROR: Self;
 }
@@ -557,7 +558,7 @@ impl Track {
     pub fn new_span<'s, C, I>(
         provider: &'s impl TrackProvider<C, I>,
         text: I,
-    ) -> LocatedSpan<I, &'s dyn TrackProvider<C, I>>
+    ) -> LocatedSpan<I, DynTrackProvider<'s, C, I>>
     where
         C: Code,
         I: Clone + Debug + AsBytes,
@@ -797,7 +798,7 @@ where
     fn track_exit(&self);
 }
 
-impl<'s, C, T> TrackedSpan<C> for LocatedSpan<T, &'s dyn TrackProvider<C, T>>
+impl<'s, C, T> TrackedSpan<C> for LocatedSpan<T, DynTrackProvider<'s, C, T>>
 where
     C: Code,
     T: Clone + Debug + AsBytes + InputTake + InputLength,
@@ -823,7 +824,7 @@ where
     }
 
     #[inline(always)]
-    fn track_ok(&self, parsed: LocatedSpan<T, &'s dyn TrackProvider<C, T>>) {
+    fn track_ok(&self, parsed: LocatedSpan<T, DynTrackProvider<'s, C, T>>) {
         self.extra
             .track(TrackData::Ok(clear_span(self), clear_span(&parsed)));
     }
@@ -840,7 +841,7 @@ where
     }
 }
 
-fn clear_span<C, T>(span: &LocatedSpan<T, &'_ dyn TrackProvider<C, T>>) -> LocatedSpan<T, ()>
+fn clear_span<C, T>(span: &LocatedSpan<T, DynTrackProvider<'_, C, T>>) -> LocatedSpan<T, ()>
 where
     C: Code,
     T: AsBytes + Clone,

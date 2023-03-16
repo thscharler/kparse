@@ -1,5 +1,5 @@
 use crate::debug::tracks::debug_tracks;
-use crate::Code;
+use crate::{Code, DynTrackProvider};
 use nom::{AsBytes, InputIter, InputLength, InputTake, Offset, Slice};
 use nom_locate::LocatedSpan;
 use std::cell::RefCell;
@@ -34,7 +34,7 @@ where
     C: Code,
 {
     /// Create a span with this TrackingProvider attached.
-    fn track_span<'s>(&'s self, text: T) -> LocatedSpan<T, &'s dyn TrackProvider<C, T>>
+    fn track_span<'s>(&'s self, text: T) -> LocatedSpan<T, DynTrackProvider<'s, C, T>>
     where
         T: 's;
 
@@ -46,7 +46,7 @@ where
     fn track(&self, data: TrackData<C, T>);
 }
 
-impl<'c, C, T> Debug for &'c dyn TrackProvider<C, T>
+impl<'c, C, T> Debug for DynTrackProvider<'c, C, T>
 where
     C: Code,
 {
@@ -153,11 +153,11 @@ where
 
 impl<C, T> TrackProvider<C, T> for StdTracker<C, T>
 where
-    T: AsBytes + Clone,
+    T: AsBytes + Clone + Send,
     C: Code,
 {
     /// Create a new Span from this context using the original str.
-    fn track_span<'s>(&'s self, text: T) -> LocatedSpan<T, &'s dyn TrackProvider<C, T>>
+    fn track_span<'s>(&'s self, text: T) -> LocatedSpan<T, DynTrackProvider<'s, C, T>>
     where
         T: 's,
     {

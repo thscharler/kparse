@@ -544,7 +544,7 @@ mod report {
 
     impl<'s, C, T, O, E> Report<Test<'s, StdTracker<C, T>, ParseSpan<'s, C, T>, O, E>> for CheckTrace
     where
-        T: AsBytes + Clone + Debug,
+        T: AsBytes + Clone + Debug + Send,
         T: Offset
             + InputTake
             + InputIter
@@ -567,7 +567,7 @@ mod report {
 
     impl<'s, C, T, O, E> Report<Test<'s, StdTracker<C, T>, ParseSpan<'s, C, T>, O, E>> for Trace
     where
-        T: AsBytes + Clone + Debug,
+        T: AsBytes + Clone + Debug + Send,
         T: Offset
             + InputTake
             + InputIter
@@ -586,7 +586,7 @@ mod report {
 
     fn trace<'s, C, T, O, E>(test: &Test<'s, StdTracker<C, T>, ParseSpan<'s, C, T>, O, E>)
     where
-        T: AsBytes + Clone + Debug,
+        T: AsBytes + Clone + Debug + Send,
         T: Offset
             + InputTake
             + InputIter
