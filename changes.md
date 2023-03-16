@@ -1,3 +1,7 @@
+# 3.0.2
+
+* Add a Send bound to &dyn TrackProvider
+
 # 3.0.1
 
 * define_span! accepts visibility 
