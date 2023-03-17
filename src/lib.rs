@@ -94,7 +94,7 @@ pub mod prelude {
 }
 
 /// Standard input type. This is a LocatedSpan with a TrackProvider.
-pub type DynTrackProvider<'s, C, T> = &'s (dyn TrackProvider<C, T> + Send);
+pub type DynTrackProvider<'s, C, T> = &'s (dyn TrackProvider<C, T>);
 pub type ParseSpan<'s, C, T> = LocatedSpan<T, DynTrackProvider<'s, C, T>>;
 
 /// Defines a type alias for the span type.
@@ -118,7 +118,7 @@ pub type ParserResult<C, I, O> = Result<(I, O), nom::Err<ParserError<C, I>>>;
 pub type TokenizerResult<C, I, O> = Result<(I, O), nom::Err<TokenizerError<C, I>>>;
 
 /// Parser error code.
-pub trait Code: Copy + Display + Debug + Eq + Send {
+pub trait Code: Copy + Display + Debug + Eq {
     /// Default error code for nom-errors.
     const NOM_ERROR: Self;
 }

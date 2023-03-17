@@ -153,7 +153,7 @@ where
 
 impl<C, T> TrackProvider<C, T> for StdTracker<C, T>
 where
-    T: AsBytes + Clone + Send,
+    T: AsBytes + Clone,
     C: Code,
 {
     /// Create a new Span from this context using the original str.
