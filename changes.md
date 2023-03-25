@@ -1,3 +1,8 @@
+# 3.0.3
+
+* Remove Send bounds ...
+* add ParserError::is_suggested()
+
 # 3.0.2
 
 * Add a Send bound to &dyn TrackProvider
