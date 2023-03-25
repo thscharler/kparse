@@ -606,6 +606,19 @@ where
         self.hints.push(Hints::Suggest(SpanAndCode { code, span }))
     }
 
+    /// Was this one of the expected errors.
+    /// The main error code is one of the tested values.
+    pub fn is_suggested(&self, code: C) -> bool {
+        for exp in &self.hints {
+            if let Hints::Suggest(v) = exp {
+                if v.code == code {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     /// Adds some suggested codes.
     pub fn append_suggested(&mut self, sug_iter: impl Iterator<Item = SpanAndCode<C, I>>) {
         for exp in sug_iter {
