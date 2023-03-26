@@ -383,7 +383,7 @@ where
 
 impl<'s, P, C, I, O> Test<'s, P, I, O, ParserError<C, I>>
 where
-    I: AsBytes + Clone + Debug + PartialEq + 's,
+    I: AsBytes + Clone + SpanFragment + Debug + PartialEq + 's,
     I: InputTake + InputLength + InputIter,
     C: Code,
     O: Debug,

@@ -56,7 +56,11 @@ where
         }
     }
 
-    text.take(x)
+    if n < max_len {
+        text.clone()
+    } else {
+        text.take(x)
+    }
 }
 
 /// Cuts off the text at 20/40/60 characters.
@@ -88,5 +92,9 @@ where
         }
     }
 
-    span.take(x)
+    if n < max_len {
+        span
+    } else {
+        span.take(x)
+    }
 }

@@ -12,6 +12,7 @@
 
 use crate::debug::error::debug_parse_error;
 use crate::debug::{restrict, DebugWidth};
+use crate::prelude::SpanFragment;
 use crate::{Code, ErrOrNomErr, KParseError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
@@ -45,7 +46,8 @@ pub enum Hints<C, I> {
 impl<C, I> ErrOrNomErr for ParserError<C, I>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = ParserError<C, I>;
 
@@ -57,7 +59,8 @@ where
 impl<C, I> ErrOrNomErr for nom::Err<ParserError<C, I>>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = ParserError<C, I>;
 
@@ -69,7 +72,8 @@ where
 impl<C, I> KParseError<C, I> for ParserError<C, I>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = ParserError<C, I>;
 
@@ -101,7 +105,8 @@ where
 impl<C, I> KParseError<C, I> for nom::Err<ParserError<C, I>>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = ParserError<C, I>;
 
@@ -153,7 +158,8 @@ where
 impl<C, I, O> KParseError<C, I> for Result<(I, O), nom::Err<ParserError<C, I>>>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = ParserError<C, I>;
 
@@ -405,7 +411,7 @@ where
 impl<C, I> Debug for ParserError<C, I>
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -416,7 +422,7 @@ where
 impl<C, I> Debug for Hints<C, I>
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -432,7 +438,7 @@ where
 impl<C, I> Error for ParserError<C, I>
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     fn source(&self) -> Option<&(dyn ::std::error::Error + 'static)> {
@@ -461,12 +467,17 @@ pub struct SpanAndCode<C, I> {
 impl<C, I> Debug for SpanAndCode<C, I>
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let w = f.width().into();
-        write!(f, "{:?}:{:?}", self.code, restrict(w, self.span.clone()))?;
+        write!(
+            f,
+            "{:?}:{:?}",
+            self.code,
+            restrict(w, self.span.clone()).fragment()
+        )?;
         Ok(())
     }
 }

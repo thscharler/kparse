@@ -4,6 +4,7 @@
 
 use nom::{AsBytes, InputLength, Slice};
 use nom_locate::LocatedSpan;
+use std::fmt::Debug;
 use std::ops::Range;
 
 /// Extension trait for Spans.
@@ -131,7 +132,7 @@ where
 /// Get the fragment from a span.
 pub trait SpanFragment {
     /// Type of the fragment.
-    type Result: ?Sized;
+    type Result: ?Sized + Debug;
 
     /// Equivalent to LocatedSpan::fragment()
     fn fragment(&self) -> &Self::Result;
@@ -139,7 +140,7 @@ pub trait SpanFragment {
 
 impl<T, X> SpanFragment for LocatedSpan<T, X>
 where
-    T: Clone + AsBytes,
+    T: Clone + AsBytes + Debug,
 {
     type Result = T;
 

@@ -1,5 +1,6 @@
 use crate::debug::{restrict, DebugWidth};
 use crate::parser_error::ParserError;
+use crate::spans::SpanFragment;
 use crate::Code;
 use nom::{InputIter, InputLength, InputTake};
 use std::fmt;
@@ -12,7 +13,7 @@ pub(crate) fn debug_parse_error<C, I>(
 ) -> fmt::Result
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     match f.width() {
@@ -26,14 +27,14 @@ where
 fn debug_parse_error_short<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     write!(
         f,
-        "parse error [{:?}] for {:?}",
+        "parse error [{:?}] for {:?} ",
         err.code,
-        restrict(DebugWidth::Short, err.span.clone())
+        restrict(DebugWidth::Short, err.span.clone()).fragment()
     )?;
 
     for v in err.iter_expected() {
@@ -45,9 +46,6 @@ where
     if let Some(cause) = err.cause() {
         write!(f, "cause={:0?}, ", cause)?;
     }
-    // if let Some(user_data) = err.user_data() {
-    //     write!(f, "user_data={:0?}, ", user_data)?;
-    // }
 
     Ok(())
 }
@@ -55,40 +53,35 @@ where
 fn debug_parse_error_medium<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     writeln!(
         f,
-        "ParserError [{}] for {:?}",
+        "ParserError [{}] for {:?} ",
         err.code,
-        restrict(DebugWidth::Medium, err.span.clone())
+        restrict(DebugWidth::Medium, err.span.clone()).fragment()
     )?;
 
     if err.iter_expected().next().is_some() {
-        writeln!(f, "expected")?;
+        writeln!(f, "expected ")?;
     }
     for v in err.iter_expected() {
         indent(f, 1)?;
         writeln!(f, "{:1?}, ", v)?;
     }
     if err.iter_suggested().next().is_some() {
-        writeln!(f, "suggested")?;
+        writeln!(f, "suggested ")?;
     }
     for v in err.iter_suggested() {
         indent(f, 1)?;
         writeln!(f, "{:1?}, ", v)?;
     }
     if let Some(cause) = err.cause() {
-        writeln!(f, "cause")?;
+        writeln!(f, "cause ")?;
         indent(f, 1)?;
         writeln!(f, "{:1?}, ", cause)?;
     }
-    // if let Some(user_data) = err.user_data() {
-    //     writeln!(f, "user_data")?;
-    //     indent(f, 1)?;
-    //     writeln!(f, "{:1?}, ", user_data)?;
-    // }
 
     Ok(())
 }
@@ -96,40 +89,35 @@ where
 fn debug_parse_error_long<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     writeln!(
         f,
-        "ParserError [{}] for {:?}",
+        "ParserError [{}] for {:?} ",
         err.code,
-        restrict(DebugWidth::Long, err.span.clone())
+        restrict(DebugWidth::Long, err.span.clone()).fragment()
     )?;
 
     if err.iter_expected().next().is_some() {
-        writeln!(f, "expected")?;
+        writeln!(f, "expected ")?;
     }
     for v in err.iter_expected() {
         indent(f, 1)?;
         writeln!(f, "{:2?}, ", v)?;
     }
     if err.iter_suggested().next().is_some() {
-        writeln!(f, "suggested")?;
+        writeln!(f, "suggested ")?;
     }
     for v in err.iter_suggested() {
         indent(f, 1)?;
         writeln!(f, "{:2?}, ", v)?;
     }
     if let Some(cause) = err.cause() {
-        writeln!(f, "cause")?;
+        writeln!(f, "cause ")?;
         indent(f, 1)?;
         writeln!(f, "{:2?}, ", cause)?;
     }
-    // if let Some(user_data) = err.user_data() {
-    //     writeln!(f, "user_data")?;
-    //     indent(f, 1)?;
-    //     writeln!(f, "{:2?}, ", user_data)?;
-    // }
 
     Ok(())
 }
