@@ -1,3 +1,8 @@
+# 3.0.4
+
+* Add bound SpanFragment to ParserError and TokenizerError for better debug output.
+* Fix bug in restrict*. Cut off last char.
+
 # 3.0.3
 
 * Remove Send bounds ...

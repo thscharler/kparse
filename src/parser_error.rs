@@ -364,7 +364,7 @@ where
 impl<C, I> Display for ParserError<C, I>
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -394,15 +394,11 @@ where
             write!(f, " cause {:0?}, ", cause)?;
         }
 
-        // if let Some(user_data) = self.user_data() {
-        //     write!(f, " user_data {:?}, ", user_data)?;
-        // }
-
         // no suggest
         write!(
             f,
             " for span {:?}",
-            restrict(DebugWidth::Short, self.span.clone())
+            restrict(DebugWidth::Short, self.span.clone()).fragment()
         )?;
         Ok(())
     }

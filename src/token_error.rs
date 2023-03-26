@@ -6,6 +6,7 @@
 
 use crate::debug::{restrict, DebugWidth};
 use crate::parser_error::ParserError;
+use crate::spans::SpanFragment;
 use crate::{Code, ErrOrNomErr, KParseError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
@@ -25,7 +26,8 @@ pub struct TokenizerError<C, I> {
 impl<C, I> ErrOrNomErr for TokenizerError<C, I>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = TokenizerError<C, I>;
 
@@ -37,7 +39,8 @@ where
 impl<C, I> ErrOrNomErr for nom::Err<TokenizerError<C, I>>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = TokenizerError<C, I>;
 
@@ -49,7 +52,8 @@ where
 impl<C, I> KParseError<C, I> for TokenizerError<C, I>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = TokenizerError<C, I>;
 
@@ -91,7 +95,8 @@ where
 impl<C, I> KParseError<C, I> for nom::Err<TokenizerError<C, I>>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = TokenizerError<C, I>;
 
@@ -143,7 +148,8 @@ where
 impl<C, I, O> KParseError<C, I> for Result<(I, O), nom::Err<TokenizerError<C, I>>>
 where
     C: Code,
-    I: Clone + Debug + InputTake + InputLength + InputIter,
+    I: Clone + Debug + SpanFragment,
+    I: InputTake + InputLength + InputIter,
 {
     type WrappedError = TokenizerError<C, I>;
 
@@ -231,7 +237,7 @@ where
 impl<C, I> Display for TokenizerError<C, I>
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -239,7 +245,7 @@ where
         write!(
             f,
             " for span {:?}",
-            restrict(DebugWidth::Short, self.span.clone())
+            restrict(DebugWidth::Short, self.span.clone()).fragment()
         )?;
         Ok(())
     }
@@ -248,13 +254,17 @@ where
 impl<C, I> Debug for TokenizerError<C, I>
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let dw: DebugWidth = f.width().into();
         write!(f, "{}", self.code)?;
-        write!(f, " for span {:?}", restrict(dw, self.span.clone()))?;
+        write!(
+            f,
+            " for span {:?}",
+            restrict(dw, self.span.clone()).fragment()
+        )?;
         Ok(())
     }
 }
@@ -262,7 +272,7 @@ where
 impl<C, I> Error for TokenizerError<C, I>
 where
     C: Code,
-    I: Clone + Debug,
+    I: Clone + Debug + SpanFragment,
     I: InputTake + InputLength + InputIter,
 {
 }
