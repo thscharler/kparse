@@ -17,6 +17,7 @@ use crate::{Code, ErrOrNomErr, KParseError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::any::Any;
+use std::backtrace::Backtrace;
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
@@ -29,6 +30,8 @@ pub struct ParserError<C, I> {
     pub span: I,
     /// Extra information
     pub hints: Vec<Hints<C, I>>,
+    #[cfg(debug_assertions)]
+    pub backtrace: Backtrace,
 }
 
 /// Extra information added to a ParserError.
@@ -339,6 +342,8 @@ where
             code: C::NOM_ERROR,
             span: input,
             hints: Default::default(),
+            #[cfg(debug_assertions)]
+            backtrace: Backtrace::capture(),
         }
     }
 
@@ -351,6 +356,8 @@ where
             code: C::NOM_ERROR,
             span: input,
             hints: Default::default(),
+            #[cfg(debug_assertions)]
+            backtrace: Backtrace::capture(),
         }
     }
 
@@ -489,6 +496,8 @@ where
             code,
             span,
             hints: Vec::new(),
+            #[cfg(debug_assertions)]
+            backtrace: Backtrace::capture(),
         }
     }
 

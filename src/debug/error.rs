@@ -17,11 +17,16 @@ where
     I: InputTake + InputLength + InputIter,
 {
     match f.width() {
-        None | Some(0) => debug_parse_error_short(f, err),
-        Some(1) => debug_parse_error_medium(f, err),
-        Some(2) => debug_parse_error_long(f, err),
-        _ => Ok(()),
+        None | Some(0) => debug_parse_error_short(f, err)?,
+        Some(1) => debug_parse_error_medium(f, err)?,
+        Some(2) => debug_parse_error_long(f, err)?,
+        _ => {}
     }
+
+    #[cfg(debug_assertions)]
+    write!(f, "{:#?}", err.backtrace)?;
+
+    Ok(())
 }
 
 fn debug_parse_error_short<C, I>(f: &mut impl fmt::Write, err: &ParserError<C, I>) -> fmt::Result
