@@ -17,6 +17,7 @@ use crate::{Code, ErrOrNomErr, KParseError};
 use nom::error::ErrorKind;
 use nom::{InputIter, InputLength, InputTake};
 use std::any::Any;
+#[cfg(debug_assertions)]
 use std::backtrace::Backtrace;
 use std::error::Error;
 use std::fmt;
