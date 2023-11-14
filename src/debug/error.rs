@@ -24,7 +24,10 @@ where
     }
 
     #[cfg(debug_assertions)]
-    write!(f, "{:#?}", err.backtrace)?;
+    match f.width() {
+        Some(1) => write!(f, "{:#?}", err.backtrace)?,
+        _ => {}
+    }
 
     Ok(())
 }

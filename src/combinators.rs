@@ -6,7 +6,7 @@ use crate::{Code, KParseError, TrackedSpan};
 use nom::error::{ErrorKind, ParseError};
 use nom::{AsBytes, AsChar, IResult, InputIter, InputLength, InputTake, Parser, Slice};
 use std::fmt::Debug;
-use std::ops::{RangeFrom, RangeTo};
+use std::ops::{Range, RangeFrom, RangeTo};
 
 /// Tracked execution of a parser.
 ///
@@ -200,13 +200,58 @@ where
     I: Slice<RangeTo<usize>> + Slice<RangeFrom<usize>> + InputIter,
     <I as InputIter>::Item: AsChar,
 {
+    fchar(move |cc| c == cc)
+}
+
+/// Same as nom::char but return the input type instead of the char.
+#[inline]
+pub fn fchar<I, FN, Error: ParseError<I>>(c_fn: FN) -> impl Fn(I) -> IResult<I, I, Error>
+where
+    I: Slice<RangeTo<usize>> + Slice<RangeFrom<usize>> + InputIter,
+    <I as InputIter>::Item: AsChar,
+    FN: Fn(char) -> bool,
+{
     move |i: I| match i.iter_elements().next() {
-        None => Err(nom::Err::Error(Error::from_char(i, c))),
+        None => Err(nom::Err::Error(Error::from_error_kind(i, ErrorKind::Char))),
         Some(v) => {
-            if v.as_char() == c {
-                Ok((i.slice(c.len()..), i.slice(..c.len())))
+            let cc = v.as_char();
+            if c_fn(cc) {
+                Ok((i.slice(cc.len()..), i.slice(..cc.len())))
             } else {
-                Err(nom::Err::Error(Error::from_char(i, c)))
+                Err(nom::Err::Error(Error::from_error_kind(i, ErrorKind::Char)))
+            }
+        }
+    }
+}
+
+/// Same as nom::char but return the input type instead of the char.
+/// Checks one character but doesn't consume it.
+#[inline]
+pub fn psense<I, Error: ParseError<I>>(cc: char) -> impl Fn(I) -> IResult<I, I, Error>
+where
+    I: Slice<Range<usize>> + InputIter + Clone,
+    <I as InputIter>::Item: AsChar,
+{
+    fsense(move |c| c == cc)
+}
+
+/// Same as nom::char but return the input type instead of the char.
+/// Checks one character but doesn't consume it.
+#[inline]
+pub fn fsense<I, FN, Error: ParseError<I>>(c_fn: FN) -> impl Fn(I) -> IResult<I, I, Error>
+where
+    I: Slice<Range<usize>> + InputIter + Clone,
+    <I as InputIter>::Item: AsChar,
+    FN: Fn(char) -> bool,
+{
+    move |i: I| match i.iter_elements().next() {
+        None => Err(nom::Err::Error(Error::from_error_kind(i, ErrorKind::Char))),
+        Some(v) => {
+            let cc = v.as_char();
+            if c_fn(cc) {
+                Ok((i.clone(), i.slice(0..0)))
+            } else {
+                Err(nom::Err::Error(Error::from_error_kind(i, ErrorKind::Char)))
             }
         }
     }
