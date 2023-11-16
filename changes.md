@@ -1,3 +1,8 @@
+# 3.0.5
+
+* Add a backtrace to ParserError in debug mode.
+* Add new parsers fchar(), psense(), fsense() for single character parsing.
+
 # 3.0.4
 
 * Add bound SpanFragment to ParserError and TokenizerError for better debug output.
