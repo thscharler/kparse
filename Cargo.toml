@@ -16,13 +16,8 @@ exclude = [".idea/*", ".gitignore"]
 [dependencies]
 memchr = "2.5"
 bytecount = "^0.6"
-
-[dependencies.nom]
-version = "7.1"
-features = [ "alloc" ]
-
-[dependencies.nom_locate]
-version = "4.0"
+nom = "7.1"
+nom_locate = "4.2"
 
 [dev-dependencies]
 glob = "0.3"
